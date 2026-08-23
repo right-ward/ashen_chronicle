@@ -1,4 +1,4 @@
-use super::{actions, interactions};
+use super::{actions, interactions, legacy};
 use crate::model::{EntityId, GameState, Item};
 use crate::ui::{
     choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
@@ -78,7 +78,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 ),
             };
             state.character.inventory.push(trophy.clone());
-            notify_item_gain(state, &trophy);
+            legacy::notify_item_gain(state, &trophy);
             interactions::update_faction_memory_for_location(
                 state,
                 location.id,
@@ -166,7 +166,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
         }
         if state.character.hp <= 0 {
             let location_name = location.name.clone();
-            actions::mark_character_dead(
+            legacy::mark_character_dead(
                 state,
                 format!("{} overcame them", encounter.enemy_name),
                 &location_name,
@@ -199,19 +199,6 @@ fn encounter_profile(state: &GameState, location_name: &str) -> (String, i32, i3
             2,
             "Marauder's Token".to_string(),
         )
-    }
-}
-
-fn notify_item_gain(state: &GameState, item: &Item) {
-    println!("You gain: {}", item.name);
-    println!("{}", item.description);
-    if let Some(art) = state
-        .campaign_content
-        .as_ref()
-        .and_then(|content| content.item_art_for(&item.name))
-    {
-        println!("");
-        println!("{}", art);
     }
 }
 
