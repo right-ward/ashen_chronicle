@@ -1,7 +1,17 @@
 pub(crate) fn time_display(points: u32, day: u32) -> String {
     const PORTIONS: [&str; 12] = [
-        "Deep Night", "Before Dawn", "Dawn", "Morning", "Late Morning", "High Sun",
-        "Afternoon", "Late Afternoon", "Dusk", "Evening", "Night", "Midnight",
+        "Deep Night",
+        "Before Dawn",
+        "Dawn",
+        "Morning",
+        "Late Morning",
+        "High Sun",
+        "Afternoon",
+        "Late Afternoon",
+        "Dusk",
+        "Evening",
+        "Night",
+        "Midnight",
     ];
     const WIDTH: usize = 23;
     let slot = (points % 12) as usize;
