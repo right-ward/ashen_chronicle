@@ -1,5 +1,6 @@
 use crate::content::CampaignContent;
 use crate::game::actions;
+use crate::game::time::time_display;
 use crate::model::{EntityId, GameState};
 use crate::ui::{set_dashboard, set_location_scene, Dashboard};
 use std::io;
@@ -33,7 +34,7 @@ pub(crate) fn render_state(state: &GameState) {
         enemy_name: None,
         enemy_hp: None,
         enemy_max_hp: None,
-        time_display: actions::time_display(world.time_points, world.day),
+        time_display: time_display(world.time_points, world.day),
         condition_line,
         location_name: location.map(|location| format!("~ {} ~", location.name)),
         location_description: location.map(|location| location.description.clone()),

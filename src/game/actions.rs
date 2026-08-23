@@ -452,55 +452,6 @@ fn corpse_label(corpse: &Corpse) -> String {
     }
 }
 
-pub(crate) fn time_display(points: u32, day: u32) -> String {
-    const PORTIONS: [&str; 12] = [
-        "Deep Night",
-        "Before Dawn",
-        "Dawn",
-        "Morning",
-        "Late Morning",
-        "High Sun",
-        "Afternoon",
-        "Late Afternoon",
-        "Dusk",
-        "Evening",
-        "Night",
-        "Midnight",
-    ];
-    const WIDTH: usize = 23;
-    let slot = (points % 12) as usize;
-    let label = PORTIONS[slot];
-    let mut top = vec![' '; WIDTH];
-    let mut bottom = vec![' '; WIDTH];
-    let place = |line: &mut Vec<char>, idx: usize, ch: char| {
-        if idx < line.len() {
-            line[idx] = ch;
-        }
-    };
-    match slot {
-        0 => place(&mut bottom, 20, '☾'),
-        1 => place(&mut bottom, 16, '☾'),
-        2 => place(&mut top, 16, '○'),
-        3 => place(&mut top, 13, '○'),
-        4 => place(&mut top, 10, '○'),
-        5 => place(&mut top, 7, '○'),
-        6 => place(&mut top, 4, '○'),
-        7 => place(&mut bottom, 4, '○'),
-        8 => place(&mut bottom, 7, '☾'),
-        9 => place(&mut bottom, 10, '☾'),
-        10 => place(&mut bottom, 13, '☾'),
-        11 => place(&mut bottom, 16, '☾'),
-        _ => unreachable!(),
-    }
-    let top: String = top.into_iter().collect();
-    let bottom: String = bottom.into_iter().collect();
-    let indicator = format!("E{}W", "=".repeat(WIDTH - 2));
-    format!(
-        "{}\n{}\n{}  Day {} | {}",
-        top, bottom, indicator, day, label
-    )
-}
-
 fn npc_unavailable_message(npc_name: &str, points: u32) -> String {
     let slot = points % 12;
     let (reason, hint) = match slot {
@@ -729,7 +680,11 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         ),
     );
     save_game(save_path, state)?;
-    narrate(&format!("You meditate until your breathing steadies. You look at the sky...\n{}\nYou recover {} HP and save the game.", time_display(state.world.time_points, state.world.day), healing));
+    narrate(&format!(
+        "You meditate until your breathing steadies. You look at the sky...\n{}\nYou recover {} HP and save the game.",
+        crate::game::time::time_display(state.world.time_points, state.world.day),
+        healing
+    ));
     Ok(())
 }
 
@@ -798,7 +753,11 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
                 .map(|d| d.subsec_nanos())
                 .unwrap_or(0);
             if tick.is_multiple_of(2) {
-                let hidden = Item { id: state.world.allocate_id(), name: "Ashen Note".to_string(), description: "A scrap of writing that might reveal something about the life that ended here.".to_string() };
+                let hidden = Item {
+                    id: state.world.allocate_id(),
+                    name: "Ashen Note".to_string(),
+                    description: "A scrap of writing that might reveal something about the life that ended here.".to_string(),
+                };
                 notify_item_gain(state, &hidden);
                 state.character.inventory.push(hidden);
                 println!("Your insight uncovers something the hurried would have missed.");
@@ -806,9 +765,7 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
         }
         gain_experience(
             state,
-            (5 + state.character.effective_insight())
-                .try_into()
-                .unwrap(),
+            (5 + state.character.effective_insight()).try_into().unwrap(),
         );
         println!("Feel like a deja-vu.");
         println!("You feel as if they were once yours. Though, These items can be inherited, Their memories cannot.");
