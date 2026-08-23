@@ -11,23 +11,75 @@ on:
       - main
   workflow_dispatch:
 
-# Development pushes stay on feature branches and do not start CI automatically.
-# PR runs replace older in-progress runs for the same branch/PR, preventing a
-# burst of intermediate fixes from producing a burst of stale CI failures.
+# PR runs share one concurrency group so a formatting commit or new push
+# cancels stale work instead of producing a burst of redundant failures.
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
   cancel-in-progress: true
 
 permissions:
-  contents: read
+  contents: write
 
 jobs:
+  format:
+    name: Format PR
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
+    runs-on: ubuntu-latest
+    outputs:
+      changed: ${{ steps.format.outputs.changed }}
+
+    steps:
+      - name: Checkout PR branch
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.ref }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Format source
+        id: format
+        shell: bash
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+        run: |
+          set -euo pipefail
+
+          cargo fmt --all
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "Formatting is already clean."
+            exit 0
+          fi
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "style: apply rustfmt [skip ci]"
+          git push origin "HEAD:$HEAD_BRANCH"
+
   test:
     name: Test
+    needs: format
     if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'pull_request' ||
-      github.event_name == 'workflow_dispatch'
+      always() &&
+      (
+        (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+        github.event_name == 'workflow_dispatch' ||
+        (
+          github.event_name == 'pull_request' &&
+          needs.format.result != 'failure' &&
+          needs.format.result != 'cancelled' &&
+          needs.format.outputs.changed != 'true'
+        )
+      )
     runs-on: ubuntu-latest
 
     steps:
