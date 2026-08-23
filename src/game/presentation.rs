@@ -1,5 +1,5 @@
 use crate::content::CampaignContent;
-use crate::game::actions;
+use crate::game::interactions;
 use crate::game::time::time_display;
 use crate::model::{EntityId, GameState};
 use crate::ui::{set_dashboard, set_location_scene, Dashboard};
@@ -63,7 +63,7 @@ pub(crate) fn maybe_run_location_scene(state: &mut GameState) -> io::Result<()> 
         .unwrap_or_else(crate::content::load_campaign_content);
     let mut lines = location_art(&content, state, location_id);
     let atmosphere = location_atmosphere(&content, state, location_id);
-    let npc_ids = actions::npc_ids_at_location(state, location_id);
+    let npc_ids = interactions::npc_ids_at_location(state, location_id);
     if !lines.is_empty() && (!atmosphere.is_empty() || !npc_ids.is_empty()) {
         lines.push(String::new());
     }
@@ -112,7 +112,7 @@ fn location_scene_for_npc(
     location_id: EntityId,
 ) -> Vec<String> {
     let mut lines = Vec::new();
-    let Some(npc_index) = actions::npc_index_by_id(state, npc_id) else {
+    let Some(npc_index) = interactions::npc_index_by_id(state, npc_id) else {
         return lines;
     };
     let npc_name = state.npcs[npc_index].display_name();
