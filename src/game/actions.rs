@@ -1,5 +1,5 @@
-use crate::game::character;
-use crate::model::{Condition, GameState, Item};
+use crate::game::{character, interactions, legacy};
+use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
 use crate::ui::{choose_from_list, narrate, pause, prompt};
 use std::path::Path;
@@ -255,6 +255,10 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     Ok(())
 }
 
+pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
+    legacy::search_remains(state)
+}
+
 pub(crate) fn show_inventory(state: &GameState) {
     println!("\nInventory for {}", state.character.display_name());
     if state.character.inventory.is_empty() {
@@ -310,4 +314,12 @@ pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
         narrate("The journal entry is recorded.");
     }
     Ok(())
+}
+
+pub(crate) fn force_death(state: &mut GameState) {
+    legacy::force_death(state);
+}
+
+pub(crate) fn mark_character_dead(state: &mut GameState, cause: String, location_name: &str) {
+    legacy::mark_character_dead(state, cause, location_name);
 }
