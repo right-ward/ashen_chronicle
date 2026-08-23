@@ -6,13 +6,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.28.0: Gameplay Action Dispatcher Architecture
-- v0.28.0 is the current completed milestone.
-- The codebase is being decomposed by clear responsibility boundaries while preserving gameplay behavior and save compatibility.
+- v0.29.0: Gameplay Action Architecture Cleanup
+- v0.29.0 is the current completed milestone.
+- Time-display formatting now has its own gameplay time module instead of living inside `game/actions.rs`.
+- Gameplay behavior, save compatibility, and screen flow remain unchanged.
 
 ## Next
 
-### v0.29.0 — Gameplay Action Architecture Cleanup
+### v0.30.0 — Gameplay Action Architecture Cleanup II
 
 - Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
 - Avoid splitting files purely to reduce line counts.
