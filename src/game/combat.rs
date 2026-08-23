@@ -1,4 +1,4 @@
-use super::actions;
+use super::{actions, interactions};
 use crate::model::{EntityId, GameState, Item};
 use crate::ui::{
     choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
@@ -79,7 +79,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             };
             state.character.inventory.push(trophy.clone());
             notify_item_gain(state, &trophy);
-            actions::update_faction_memory_for_location(
+            interactions::update_faction_memory_for_location(
                 state,
                 location.id,
                 format!("{} was cleared of danger.", location.name),
