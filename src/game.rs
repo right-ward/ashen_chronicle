@@ -1,4 +1,5 @@
 mod actions;
+mod character;
 mod combat;
 mod dispatcher;
 mod interactions;
