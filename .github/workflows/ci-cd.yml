@@ -18,13 +18,15 @@ concurrency:
   cancel-in-progress: true
 
 permissions:
-  contents: write
+  contents: read
 
 jobs:
   format:
     name: Format PR
     if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]'
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     outputs:
       changed: ${{ steps.format.outputs.changed }}
 
@@ -47,8 +49,15 @@ jobs:
         shell: bash
         env:
           HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          SAME_REPOSITORY: ${{ github.event.pull_request.head.repo.full_name == github.repository }}
         run: |
           set -euo pipefail
+
+          if [[ "$SAME_REPOSITORY" != "true" ]]; then
+            cargo fmt --all -- --check
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            exit 0
+          fi
 
           cargo fmt --all
 
