@@ -765,7 +765,9 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
         }
         gain_experience(
             state,
-            (5 + state.character.effective_insight()).try_into().unwrap(),
+            (5 + state.character.effective_insight())
+                .try_into()
+                .unwrap(),
         );
         println!("Feel like a deja-vu.");
         println!("You feel as if they were once yours. Though, These items can be inherited, Their memories cannot.");
