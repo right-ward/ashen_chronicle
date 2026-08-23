@@ -1,6 +1,6 @@
 use crate::game::actions::{advance_time, gain_experience, notify_item_gain};
 use crate::model::{EntityId, Faction, GameState, Item, Quest};
-use crate::ui::{choose_from_list, narrate, pause};
+use crate::ui::{choose_from_list, pause};
 
 macro_rules! println {
     () => {
