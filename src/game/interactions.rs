@@ -1,4 +1,4 @@
-use crate::game::{actions, legacy};
+use crate::game::{actions, character, legacy};
 use crate::model::{EntityId, Faction, GameState, Item, Quest};
 use crate::ui::{choose_from_list, pause};
 
@@ -285,7 +285,7 @@ fn complete_quest(state: &mut GameState, quest_index: usize) -> bool {
     println!("\nQuest complete: {}", title);
     println!("  Quest item consumed: {}", required_item_name);
     println!("  Reward: {}", reward.name);
-    gain_experience(state, 25);
+    character::gain_experience(state, 25);
     println!("  Reputation: +5 for completing the deed, +5 while carrying the reward");
     true
 }
@@ -318,76 +318,3 @@ fn remember_npc(state: &mut GameState, npc_id: EntityId, memory: String) {
             let remove_count = npc.memory.len() - 5;
             npc.memory.drain(0..remove_count);
         }
-    }
-}
-
-fn remember_faction(state: &mut GameState, faction_id: EntityId, memory: String) {
-    if let Some(faction) = faction_by_id_mut(state, faction_id) {
-        faction.memory.push(memory);
-        if faction.memory.len() > 5 {
-            let remove_count = faction.memory.len() - 5;
-            faction.memory.drain(0..remove_count);
-        }
-    }
-}
-
-fn adjust_faction_reputation(
-    state: &mut GameState,
-    faction_id: EntityId,
-    delta: i32,
-    reason: &str,
-) {
-    if let Some(faction) = faction_by_id_mut(state, faction_id) {
-        faction.reputation += delta;
-        faction.memory.push(reason.to_string());
-        if faction.memory.len() > 5 {
-            let remove_count = faction.memory.len() - 5;
-            faction.memory.drain(0..remove_count);
-        }
-    }
-}
-
-fn npc_unavailable_message(npc_name: &str, points: u32) -> String {
-    let slot = points % 12;
-    let (reason, hint) = match slot {
-        0 | 1 => ("It is too late in the night.", "Try again after dawn."),
-        10 | 11 => ("It is too late tonight.", "Try again in the morning."),
-        2..=5 => (
-            "It is still too early in the day.",
-            "Try again later today.",
-        ),
-        6..=9 => ("It is too late in the day.", "Try again tomorrow morning."),
-        _ => ("They are unavailable right now.", "Try again later."),
-    };
-    format!(
-        "{} is not available right now. {} {}",
-        npc_name, reason, hint
-    )
-}
-
-fn npc_is_available_now(points: u32) -> bool {
-    matches!(points % 12, 2..=9)
-}
-
-pub(crate) fn update_faction_memory_for_location(
-    state: &mut GameState,
-    location_id: EntityId,
-    memory: String,
-) {
-    let npc_ids = npc_ids_at_location(state, location_id);
-    let mut faction_ids = Vec::new();
-    for npc_id in npc_ids {
-        if let Some(index) = npc_index_by_id(state, npc_id) {
-            let npc = &state.npcs[index];
-            if let Some(faction_id) = npc.faction_id {
-                faction_ids.push(faction_id);
-                remember_npc(state, npc_id, memory.clone());
-            }
-        }
-    }
-    faction_ids.sort_unstable();
-    faction_ids.dedup();
-    for faction_id in faction_ids {
-        remember_faction(state, faction_id, memory.clone());
-    }
-}
