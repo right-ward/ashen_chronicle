@@ -3,6 +3,7 @@ mod character;
 mod combat;
 mod dispatcher;
 mod interactions;
+mod legacy;
 mod presentation;
 mod runtime;
 mod screens;
