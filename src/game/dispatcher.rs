@@ -1,4 +1,4 @@
-use crate::game::{actions, combat, screens};
+use crate::game::{actions, combat, interactions, screens};
 use crate::model::GameState;
 use std::io;
 use std::path::Path;
@@ -12,7 +12,7 @@ pub(crate) fn dispatch(
         actions::GameAction::Travel => actions::travel(state)?,
         actions::GameAction::InvestigateThreat => combat::investigate_threat(state)?,
         actions::GameAction::SearchRemains => actions::search_remains(state)?,
-        actions::GameAction::Talk => actions::talk(state)?,
+        actions::GameAction::Talk => interactions::talk(state)?,
         actions::GameAction::Meditate => actions::meditate_and_save(state, save_path)?,
         actions::GameAction::QuestLog => actions::review_quests(state),
         actions::GameAction::Inventory => actions::show_inventory(state),
