@@ -4,6 +4,7 @@ mod dispatcher;
 mod presentation;
 mod runtime;
 mod screens;
+mod time;
 mod world;
 
 pub fn run() -> std::io::Result<()> {
