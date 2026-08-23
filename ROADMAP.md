@@ -6,14 +6,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.29.0: Gameplay Action Architecture Cleanup
-- v0.29.0 is the current completed milestone.
-- Time-display formatting now has its own gameplay time module instead of living inside `game/actions.rs`.
+- v0.30.0: Gameplay Interaction Architecture Cleanup
+- v0.30.0 is the current completed milestone.
+- NPC selection, dialogue, quest offering/turn-in, faction memory, faction reputation, and NPC availability now live in `game/interactions.rs` instead of `game/actions.rs`.
 - Gameplay behavior, save compatibility, and screen flow remain unchanged.
 
 ## Next
 
-### v0.30.0 — Gameplay Action Architecture Cleanup II
+### v0.31.0 — Gameplay Action Architecture Cleanup III
 
 - Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
 - Avoid splitting files purely to reduce line counts.
