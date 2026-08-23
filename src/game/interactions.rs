@@ -1,4 +1,4 @@
-use crate::game::actions::{advance_time, gain_experience, notify_item_gain};
+use crate::game::{actions, legacy};
 use crate::model::{EntityId, Faction, GameState, Item, Quest};
 use crate::ui::{choose_from_list, pause};
 
@@ -220,7 +220,7 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
             _ => {}
         }
     }
-    advance_time(state, 1);
+    actions::advance_time(state, 1);
     Ok(())
 }
 
@@ -276,7 +276,7 @@ fn complete_quest(state: &mut GameState, quest_index: usize) -> bool {
         description: format!("A token earned by completing {}.", title),
     };
     state.character.inventory.push(reward.clone());
-    notify_item_gain(state, &reward);
+    legacy::notify_item_gain(state, &reward);
     grant_reward_reputation(state, &reward);
     state.world.record_history(
         state.character.turn,
