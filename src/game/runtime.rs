@@ -1,7 +1,7 @@
 use crate::game::{console, dispatcher, menu, presentation, screens, world};
 use crate::model::GameState;
 use crate::persistence::character_save_path;
-use crate::ui::{clear_log};
+use crate::ui::clear_log;
 use std::io;
 use std::path::PathBuf;
 
