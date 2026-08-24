@@ -1,4 +1,4 @@
-use super::{actions, character, interactions, legacy, state_effects};
+use super::{character, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
 use crate::ui::{
     choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
