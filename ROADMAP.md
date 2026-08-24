@@ -6,15 +6,15 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.34.0: Gameplay Action Architecture Cleanup VI
-- `game/actions.rs` now focuses on player-facing gameplay actions rather than temporal state mutation.
-- Temporal progression and condition lifecycle helpers now live in `game/state_effects.rs`.
-- Travel, meditation, and journaling use the shared state-effects layer.
+- v0.35.0: Gameplay Action Architecture Cleanup VII
+- `game/actions.rs` now focuses on travel and meditation gameplay actions.
+- Inventory display, quest-log display, and journal writing now live in `game/records.rs` as a cohesive player-record concern.
+- Character-sheet dispatch now goes directly through `game/character.rs` instead of being wrapped by the action layer.
 - Gameplay behavior, save compatibility, and screen flow remain unchanged.
 
 ## Next
 
-### v0.35.0 — Gameplay Action Architecture Cleanup VII
+### v0.36.0 — Gameplay Action Architecture Cleanup VIII
 
 - Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
 - Prefer extracting cohesive gameplay concerns over splitting functions or files by size alone.
