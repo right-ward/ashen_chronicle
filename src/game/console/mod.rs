@@ -518,8 +518,17 @@ fn where_content(console: &mut ConsoleState) {
 
 fn mods(console: &mut ConsoleState) {
     let report = load_campaign_content();
-    console.output.push("mod/content diagnostics available through campaign content load".into());
-    console.output.push(format!("campaign content: {}", if report.is_some() { "loaded" } else { "unavailable" }));
+    console
+        .output
+        .push("mod/content diagnostics available through campaign content load".into());
+    console.output.push(format!(
+        "campaign content: {}",
+        if report.is_some() {
+            "loaded"
+        } else {
+            "unavailable"
+        }
+    ));
 }
 
 fn content(state: &GameState, console: &mut ConsoleState) {
@@ -889,9 +898,9 @@ fn reload(state: &mut GameState, console: &mut ConsoleState) {
     state.campaign_content = report;
     world::bootstrap_campaign_content(state);
     state.last_announced_location_id = None;
-    console.output.push(format!(
-        "reloaded content: loaded={loaded}"
-    ));
+    console
+        .output
+        .push(format!("reloaded content: loaded={loaded}"));
 }
 fn save(state: &GameState, path: &Path, console: &mut ConsoleState) {
     console.output.push(match save_game(path, state) {
