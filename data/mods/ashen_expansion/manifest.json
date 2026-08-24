@@ -1,0 +1,8 @@
+{
+  "id": "campaign.echoes_of_the_ashen_road",
+  "name": "Echoes of the Ashen Road",
+  "version": "0.1.0",
+  "priority": 10,
+  "enabled": true,
+  "content_file": "content.json"
+}

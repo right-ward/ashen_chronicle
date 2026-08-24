@@ -1,0 +1,176 @@
+{
+  "version": 1,
+  "world": {
+    "region": {
+      "id": "region.ashen_crown",
+      "name": "The Ashen Crown",
+      "description": "A bleak frontier where old stone roads still cut through soot and cinder."
+    },
+    "locations": [
+      {
+        "id": "location.sootbound_crossing",
+        "name": "Sootbound Crossing",
+        "description": "A ruined road crossing where caravan tracks vanish into the cinder.",
+        "dangerous": false,
+        "exits": [
+          "location.hollow_market",
+          "location.drowned_chapel",
+          "location.resonant_forge"
+        ]
+      },
+      {
+        "id": "location.resonant_forge",
+        "name": "Resonant Forge",
+        "description": "A collapsed smithy where buried machinery still hums beneath the slag, as if the old bellows never stopped.",
+        "dangerous": true,
+        "exits": [
+          "location.sootbound_crossing",
+          "location.hollow_caravan"
+        ],
+        "scene_art": "   /\\____/\\\n  /  _  _  \\\n /__/| || |__\\\n |  | || |  |\n |__|_||_|__|\n    /_||_\\\n"
+      },
+      {
+        "id": "location.hollow_caravan",
+        "name": "Hollow Caravan",
+        "description": "A ruined traveling caravan lies beside the road: wagons split open, instrument cases blackened by fire, and a little wooden stage half-buried in ash.",
+        "dangerous": true,
+        "exits": [
+          "location.resonant_forge"
+        ],
+        "scene_art": "      ___        ___\n  ___ /___\\____ /___\\ ___\n /___/|  _  |__|  _  |\\___\\\n |   || | | |  | | | |   ||\n |___||_|_|_|__|_|_|_|___||\n   O                  O\n     /____________\\\n"
+      }
+    ]
+  },
+  "factions": [],
+  "npcs": [
+    {
+      "id": "npc.vahr",
+      "name": "Vahr",
+      "title": "Forge Keeper",
+      "location_name": "Resonant Forge",
+      "faction_name": "Cinder Wardens",
+      "memory": [
+        "Listens to the forge for signs that the buried machinery is waking."
+      ],
+      "portrait": "  /\\\n (.. )\n /||\\\n  / \\\n /___\\\n"
+    },
+    {
+      "id": "npc.mara",
+      "name": "Mara",
+      "title": "Road Singer",
+      "location_name": "Hollow Caravan",
+      "faction_name": "Drowned Bell Covenant",
+      "memory": [
+        "Says the old performers carried songs from settlement to settlement before the roads went silent."
+      ],
+      "portrait": "  .--.\n (o  o)\n  |==|\n /|  |\\\n  /  \\\n"
+    }
+  ],
+  "quests": [
+    {
+      "id": "quest.silence_the_forge",
+      "title": "Silence the Forge",
+      "description": "Vahr wants the machine beneath the slag stopped before its resonance spreads down the road.",
+      "location_name": "Resonant Forge",
+      "faction_name": "Cinder Wardens",
+      "giver_npc_name": "Vahr",
+      "required_item_name": "Forge Warden's Core",
+      "reward_item_name": "Resonant Shard"
+    },
+    {
+      "id": "quest.last_chord",
+      "title": "The Last Chord",
+      "description": "Mara wants the old road bell recovered from the Hollow Caravan so the dead performers can finally finish their last song.",
+      "location_name": "Hollow Caravan",
+      "faction_name": "Drowned Bell Covenant",
+      "giver_npc_name": "Mara",
+      "required_item_name": "Road Bell",
+      "reward_item_name": "Last Chord"
+    }
+  ],
+  "encounters": [
+    {
+      "location_name": "Resonant Forge",
+      "enemy_name": "Slagbound Warden",
+      "enemy_hp": 9,
+      "enemy_power": 3,
+      "trophy_item_name": "Forge Warden's Core",
+      "description": "A welded guardian drags itself from the slag, still obeying a command from a dead workshop."
+    },
+    {
+      "location_name": "Hollow Caravan",
+      "enemy_name": "Road-Worn Phantom",
+      "enemy_hp": 8,
+      "enemy_power": 3,
+      "trophy_item_name": "Road Bell",
+      "description": "A pale performer rises beside the ruined stage, wearing a coat stitched from old banners and carrying the grief of an audience that never arrived."
+    }
+  ],
+  "atmospheres": [
+    {
+      "location_name": "Resonant Forge",
+      "text": "Metal hums somewhere under your boots, keeping time with a heartbeat that is not yours."
+    },
+    {
+      "location_name": "Hollow Caravan",
+      "text": "Wind moves through broken instrument cases and hanging stage cloth. Somewhere among the wagons, a melody keeps trying to remember itself."
+    }
+  ],
+  "item_visuals": [
+    {
+      "item_name": "Resonant Shard",
+      "art": "  /\\\n <##>\n  \\/\n"
+    },
+    {
+      "item_name": "Last Chord",
+      "art": "  /\\\n (==)\n  ||\n /__\\\n"
+    }
+  ],
+  "events": [
+    {
+      "id": "event.resonant_echo",
+      "trigger": "travel_arrival",
+      "weight": 2,
+      "chance_percent": 35,
+      "cooldown_turns": 6,
+      "conditions": {
+        "locations": [
+          "Resonant Forge"
+        ]
+      },
+      "effects": [
+        {
+          "type": "Message",
+          "text": "A deep metallic note rolls through the forge, and the walls answer from somewhere below."
+        },
+        {
+          "type": "History",
+          "text": "The forge answered the road with a buried metallic echo."
+        }
+      ]
+    },
+    {
+      "id": "event.caravan_choir",
+      "trigger": "travel_arrival",
+      "weight": 2,
+      "chance_percent": 35,
+      "cooldown_turns": 6,
+      "conditions": {
+        "locations": [
+          "Hollow Caravan"
+        ],
+        "night": true
+      },
+      "effects": [
+        {
+          "type": "Message",
+          "text": "After dusk, several broken instruments answer one another across the wagons. The tune is slow, heavy, and impossible to place."
+        },
+        {
+          "type": "History",
+          "text": "The Hollow Caravan sang without living performers."
+        }
+      ]
+    }
+  ]
+}

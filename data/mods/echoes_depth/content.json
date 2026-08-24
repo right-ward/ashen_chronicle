@@ -1,0 +1,221 @@
+{
+  "version": 1,
+  "world": {
+    "region": {
+      "id": "region.ashen_crown",
+      "name": "The Ashen Crown",
+      "description": "The deeper road remembers older songs than the settlements above it."
+    },
+    "locations": [
+      {
+        "id": "location.hollow_caravan",
+        "name": "Hollow Caravan",
+        "description": "A ruined traveling caravan lies beside the road: wagons split open, instrument cases blackened by fire, and a little wooden stage half-buried in ash.",
+        "dangerous": true,
+        "exits": ["location.resonant_forge", "location.broken_stage"],
+        "scene_art": "      ___        ___\n  ___ /___\\____ /___\\ ___\n /___/|  _  |__|  _  |\\___\\\n |   || | | |  | | | |   ||\n |___||_|_|_|__|_|_|_|___||\n   O                  O\n     /____________\\\n"
+      },
+      {
+        "id": "location.broken_stage",
+        "name": "Broken Stage",
+        "description": "A stone performance court split by roots and ash, its old stage still standing beneath a sky of cracked banners.",
+        "dangerous": true,
+        "exits": ["location.hollow_caravan", "location.library_of_loops"],
+        "scene_art": "  __________________\n /_/_/_/_/_/_/_/_/_/\\\n |      ____      |\n |_____/____\\_____|\n    _/      \\_\n   /__|____|__\\\n"
+      },
+      {
+        "id": "location.library_of_loops",
+        "name": "Library of Loops",
+        "description": "A buried archive of songbooks, chants, and repeated verses where every corridor seems to return you to words you have already read.",
+        "dangerous": true,
+        "exits": ["location.broken_stage", "location.silence_spire"],
+        "scene_art": "  _____________\n /__ /__ /__ /_\\\n | | | | | | | |\n |-| |-| |-| |-|\n | | | | | | | |\n |_| |_| |_| |_|\n"
+      },
+      {
+        "id": "location.silence_spire",
+        "name": "Silence Spire",
+        "description": "A narrow black tower rising above the ash where sound seems to vanish before it reaches the upper stones.",
+        "dangerous": true,
+        "exits": ["location.library_of_loops", "location.endless_corridor"],
+        "scene_art": "      /\\\n     /  \\\n    /____\\\n      ||\n      ||\n     _||_\n"
+      },
+      {
+        "id": "location.endless_corridor",
+        "name": "Endless Corridor",
+        "description": "A corridor of doors, arches, and worn steps that should not fit inside any building. Every turn offers another version of the same road.",
+        "dangerous": true,
+        "exits": ["location.silence_spire", "location.pit"]
+      },
+      {
+        "id": "location.pit",
+        "name": "The Pit",
+        "description": "A vast hollow beneath the corridor where broken instruments and old stage stones descend into darkness without a visible floor.",
+        "dangerous": true,
+        "exits": ["location.endless_corridor"]
+      }
+    ]
+  },
+  "factions": [],
+  "npcs": [
+    {
+      "id": "npc.orun",
+      "name": "Orun",
+      "title": "Stage Keeper",
+      "location_name": "Broken Stage",
+      "faction_name": "Cinder Wardens",
+      "memory": ["Keeps the old stage clear of ash even though no living troupe claims it anymore."],
+      "portrait": "  /\\\n (==)\n /||\\\n /  \\\n/____\\\n"
+    },
+    {
+      "id": "npc.sera",
+      "name": "Sera",
+      "title": "Archivist of Verses",
+      "location_name": "Library of Loops",
+      "faction_name": "Hollow Market Kin",
+      "memory": ["Copies verses that repeat themselves and marks the ones that change between readings."],
+      "portrait": "  .-.\n /o o\\\n  |=|\n /|_|\\\n  / \\\n"
+    },
+    {
+      "id": "npc.ash_cantor",
+      "name": "Ash Cantor",
+      "title": "Keeper of the Mute Bell",
+      "location_name": "Silence Spire",
+      "faction_name": "Drowned Bell Covenant",
+      "memory": ["Claims the tower does not silence music; it silences the listener."],
+      "portrait": "   /\\\n  /__\\\n  |..|\n /|__|\\\n  /  \\\n"
+    },
+    {
+      "id": "npc.khar",
+      "name": "Khar",
+      "title": "Lost Drummer",
+      "location_name": "Endless Corridor",
+      "faction_name": "Cinder Wardens",
+      "memory": ["Has walked the same corridor for so long that he measures distance in repeating rhythms."],
+      "portrait": "  ___\n (o o)\n /|=|\\\n  / \\\n /___\\\n"
+    },
+    {
+      "id": "npc.vesh",
+      "name": "Vesh",
+      "title": "Pit Keeper",
+      "location_name": "The Pit",
+      "faction_name": "Drowned Bell Covenant",
+      "memory": ["Refuses to say what is at the bottom. Says the Pit listens whenever someone does."],
+      "portrait": "  ___\n /_ _\\\n (o o)\n /|_|\\\n  / \\\n"
+    }
+  ],
+  "quests": [
+    {
+      "id": "quest.raise_the_stage",
+      "title": "Raise the Broken Stage",
+      "description": "Orun wants the ruined stage faced once more so the unfinished performance can be remembered instead of forgotten.",
+      "location_name": "Broken Stage",
+      "faction_name": "Cinder Wardens",
+      "giver_npc_name": "Orun",
+      "required_item_name": "Stagebound Mask",
+      "reward_item_name": "Ashen Pick"
+    },
+    {
+      "id": "quest.unfinished_verse",
+      "title": "The Unfinished Verse",
+      "description": "Sera wants a page from the deepest loop copied before the library changes again.",
+      "location_name": "Library of Loops",
+      "faction_name": "Hollow Market Kin",
+      "giver_npc_name": "Sera",
+      "required_item_name": "Loopbound Page",
+      "reward_item_name": "Echo Manuscript"
+    },
+    {
+      "id": "quest.mute_bell",
+      "title": "The Mute Bell",
+      "description": "The Ash Cantor asks you to recover the fragment that lets the Silence Spire swallow a final note.",
+      "location_name": "Silence Spire",
+      "faction_name": "Drowned Bell Covenant",
+      "giver_npc_name": "Ash Cantor",
+      "required_item_name": "Mute Bell Fragment",
+      "reward_item_name": "Silent Chime"
+    },
+    {
+      "id": "quest.missing_measure",
+      "title": "The Missing Measure",
+      "description": "Khar believes one missing beat is keeping the Endless Corridor from reaching its final door.",
+      "location_name": "Endless Corridor",
+      "faction_name": "Cinder Wardens",
+      "giver_npc_name": "Khar",
+      "required_item_name": "Corridor Drumskin",
+      "reward_item_name": "Endless Rhythm"
+    },
+    {
+      "id": "quest.first_downbeat",
+      "title": "The First Downbeat",
+      "description": "Vesh wants proof of what the Pit remembers, but refuses to descend for it himself.",
+      "location_name": "The Pit",
+      "faction_name": "Drowned Bell Covenant",
+      "giver_npc_name": "Vesh",
+      "required_item_name": "Black Note",
+      "reward_item_name": "Pit Hymn"
+    }
+  ],
+  "encounters": [
+    {
+      "location_name": "Broken Stage",
+      "enemy_name": "Stagebound Husk",
+      "enemy_hp": 10,
+      "enemy_power": 3,
+      "trophy_item_name": "Stagebound Mask",
+      "description": "A hollow performer climbs from beneath the stage with its face hidden behind a cracked ceremonial mask."
+    },
+    {
+      "location_name": "Library of Loops",
+      "enemy_name": "Loopbound Cantor",
+      "enemy_hp": 10,
+      "enemy_power": 4,
+      "trophy_item_name": "Loopbound Page",
+      "description": "A figure made from layered pages recites the same verse until every repetition sounds like a different warning."
+    },
+    {
+      "location_name": "Silence Spire",
+      "enemy_name": "Mute Herald",
+      "enemy_hp": 11,
+      "enemy_power": 4,
+      "trophy_item_name": "Mute Bell Fragment",
+      "description": "A robed herald opens its mouth without making a sound, and the silence itself presses against your ears."
+    },
+    {
+      "location_name": "Endless Corridor",
+      "enemy_name": "Corridor Echo",
+      "enemy_hp": 12,
+      "enemy_power": 4,
+      "trophy_item_name": "Corridor Drumskin",
+      "description": "Something shaped like your own shadow steps from the next arch carrying a rhythm you have not played yet."
+    },
+    {
+      "location_name": "The Pit",
+      "enemy_name": "Black Chorus",
+      "enemy_hp": 14,
+      "enemy_power": 5,
+      "trophy_item_name": "Black Note",
+      "description": "Voices rise from the darkness below, each one singing the same note from a different distance."
+    }
+  ],
+  "atmospheres": [
+    {"location_name":"Broken Stage","text":"The ash lies thick where an audience once stood. When the wind shifts, the empty seats seem to lean toward the stage."},
+    {"location_name":"Library of Loops","text":"Every book smells of dust and lamp smoke. The words are familiar until you notice that one sentence has changed."},
+    {"location_name":"Silence Spire","text":"Your footsteps reach the first stair and then vanish. The tower seems to swallow every sound before you can hear it."},
+    {"location_name":"Endless Corridor","text":"The corridor bends without turning. Somewhere far ahead, a steady rhythm suggests that something has been waiting for you."},
+    {"location_name":"The Pit","text":"There is no wind here. Only a low vibration from below, felt through the stones before it is heard."}
+  ],
+  "item_visuals": [
+    {"item_name":"Ashen Pick","art":"   /|\n  / |\n /  |====\n/___|\n"},
+    {"item_name":"Echo Manuscript","art":"  ______\n /_____/|\n | . . | |\n |_____|/\n"},
+    {"item_name":"Silent Chime","art":"   /\\\n  /  \\\n   ||\n   ||\n  /__\\\n"},
+    {"item_name":"Endless Rhythm","art":"  .-.  .-.\n (   )(   )\n  `-'  `-'\n   ||  ||\n"},
+    {"item_name":"Pit Hymn","art":"  _____\n /_____\\\n |  _  |\n | |_| |\n |_____|\n"}
+  ],
+  "events": [
+    {"id":"event.stage_applause","trigger":"travel_arrival","weight":2,"chance_percent":35,"cooldown_turns":6,"conditions":{"locations":["Broken Stage"]},"effects":[{"type":"Message","text":"From somewhere beyond the empty seats comes a single clap. Then another. Then hundreds, all out of time."},{"type":"History","text":"The Broken Stage received applause from an empty audience."}]},
+    {"id":"event.looped_verse","trigger":"travel_arrival","weight":2,"chance_percent":35,"cooldown_turns":6,"conditions":{"locations":["Library of Loops"]},"effects":[{"type":"Message","text":"A page turns by itself. The same line appears three times, and the fourth version names you."},{"type":"History","text":"The Library of Loops wrote the traveler's name into a repeated verse."}]},
+    {"id":"event.spire_silence","trigger":"travel_arrival","weight":2,"chance_percent":35,"cooldown_turns":6,"conditions":{"locations":["Silence Spire"],"night":true},"effects":[{"type":"Message","text":"The whole road falls silent for one breath. You can still feel your heartbeat, but even that seems to belong to someone else."},{"type":"History","text":"Silence gathered around the Spire and swallowed the road."}]},
+    {"id":"event.corridor_refrain","trigger":"travel_arrival","weight":2,"chance_percent":35,"cooldown_turns":6,"conditions":{"locations":["Endless Corridor"]},"effects":[{"type":"Message","text":"A rhythm follows you through the arches. When you stop, it keeps going."},{"type":"History","text":"The Endless Corridor continued a rhythm after the traveler stopped."}]},
+    {"id":"event.pit_downbeat","trigger":"travel_arrival","weight":2,"chance_percent":40,"cooldown_turns":8,"conditions":{"locations":["The Pit"]},"effects":[{"type":"Message","text":"Something strikes a single note far below. Every broken instrument around you answers at once."},{"type":"History","text":"The Pit answered with a first downbeat from below."}]}
+  ]
+}

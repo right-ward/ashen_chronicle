@@ -6,22 +6,24 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.35.0: Gameplay Action Architecture Cleanup VII
-- `game/actions.rs` now focuses on travel and meditation gameplay actions.
-- Inventory display, quest-log display, and journal writing now live in `game/records.rs` as a cohesive player-record concern.
-- Character-sheet dispatch now goes directly through `game/character.rs` instead of being wrapped by the action layer.
-- Gameplay behavior, save compatibility, and screen flow remain unchanged.
+- v0.36.0: Echoes of the Ashen Road expansion
+- Added the Resonant Forge and Hollow Caravan as the expansion's opening locations.
+- Expanded the road through Broken Stage, Library of Loops, Silence Spire, Endless Corridor, and the Pit.
+- Added expansion encounters, NPCs, faction-linked quests, atmospheres, item art, and location-specific travel events.
+- Adapted the old music/metal concepts around an in-world traveling musical tradition, haunted performances, resonance, memory, repetition, and silence rather than modern-world imagery.
+- Delivered the expansion through the existing stable-ID mod/content system without changing the gameplay engine or save format.
+- Kept the deeper locations in a companion content pack so they can extend and override the opening expansion content through the same loader rules.
 
 ## Next
 
-### v0.36.0 — Gameplay Action Architecture Cleanup VIII
+### v0.37.0 — Quest Depth and World Consequences
 
-- Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
-- Prefer extracting cohesive gameplay concerns over splitting functions or files by size alone.
-- Preserve existing gameplay behavior, save compatibility, and screen flow.
+- Expand the quest system beyond single-item turn-ins with explicit objective state and more meaningful world consequences.
+- Use the existing event, history, faction, and NPC-memory systems so quest outcomes can affect the persistent world.
+- Preserve save compatibility and keep new quest data validated before entering runtime state.
 
 ## Longer-term direction
 
 Continue modularizing the codebase by responsibility rather than by file size alone. Keep runtime state, content loading, gameplay actions, presentation, persistence, and event processing independently understandable and testable.
 
-Major architectural work should preserve backward compatibility where practical and include focused tests for behavior affected by the refactor.
+Major gameplay work should remain data-driven where practical, preserve backward compatibility, and include focused tests for behavior affected by the change.

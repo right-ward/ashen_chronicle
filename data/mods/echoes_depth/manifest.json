@@ -1,0 +1,8 @@
+{
+  "id": "campaign.echoes_of_the_ashen_road_depth",
+  "name": "Echoes of the Ashen Road: The Deeper Road",
+  "version": "0.1.0",
+  "priority": 20,
+  "enabled": true,
+  "content_file": "content.json"
+}
