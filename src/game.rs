@@ -6,6 +6,7 @@ mod interactions;
 mod legacy;
 mod menu;
 mod presentation;
+mod records;
 mod runtime;
 mod screens;
 mod state_effects;

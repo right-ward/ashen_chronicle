@@ -1,4 +1,3 @@
-use crate::game::character;
 use crate::game::state_effects::{self, add_or_refresh_condition};
 use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
@@ -12,10 +11,6 @@ macro_rules! println {
     ($($arg:tt)*) => {
         crate::ui::line(&format!($($arg)*))
     };
-}
-
-pub(crate) fn character_sheet(state: &GameState) {
-    character::character_sheet(state);
 }
 
 pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
@@ -120,62 +115,5 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         crate::game::time::time_display(state.world.time_points, state.world.day),
         healing
     ));
-    Ok(())
-}
-
-pub(crate) fn show_inventory(state: &GameState) {
-    println!("\nInventory for {}", state.character.display_name());
-    if state.character.inventory.is_empty() {
-        println!("  Nothing.");
-    } else {
-        for item in &state.character.inventory {
-            println!("  - {}: {}", item.name, item.description);
-        }
-    }
-    pause();
-}
-
-pub(crate) fn review_quests(state: &GameState) {
-    println!();
-    println!("Quest log for {}", state.character.display_name());
-    let visible_quests: Vec<_> = state
-        .quests
-        .iter()
-        .filter(|quest| quest.offered || quest.completed)
-        .collect();
-    if visible_quests.is_empty() {
-        println!("  Nothing yet.");
-        pause();
-        return;
-    }
-    for quest in visible_quests {
-        let status = if quest.completed {
-            if quest.reward_claimed {
-                "completed"
-            } else {
-                "completed, reward pending"
-            }
-        } else {
-            "active"
-        };
-        println!("  - {} [{}]", quest.title, status);
-        println!("    {}", quest.description);
-    }
-    pause();
-}
-
-pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
-    let note = prompt("Write a journal note: ")?;
-    if !note.is_empty() {
-        state.character.notes.push(note.clone());
-        state_effects::advance_time(state, 1);
-        state.character.turn += 1;
-        let character_name = state.character.display_name();
-        state.world.record_history(
-            state.character.turn,
-            format!("{} noted: {}", character_name, note),
-        );
-        narrate("The journal entry is recorded.");
-    }
     Ok(())
 }
