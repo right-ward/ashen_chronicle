@@ -1,6 +1,7 @@
 mod actions;
 mod character;
 mod combat;
+mod console;
 mod dispatcher;
 mod interactions;
 mod legacy;
