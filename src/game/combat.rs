@@ -1,4 +1,4 @@
-use super::{actions, interactions, legacy};
+use super::{actions, character, interactions, legacy};
 use crate::model::{EntityId, GameState, Item};
 use crate::ui::{
     choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
@@ -84,7 +84,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 location.id,
                 format!("{} was cleared of danger.", location.name),
             );
-            actions::gain_experience(state, 15);
+            character::gain_experience(state, 15);
             println!("\nCombat result: victory");
             println!("  Defeated: {}", enemy_name);
             println!("  Loot: {}", trophy.name);
