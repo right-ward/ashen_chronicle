@@ -68,9 +68,7 @@ pub(crate) fn choose_main_menu(
                     .checked_sub(1)
                     .unwrap_or(options.len().saturating_sub(1));
             }
-            KeyCode::Down | KeyCode::Char('j') => {
-                selected = (selected + 1) % options.len().max(1)
-            }
+            KeyCode::Down | KeyCode::Char('j') => selected = (selected + 1) % options.len().max(1),
             KeyCode::Home => selected = 0,
             KeyCode::End => selected = options.len().saturating_sub(1),
             KeyCode::Enter => return Ok(Some(selected)),
@@ -84,8 +82,12 @@ pub(crate) fn choose_main_menu(
 fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     let mut console = ConsoleState::default();
-    console.output.push("Ashen Chronicle developer console".into());
-    console.output.push("help for commands | Tab completion | Esc closes".into());
+    console
+        .output
+        .push("Ashen Chronicle developer console".into());
+    console
+        .output
+        .push("help for commands | Tab completion | Esc closes".into());
 
     loop {
         refresh_completion(&mut console, state);
@@ -195,9 +197,11 @@ fn refresh_completion(console: &mut ConsoleState, state: &GameState) {
         match tokens.first().map(String::as_str) {
             Some("goto") | Some("teleport") => {
                 candidates = entity_candidates(
-                    state.world.locations.iter().map(|location| {
-                        (location.id, location.name.clone())
-                    }),
+                    state
+                        .world
+                        .locations
+                        .iter()
+                        .map(|location| (location.id, location.name.clone())),
                     prefix,
                 )
             }
@@ -211,9 +215,15 @@ fn refresh_completion(console: &mut ConsoleState, state: &GameState) {
                             });
                         }
                     }
-                } else if matches!(tokens.get(1).map(String::as_str), Some("complete" | "reset")) {
+                } else if matches!(
+                    tokens.get(1).map(String::as_str),
+                    Some("complete" | "reset")
+                ) {
                     candidates = entity_candidates(
-                        state.quests.iter().map(|quest| (quest.id, quest.title.clone())),
+                        state
+                            .quests
+                            .iter()
+                            .map(|quest| (quest.id, quest.title.clone())),
                         prefix,
                     );
                 }
@@ -226,7 +236,10 @@ fn refresh_completion(console: &mut ConsoleState, state: &GameState) {
                     });
                 } else if tokens.get(1).map(String::as_str) == Some("set") {
                     candidates = entity_candidates(
-                        state.factions.iter().map(|faction| (faction.id, faction.name.clone())),
+                        state
+                            .factions
+                            .iter()
+                            .map(|faction| (faction.id, faction.name.clone())),
                         prefix,
                     );
                 }
@@ -268,7 +281,9 @@ where
         .into_iter()
         .filter_map(|(id, hint)| {
             let value = id.to_string();
-            value.starts_with(prefix).then_some(Candidate { value, hint })
+            value
+                .starts_with(prefix)
+                .then_some(Candidate { value, hint })
         })
         .collect()
 }
@@ -390,7 +405,9 @@ fn execute_line(
 
 fn help(console: &mut ConsoleState) {
     console.output.push("help clear status where mods content locations goto teleport npc npcs quests quest factions faction inventory give remove heal damage kill revive xp level attr condition time day history reload save exit".into());
-    console.output.push("Tab: candidates | ↑↓: select | Enter: accept | Esc: cancel autocomplete".into());
+    console
+        .output
+        .push("Tab: candidates | ↑↓: select | Enter: accept | Esc: cancel autocomplete".into());
 }
 
 fn status(state: &GameState, console: &mut ConsoleState) {
@@ -424,13 +441,23 @@ fn status(state: &GameState, console: &mut ConsoleState) {
 }
 
 fn where_content(console: &mut ConsoleState) {
-    console.output.push(format!("cwd: {}", env::current_dir().map(|path| path.display().to_string()).unwrap_or_else(|_| "<unavailable>".into())));
+    console.output.push(format!(
+        "cwd: {}",
+        env::current_dir()
+            .map(|path| path.display().to_string())
+            .unwrap_or_else(|_| "<unavailable>".into())
+    ));
     if let Ok(exe) = env::current_exe() {
         console.output.push(format!("exe: {}", exe.display()));
         if let Some(dir) = exe.parent() {
             console.output.push(format!("exe_dir: {}", dir.display()));
-            console.output.push(format!("data beside exe: {}", dir.join("data").display()));
-            console.output.push(format!("mods beside exe: {}", dir.join("data/mods").display()));
+            console
+                .output
+                .push(format!("data beside exe: {}", dir.join("data").display()));
+            console.output.push(format!(
+                "mods beside exe: {}",
+                dir.join("data/mods").display()
+            ));
         }
     }
 }
@@ -449,16 +476,22 @@ fn mods(console: &mut ConsoleState) {
     let mut found = false;
     for root in roots {
         if !root.exists() {
-            console.output.push(format!("mods root missing: {}", root.display()));
+            console
+                .output
+                .push(format!("mods root missing: {}", root.display()));
             continue;
         }
-        console.output.push(format!("mods root: {}", root.display()));
+        console
+            .output
+            .push(format!("mods root: {}", root.display()));
         match fs::read_dir(&root) {
             Ok(entries) => {
                 for entry in entries.flatten() {
                     if entry.path().is_dir() {
                         found = true;
-                        console.output.push(format!("  {}", entry.file_name().to_string_lossy()));
+                        console
+                            .output
+                            .push(format!("  {}", entry.file_name().to_string_lossy()));
                     }
                 }
             }
@@ -466,13 +499,17 @@ fn mods(console: &mut ConsoleState) {
         }
     }
     if !found {
-        console.output.push("No external mod directories discovered.".into());
+        console
+            .output
+            .push("No external mod directories discovered.".into());
     }
 }
 
 fn content(state: &GameState, console: &mut ConsoleState) {
     let Some(content) = state.campaign_content.as_ref() else {
-        console.output.push("Campaign content is not loaded.".into());
+        console
+            .output
+            .push("Campaign content is not loaded.".into());
         return;
     };
     console.output.push(format!(
@@ -490,7 +527,9 @@ fn content(state: &GameState, console: &mut ConsoleState) {
 
 fn locations(state: &GameState, console: &mut ConsoleState) {
     for location in &state.world.locations {
-        console.output.push(format!("{}: {}", location.id, location.name));
+        console
+            .output
+            .push(format!("{}: {}", location.id, location.name));
     }
 }
 
@@ -514,7 +553,9 @@ fn goto(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
 
 fn npcs(state: &GameState, console: &mut ConsoleState) {
     for npc in &state.npcs {
-        console.output.push(format!("{}: {}", npc.id, npc.display_name()));
+        console
+            .output
+            .push(format!("{}: {}", npc.id, npc.display_name()));
     }
 }
 
@@ -529,7 +570,9 @@ fn quests(state: &GameState, console: &mut ConsoleState) {
 
 fn quest(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     let Some(action) = args.first().copied() else {
-        console.output.push("usage: quest <list|complete|reset> [id]".into());
+        console
+            .output
+            .push("usage: quest <list|complete|reset> [id]".into());
         return;
     };
     if action == "list" {
@@ -551,11 +594,17 @@ fn quest(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     match action {
         "complete" => {
             quest.completed = true;
-            state.world.completed_quest_ids.push(quest.content_id.clone());
+            state
+                .world
+                .completed_quest_ids
+                .push(quest.content_id.clone());
         }
         "reset" => {
             quest.completed = false;
-            state.world.completed_quest_ids.retain(|value| value != &quest.content_id);
+            state
+                .world
+                .completed_quest_ids
+                .retain(|value| value != &quest.content_id);
         }
         _ => {
             console.output.push("unknown quest action".into());
@@ -567,7 +616,10 @@ fn quest(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
 
 fn factions(state: &GameState, console: &mut ConsoleState) {
     for faction in &state.factions {
-        console.output.push(format!("{}: {} reputation={}", faction.id, faction.name, faction.reputation));
+        console.output.push(format!(
+            "{}: {} reputation={}",
+            faction.id, faction.name, faction.reputation
+        ));
     }
 }
 
@@ -577,15 +629,21 @@ fn faction(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
         return;
     }
     if args.first().copied() != Some("set") {
-        console.output.push("usage: faction set <id> <reputation>".into());
+        console
+            .output
+            .push("usage: faction set <id> <reputation>".into());
         return;
     }
     let (Some(raw_id), Some(raw_rep)) = (args.get(1), args.get(2)) else {
-        console.output.push("usage: faction set <id> <reputation>".into());
+        console
+            .output
+            .push("usage: faction set <id> <reputation>".into());
         return;
     };
     let (Ok(id), Ok(reputation)) = (raw_id.parse::<EntityId>(), raw_rep.parse::<i32>()) else {
-        console.output.push("faction id and reputation must be numeric".into());
+        console
+            .output
+            .push("faction id and reputation must be numeric".into());
         return;
     };
     let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == id) else {
@@ -593,7 +651,9 @@ fn faction(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
         return;
     };
     faction.reputation = reputation;
-    console.output.push(format!("Faction {id} reputation={reputation}."));
+    console
+        .output
+        .push(format!("Faction {id} reputation={reputation}."));
 }
 
 fn inventory(state: &GameState, console: &mut ConsoleState) {
@@ -611,13 +671,26 @@ fn give(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
         console.output.push("item id must be numeric".into());
         return;
     };
-    let Some(source) = state.character.inventory.iter().find(|item| item.id == id).cloned() else {
-        console.output.push(format!("No inventory item with id {id}."));
+    let Some(source) = state
+        .character
+        .inventory
+        .iter()
+        .find(|item| item.id == id)
+        .cloned()
+    else {
+        console
+            .output
+            .push(format!("No inventory item with id {id}."));
         return;
     };
     let new_id = state.world.allocate_id();
-    state.character.inventory.push(Item { id: new_id, ..source });
-    console.output.push(format!("Cloned item {id} as {new_id}."));
+    state.character.inventory.push(Item {
+        id: new_id,
+        ..source
+    });
+    console
+        .output
+        .push(format!("Cloned item {id} as {new_id}."));
 }
 
 fn remove(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
@@ -631,23 +704,31 @@ fn remove(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     };
     let before = state.character.inventory.len();
     state.character.inventory.retain(|item| item.id != id);
-    console.output.push(if state.character.inventory.len() < before {
-        format!("Removed item {id}.")
-    } else {
-        format!("No item with id {id}.")
-    });
+    console
+        .output
+        .push(if state.character.inventory.len() < before {
+            format!("Removed item {id}.")
+        } else {
+            format!("No item with id {id}.")
+        });
 }
 
 fn heal(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     let amount = parse_i32(args.first().copied()).unwrap_or(state.character.max_hp);
     state.character.heal(amount);
-    console.output.push(format!("HP {}/{}", state.character.hp, state.character.max_hp));
+    console.output.push(format!(
+        "HP {}/{}",
+        state.character.hp, state.character.max_hp
+    ));
 }
 
 fn damage(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     let amount = parse_i32(args.first().copied()).unwrap_or(1).max(0);
     state.character.hp = (state.character.hp - amount).max(0);
-    console.output.push(format!("HP {}/{}", state.character.hp, state.character.max_hp));
+    console.output.push(format!(
+        "HP {}/{}",
+        state.character.hp, state.character.max_hp
+    ));
 }
 
 fn xp(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
@@ -665,16 +746,22 @@ fn level(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
         return;
     };
     state.character.level = value.max(1);
-    console.output.push(format!("level={}", state.character.level));
+    console
+        .output
+        .push(format!("level={}", state.character.level));
 }
 
 fn attr(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     let (Some(name), Some(raw)) = (args.first(), args.get(1)) else {
-        console.output.push("usage: attr <might|insight|endurance> <value>".into());
+        console
+            .output
+            .push("usage: attr <might|insight|endurance> <value>".into());
         return;
     };
     let Ok(value) = raw.parse::<i32>() else {
-        console.output.push("attribute value must be numeric".into());
+        console
+            .output
+            .push("attribute value must be numeric".into());
         return;
     };
     match *name {
@@ -697,12 +784,23 @@ fn condition(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
         }
         Some("add") => {
             let Some(name) = args.get(1) else {
-                console.output.push("usage: condition add <name> [remaining] [penalty]".into());
+                console
+                    .output
+                    .push("usage: condition add <name> [remaining] [penalty]".into());
                 return;
             };
-            let remaining = args.get(2).and_then(|raw| raw.parse::<u32>().ok()).unwrap_or(1);
-            let penalty = args.get(3).and_then(|raw| raw.parse::<i32>().ok()).unwrap_or(0);
-            state.character.conditions.push(Condition::new(*name, remaining, penalty));
+            let remaining = args
+                .get(2)
+                .and_then(|raw| raw.parse::<u32>().ok())
+                .unwrap_or(1);
+            let penalty = args
+                .get(3)
+                .and_then(|raw| raw.parse::<i32>().ok())
+                .unwrap_or(0);
+            state
+                .character
+                .conditions
+                .push(Condition::new(*name, remaining, penalty));
             console.output.push(format!("Added condition {name}."));
         }
         _ => console.output.push("usage: condition <add|clear>".into()),
@@ -729,13 +827,17 @@ fn day_cmd(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
 
 fn history(state: &GameState, console: &mut ConsoleState) {
     for entry in state.world.history.iter().rev().take(20).rev() {
-        console.output.push(format!("t{}: {}", entry.turn, entry.text));
+        console
+            .output
+            .push(format!("t{}: {}", entry.turn, entry.text));
     }
 }
 
 fn save(state: &GameState, save_path: &Path, console: &mut ConsoleState) -> io::Result<()> {
     save_game(save_path, state)?;
-    console.output.push(format!("Saved {}", save_path.display()));
+    console
+        .output
+        .push(format!("Saved {}", save_path.display()));
     Ok(())
 }
 
@@ -754,7 +856,9 @@ fn draw_console(
     terminal.draw(|frame| {
         let area = centered_rect(92, 82, frame.area());
         frame.render_widget(Clear, area);
-        let block = Block::default().title("Developer Console").borders(Borders::ALL);
+        let block = Block::default()
+            .title("Developer Console")
+            .borders(Borders::ALL);
         let inner = block.inner(area);
         frame.render_widget(block, area);
 
@@ -763,7 +867,10 @@ fn draw_console(
             .constraints([Constraint::Min(4), Constraint::Length(3)].as_ref())
             .split(inner);
 
-        let start = console.output.len().saturating_sub(chunks[0].height as usize + console.scroll);
+        let start = console
+            .output
+            .len()
+            .saturating_sub(chunks[0].height as usize + console.scroll);
         let end = console.output.len().saturating_sub(console.scroll);
         let lines = console.output[start..end]
             .iter()
@@ -790,12 +897,20 @@ fn draw_console(
                 .enumerate()
                 .take(8)
                 .map(|(index, candidate)| {
-                    let marker = if index == console.selected { '▶' } else { ' ' };
-                    Line::from(format!("{marker} {}  — {}", candidate.value, candidate.hint))
+                    let marker = if index == console.selected {
+                        '▶'
+                    } else {
+                        ' '
+                    };
+                    Line::from(format!(
+                        "{marker} {}  — {}",
+                        candidate.value, candidate.hint
+                    ))
                 })
                 .collect::<Vec<_>>();
             frame.render_widget(
-                Paragraph::new(lines).block(Block::default().borders(Borders::ALL).title("Completion")),
+                Paragraph::new(lines)
+                    .block(Block::default().borders(Borders::ALL).title("Completion")),
                 popup,
             );
         }
