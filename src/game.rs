@@ -4,6 +4,7 @@ mod combat;
 mod dispatcher;
 mod interactions;
 mod legacy;
+mod menu;
 mod presentation;
 mod runtime;
 mod screens;

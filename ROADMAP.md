@@ -6,20 +6,19 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.32.0: Gameplay Legacy Architecture Cleanup
-- v0.32.0 is the current completed milestone.
-- Character progression and character-sheet presentation live in `game/character.rs`.
-- NPC dialogue, quest interaction, faction memory/reputation, and NPC availability live in `game/interactions.rs`.
-- Death, corpse creation, corpse recovery, previous-life item recovery, and legacy item-gain presentation live in `game/legacy.rs`.
-- `game/actions.rs` now focuses on ordinary gameplay actions, shared time/condition helpers, menu definitions, inventory/quest views, and journaling.
+- v0.33.0: Gameplay Action Architecture Cleanup V
+- v0.33.0 is the current development milestone.
+- `game/menu.rs` owns `GameAction`, menu entries, and main-menu construction.
+- `game/actions.rs` now focuses on ordinary gameplay actions and shared time/condition helpers, plus inventory, quest, journaling, and character-sheet actions.
+- Runtime menu construction and dispatch now depend on the dedicated menu layer rather than `game/actions.rs`.
 - Gameplay behavior, save compatibility, and screen flow remain unchanged.
 
 ## Next
 
-### v0.33.0 — Gameplay Action Architecture Cleanup V
+### v0.34.0 — Gameplay Action Architecture Cleanup VI
 
 - Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
-- Avoid splitting files purely to reduce line counts.
+- Prefer extracting cohesive gameplay concerns over splitting functions or files by size alone.
 - Preserve existing gameplay behavior, save compatibility, and screen flow.
 
 ## Longer-term direction
