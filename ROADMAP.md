@@ -6,17 +6,15 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.36.0: Echoes of the Ashen Road expansion
-- Added the Resonant Forge and Hollow Caravan as the expansion's opening locations.
-- Expanded the road through Broken Stage, Library of Loops, Silence Spire, Endless Corridor, and the Pit.
-- Added expansion encounters, NPCs, faction-linked quests, atmospheres, item art, and location-specific travel events.
-- Adapted the old music/metal concepts around an in-world traveling musical tradition, haunted performances, resonance, memory, repetition, and silence rather than modern-world imagery.
-- Delivered the expansion through the existing stable-ID mod/content system without changing the gameplay engine or save format.
-- Kept the deeper locations in a companion content pack so they can extend and override the opening expansion content through the same loader rules.
+- v0.37.0: Developer console foundation
+- Added an overlay developer console with scrollable output, command history, and a `/` shortcut from the normal gameplay menu.
+- Added command access to world navigation, content/mod inspection, quests, factions, NPCs, inventory, character stats, conditions, time, history, save, and content reload.
+- Added Tab autocomplete with arrow-key navigation, Enter selection, Esc cancellation, and stable runtime entity IDs with names/titles shown as hints.
+- Kept the normal gameplay renderer and save format unchanged.
 
 ## Next
 
-### v0.37.0 — Quest Depth and World Consequences
+### v0.38.0 — Quest Depth and World Consequences
 
 - Expand the quest system beyond single-item turn-ins with explicit objective state and more meaningful world consequences.
 - Use the existing event, history, faction, and NPC-memory systems so quest outcomes can affect the persistent world.
