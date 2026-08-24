@@ -1,4 +1,4 @@
-use crate::game::{actions, character, interactions, state_effects};
+use crate::game::{character, interactions, state_effects};
 use crate::model::{Corpse, GameState, Item};
 use crate::ui::{choose_from_list, narrate, pause};
 use std::mem;
