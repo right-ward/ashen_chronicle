@@ -26,6 +26,7 @@ Runtime & Dispatch
         ├── Gameplay Actions
         ├── Gameplay Interactions
         ├── Character Progression
+        ├── Legacy / Death
         ├── Combat
         ├── Screens / Presentation
         └── World / Bootstrap
@@ -59,6 +60,7 @@ src/
 │   ├── actions.rs          # core gameplay actions and action-specific logic
 │   ├── character.rs        # character progression and character-sheet presentation
 │   ├── interactions.rs     # NPC dialogue, quest interaction, faction memory/reputation
+│   ├── legacy.rs           # death, corpses, previous-life recovery, legacy item presentation
 │   ├── combat.rs           # combat encounter processing
 │   ├── screens.rs          # start/load/creation/quit/death screens
 │   ├── presentation.rs     # dashboard and location presentation
@@ -80,7 +82,7 @@ The exact module list may evolve, but new modules should represent meaningful re
 
 `main.rs` starts the application. `game.rs` provides the top-level game entry point. The runtime owns the main loop and coordinates turn lifecycle, while the dispatcher maps player-selected actions to their implementations.
 
-Gameplay actions operate on the model and relevant systems. Character progression owns experience gain, level advancement, and character-sheet presentation. Combat is isolated from general action handling. Gameplay interactions own NPC dialogue, quest offering/turn-in, faction memory/reputation updates, and NPC availability. World/bootstrap logic owns world initialization and validation. Presentation renders the current state and contextual results. Screens own menu and lifecycle flows that are not ordinary gameplay turns.
+Gameplay actions operate on the model and relevant systems. Character progression owns experience gain, level advancement, and character-sheet presentation. Gameplay interactions own NPC dialogue, quest offering/turn-in, faction memory/reputation updates, and NPC availability. Legacy gameplay owns character death, corpse creation, corpse recovery, and previous-life item recovery. Combat is isolated from general action handling. World/bootstrap logic owns world initialization and validation. Presentation renders the current state and contextual results. Screens own menu and lifecycle flows that are not ordinary gameplay turns.
 
 This keeps the main runtime readable without duplicating state-management logic across screen and action code.
 
@@ -141,6 +143,8 @@ The terminal interface uses ratatui and supports responsive layouts for narrow a
 
 Character-sheet presentation is owned by the character module because it is directly tied to character progression state rather than the general action dispatcher.
 
+Legacy item presentation is owned by the legacy module because it is part of corpse/previous-life recovery rather than general dashboard presentation.
+
 See [`systems/ui.md`](systems/ui.md) for details.
 
 ## Dependency rules
@@ -153,8 +157,9 @@ In particular:
 - Persistence should not decide gameplay outcomes.
 - Content loading should not directly own runtime character state.
 - World/bootstrap code should not depend on gameplay action implementations merely to perform world initialization.
-- Actions should not duplicate combat, interaction, progression, presentation, or persistence logic that already has a dedicated owner.
+- Actions should not duplicate combat, interaction, progression, legacy, presentation, or persistence logic that already has a dedicated owner.
 - Gameplay interactions may use action-owned turn/progression helpers where those helpers are still shared gameplay infrastructure, but interaction-specific rules belong in `interactions.rs`.
+- Legacy mechanics should remain independent from screens and own only death, corpse, and previous-life recovery responsibilities.
 - Character progression should remain independent from world/bootstrap and persistence implementation details.
 - Shared models should remain focused on state and domain representation rather than becoming a catch-all service module.
 
