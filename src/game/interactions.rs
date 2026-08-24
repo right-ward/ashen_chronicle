@@ -1,4 +1,4 @@
-use crate::game::{actions, character, legacy};
+use crate::game::{actions, character, legacy, state_effects};
 use crate::model::{EntityId, Faction, GameState, Item, Quest};
 use crate::ui::{choose_from_list, pause};
 
@@ -220,7 +220,7 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
             _ => {}
         }
     }
-    actions::advance_time(state, 1);
+    state_effects::advance_time(state, 1);
     Ok(())
 }
 
