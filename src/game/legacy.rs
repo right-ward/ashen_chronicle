@@ -1,4 +1,4 @@
-use crate::game::{actions, character, interactions};
+use crate::game::{character, interactions, state_effects};
 use crate::model::{Corpse, GameState, Item};
 use crate::ui::{choose_from_list, narrate, pause};
 use std::mem;
@@ -49,7 +49,7 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
                 corpse.id,
             )
         };
-        actions::advance_time(state, 1);
+        state_effects::advance_time(state, 1);
         println!("You search the remains at {}.", location_name);
         if items.is_empty() {
             println!("Nothing useful remains.");

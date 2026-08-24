@@ -1,4 +1,5 @@
 use crate::game::character;
+use crate::game::state_effects::{self, add_or_refresh_condition};
 use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
 use crate::ui::{choose_from_list, narrate, pause, prompt};
@@ -11,46 +12,6 @@ macro_rules! println {
     ($($arg:tt)*) => {
         crate::ui::line(&format!($($arg)*))
     };
-}
-
-pub(crate) fn advance_time(state: &mut GameState, amount: u32) {
-    let total = state.world.time_points + amount;
-    state.world.day += total / 12;
-    state.world.time_points = total % 12;
-    for condition in &mut state.character.conditions {
-        condition.remaining = condition.remaining.saturating_sub(amount);
-    }
-    state
-        .character
-        .conditions
-        .retain(|condition| condition.remaining > 0);
-    if amount > 0 && state.character.hp <= state.character.max_hp / 3 && state.character.alive {
-        add_or_refresh_condition(
-            &mut state.character.conditions,
-            Condition::new("Wounded", 3, -1),
-        );
-    }
-}
-
-pub(crate) fn add_or_refresh_condition(conditions: &mut Vec<Condition>, condition: Condition) {
-    if let Some(existing) = conditions
-        .iter_mut()
-        .find(|current| current.name == condition.name)
-    {
-        existing.remaining = existing.remaining.max(condition.remaining);
-        existing.penalty = condition.penalty;
-        existing.bonus = condition.bonus;
-    } else {
-        conditions.push(condition);
-    }
-}
-
-fn remove_condition(conditions: &mut Vec<Condition>, name: &str) {
-    conditions.retain(|condition| condition.name != name);
-}
-
-fn is_night(points: u32) -> bool {
-    matches!(points % 12, 0 | 1 | 10 | 11)
 }
 
 pub(crate) fn character_sheet(state: &GameState) {
@@ -78,8 +39,8 @@ pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
     }
     if let Some(choice) = choose_from_list("Travel where?", &options, Some("Back"))? {
         if let Some(target_id) = current_location.exits.get(choice).copied() {
-            advance_time(state, 2);
-            if is_night(state.world.time_points) {
+            state_effects::advance_time(state, 2);
+            if state_effects::is_night(state.world.time_points) {
                 add_or_refresh_condition(
                     &mut state.character.conditions,
                     Condition::new("Exhausted", 2, -1),
@@ -104,7 +65,7 @@ pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
             let context = crate::events::EventContext::for_travel_arrival(
                 &location_name,
                 dangerous,
-                is_night(state.world.time_points),
+                state_effects::is_night(state.world.time_points),
             );
             crate::events::trigger_event(state, &context);
             if let Some(location) = location {
@@ -138,10 +99,10 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         .filter(|value| (1..=4).contains(value))
         .unwrap_or(1);
     let healing = portions as i32 + state.character.effective_endurance();
-    advance_time(state, portions);
+    state_effects::advance_time(state, portions);
     state.character.turn += 1;
     state.character.heal(healing);
-    remove_condition(&mut state.character.conditions, "Exhausted");
+    state_effects::remove_condition(&mut state.character.conditions, "Exhausted");
     let mut rested = Condition::new("Well-rested", 3, 0);
     rested.bonus = 1;
     add_or_refresh_condition(&mut state.character.conditions, rested);
@@ -207,7 +168,7 @@ pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
     let note = prompt("Write a journal note: ")?;
     if !note.is_empty() {
         state.character.notes.push(note.clone());
-        advance_time(state, 1);
+        state_effects::advance_time(state, 1);
         state.character.turn += 1;
         let character_name = state.character.display_name();
         state.world.record_history(
