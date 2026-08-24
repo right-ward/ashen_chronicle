@@ -1,4 +1,4 @@
-use crate::content::load_campaign_content;
+use crate::content::load_campaign_content_report;
 use crate::game::{presentation, world};
 use crate::model::{Condition, EntityId, GameState, Item};
 use crate::persistence::save_game;
@@ -485,14 +485,14 @@ fn where_content(console: &mut ConsoleState) {
         "cwd: {}",
         cwd.as_deref()
             .map(Path::display)
-            .map(|path| path.to_string())
+            .map(ToString::to_string)
             .unwrap_or_else(|| "<unavailable>".into())
     ));
     console.output.push(format!(
         "exe: {}",
         exe.as_deref()
             .map(Path::display)
-            .map(|path| path.to_string())
+            .map(ToString::to_string)
             .unwrap_or_else(|| "<unavailable>".into())
     ));
     let mut roots = Vec::new();
@@ -517,18 +517,22 @@ fn where_content(console: &mut ConsoleState) {
 }
 
 fn mods(console: &mut ConsoleState) {
-    let report = load_campaign_content();
+    let report = load_campaign_content_report();
     console
         .output
-        .push("mod/content diagnostics available through campaign content load".into());
-    console.output.push(format!(
-        "campaign content: {}",
-        if report.is_some() {
-            "loaded"
-        } else {
-            "unavailable"
-        }
-    ));
+        .push(format!("Loaded mods: {}", report.loaded_mods.len()));
+    for manifest in report.loaded_mods {
+        console.output.push(format!(
+            "  {} — {} v{}",
+            manifest.id, manifest.name, manifest.version
+        ));
+    }
+    console
+        .output
+        .push(format!("Warnings: {}", report.warnings.len()));
+    for warning in report.warnings {
+        console.output.push(format!("  ! {warning}"));
+    }
 }
 
 fn content(state: &GameState, console: &mut ConsoleState) {
@@ -893,14 +897,15 @@ fn history(state: &GameState, console: &mut ConsoleState, args: &[&str]) {
 }
 
 fn reload(state: &mut GameState, console: &mut ConsoleState) {
-    let report = load_campaign_content();
-    let loaded = report.is_some();
-    state.campaign_content = report;
+    let report = load_campaign_content_report();
+    let loaded = report.loaded_mods.len();
+    let warnings = report.warnings.len();
+    state.campaign_content = Some(report.content);
     world::bootstrap_campaign_content(state);
     state.last_announced_location_id = None;
-    console
-        .output
-        .push(format!("reloaded content: loaded={loaded}"));
+    console.output.push(format!(
+        "reloaded content: mods={loaded} warnings={warnings}"
+    ));
 }
 fn save(state: &GameState, path: &Path, console: &mut ConsoleState) {
     console.output.push(match save_game(path, state) {
