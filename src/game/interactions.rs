@@ -1,4 +1,4 @@
-use crate::game::{actions, character, legacy, state_effects};
+use crate::game::{character, legacy, state_effects};
 use crate::model::{EntityId, Faction, GameState, Item, Quest};
 use crate::ui::{choose_from_list, pause};
 
