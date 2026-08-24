@@ -1,4 +1,4 @@
-use super::{actions, character, interactions, legacy};
+use super::{actions, character, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
 use crate::ui::{
     choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
@@ -105,7 +105,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
         ];
         match choose_from_list("Combat action", &choices, None)? {
             Some(0) => {
-                actions::advance_time(state, 1);
+                state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let damage = (3 + state.character.effective_might()).max(1);
                 encounter.enemy_hp = (encounter.enemy_hp - damage).max(0);
@@ -129,7 +129,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 }
             }
             Some(1) => {
-                actions::advance_time(state, 1);
+                state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let retaliation =
                     (encounter.enemy_power - 1 - state.character.attributes.endurance / 2).max(0);
@@ -147,7 +147,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 }
             }
             Some(2) => {
-                actions::advance_time(state, 1);
+                state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let character_name = state.character.display_name();
                 state.world.record_history(
