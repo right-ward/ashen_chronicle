@@ -1,4 +1,4 @@
-use crate::game::{character, legacy};
+use crate::game::character;
 use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
 use crate::ui::{choose_from_list, narrate, pause, prompt};
