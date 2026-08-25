@@ -7,7 +7,7 @@ use ratatui::prelude::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Terminal;
-use std::io::{self};
+use std::io;
 use std::path::Path;
 
 #[allow(dead_code)]
@@ -103,6 +103,11 @@ pub(crate) fn choose_main_menu(
 fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     let mut background = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     background.clear()?;
-    drop(background);
-    legacy::open_console(state, save_path)
+    let result = legacy::open_console(state, save_path);
+    let cleanup = background.clear();
+    match (result, cleanup) {
+        (Err(error), _) => Err(error),
+        (Ok(()), Err(error)) => Err(error),
+        (Ok(()), Ok(())) => Ok(()),
+    }
 }
