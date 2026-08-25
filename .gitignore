@@ -30,6 +30,8 @@ saves/
 # Temporary files
 tmp/
 temp/
+*tmp*
+*temp*
 
 # Archive outputs
 *.tar
