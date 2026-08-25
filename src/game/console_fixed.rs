@@ -514,14 +514,14 @@ fn content(state: &GameState, console: &mut ConsoleState) {
     };
     console.output.push(format!(
         "content: regions={} locations={} encounters={} events={} quests={} npcs={} factions={} items={}",
-        content.regions.len(),
-        content.locations.len(),
+        1,
+        content.world.locations.len(),
         content.encounters.len(),
         content.events.len(),
         content.quests.len(),
         content.npcs.len(),
         content.factions.len(),
-        content.items.len(),
+        content.item_visuals.len(),
     ));
 }
 
@@ -593,18 +593,17 @@ fn quest(state: &mut GameState, console: &mut ConsoleState, args: &[&str]) {
     };
     match action {
         "complete" => {
+            let content_id = quest.content_id.clone();
             quest.completed = true;
-            state
-                .world
-                .completed_quest_ids
-                .push(quest.content_id.clone());
+            state.world.completed_quest_ids.push(content_id);
         }
         "reset" => {
+            let content_id = quest.content_id.clone();
             quest.completed = false;
             state
                 .world
                 .completed_quest_ids
-                .retain(|value| value != &quest.content_id);
+                .retain(|value| value != &content_id);
         }
         _ => {
             console.output.push("unknown quest action".into());
