@@ -49,7 +49,8 @@ pub(crate) fn choose_main_menu(
 }
 
 fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
-    let mut background = ratatui::Terminal::new(ratatui::backend::CrosstermBackend::new(io::stdout()))?;
+    let mut background =
+        ratatui::Terminal::new(ratatui::backend::CrosstermBackend::new(io::stdout()))?;
     background.clear()?;
     let result = legacy::open_console(state, save_path);
     let cleanup = background.clear();
