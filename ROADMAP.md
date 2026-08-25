@@ -6,6 +6,9 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
+- v0.37.2: Gameplay screen rendering fix
+- Reworked the main gameplay menu to render through the shared UI terminal instead of creating a second terminal that overlaid the dashboard.
+- Prevented menu choices, results, and journal updates from being visually mixed with the previous gameplay frame.
 - v0.37.1: Developer console stability patch
 - Added an opaque, clean terminal handoff when leaving the developer console so the main gameplay layout is redrawn without stale console buffer contents.
 - v0.37.0: Developer console foundation

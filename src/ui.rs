@@ -171,6 +171,30 @@ pub fn diagnostic(text: &str) {
     line(&format!("[diagnostic] {text}"));
 }
 
+pub(crate) fn render_main_menu(title: &str, options: &[String], selected: usize) -> io::Result<()> {
+    let mut prompt_lines = vec![
+        title.to_string(),
+        String::new(),
+        "↑ ↓ / j k  Enter: choose  Esc: back  /: console".to_string(),
+        String::new(),
+    ];
+    for (index, option) in options.iter().enumerate() {
+        let marker = if index == selected { '▶' } else { ' ' };
+        prompt_lines.push(format!("{marker} {}. {}", index + 1, option));
+    }
+
+    let mut state = runtime().lock().unwrap();
+    if state.initialized {
+        render_locked(&mut state, Some(&prompt_lines), None)
+    } else {
+        Ok(())
+    }
+}
+
+pub(crate) fn read_key() -> io::Result<KeyCode> {
+    read_key_event()
+}
+
 pub fn prompt(message: &str) -> io::Result<String> {
     if !runtime().lock().unwrap().initialized {
         if !message.is_empty() {
@@ -195,7 +219,7 @@ pub fn prompt(message: &str) -> io::Result<String> {
         let _ = render_locked(&mut state, Some(&prompt_lines), None);
         drop(state);
 
-        match read_key()? {
+        match read_key_event()? {
             KeyCode::Char(c) if !is_ctrl_char(c) => buffer.push(c),
             KeyCode::Backspace => {
                 buffer.pop();
@@ -292,7 +316,7 @@ pub fn choose_from_list(
         let _ = render_locked(&mut state, Some(&prompt_lines), None);
         drop(state);
 
-        match read_key()? {
+        match read_key_event()? {
             KeyCode::Up | KeyCode::Char('k') => {
                 if selected == 0 {
                     selected = if zero_label.is_some() {
@@ -389,14 +413,14 @@ fn wait_for_key(message: &str) -> io::Result<()> {
     drop(state);
 
     loop {
-        match read_key()? {
+        match read_key_event()? {
             KeyCode::Char(c) if c.is_ascii_control() => continue,
             _ => return Ok(()),
         }
     }
 }
 
-fn read_key() -> io::Result<KeyCode> {
+fn read_key_event() -> io::Result<KeyCode> {
     loop {
         if let Event::Key(KeyEvent {
             code, modifiers, ..
@@ -646,7 +670,7 @@ fn render_status_panel(
         frame.render_widget(paragraph, text_area);
     }
 
-    let mut gauge_area = Rect {
+    let gauge_area = Rect {
         x: inner.x,
         y: inner.y + text_height,
         width: inner.width,
@@ -667,11 +691,16 @@ fn render_status_panel(
         dashboard.enemy_hp,
         dashboard.enemy_max_hp,
     ) {
-        gauge_area.y += 1;
+        let enemy_area = Rect {
+            x: inner.x,
+            y: inner.y + text_height + 1,
+            width: inner.width,
+            height: 1,
+        };
         let title = format!("{} HP", enemy_name);
         render_health_gauge(
             frame,
-            gauge_area,
+            enemy_area,
             &title,
             enemy_hp,
             enemy_max_hp,
