@@ -355,9 +355,11 @@ jobs:
           package_dir="package/$release_name"
           mkdir -p "$package_dir"
 
+          cp -R data "$package_dir/"
+
           if [[ "$BUILD_PLATFORM" == "windows" ]]; then
             cp "target/$TARGET/release/ashen_chronicle.exe" "$package_dir/"
-            7z a -tzip -mx=9 "$release_name.$ARCHIVE_EXT" "$package_dir/ashen_chronicle.exe"
+            (cd package && 7z a -tzip -mx=9 "../$release_name.$ARCHIVE_EXT" "$release_name")
           else
             cp "target/$TARGET/release/ashen_chronicle" "$package_dir/"
             tar -cJf "$release_name.$ARCHIVE_EXT" -C package "$release_name"
