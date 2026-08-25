@@ -6,6 +6,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
+- v0.37.1: Developer console stability patch
+- Added an opaque, clean terminal handoff when leaving the developer console so the main gameplay layout is redrawn without stale console buffer contents.
 - v0.37.0: Developer console foundation
 - Added an overlay developer console with scrollable output, command history, and a `/` shortcut from the normal gameplay menu.
 - Added command access to world navigation, content/mod inspection, quests, factions, NPCs, inventory, character stats, conditions, time, history, save, and content reload.
