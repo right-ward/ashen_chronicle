@@ -251,10 +251,9 @@ jobs:
 
       - name: Set up Android SDK
         if: matrix.platform == 'android'
-        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        uses: android-actions/setup-android@v4.0.1
         with:
-          toolchain: stable
-          cache: true
+          packages: platform-tools
 
       - name: Install Android NDK
         if: matrix.platform == 'android'
