@@ -1,7 +1,6 @@
 mod actions;
 mod character;
 mod combat;
-#[path = "game/console_fixed.rs"]
 mod console;
 mod dispatcher;
 mod interactions;

@@ -79,7 +79,7 @@ pub(crate) fn choose_main_menu(
     }
 }
 
-fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
+pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     let mut console = ConsoleState::default();
     console
