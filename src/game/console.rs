@@ -7,7 +7,7 @@ use ratatui::prelude::{Color, Style};
 use ratatui::text::Line;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Terminal;
-use std::io::{self, Stdout};
+use std::io::{self};
 use std::path::Path;
 
 #[allow(dead_code)]
