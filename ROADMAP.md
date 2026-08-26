@@ -11,7 +11,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added explicit data-root candidate diagnostics and warnings for missing, unreadable, or malformed external content.
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
 - Exposed the content loading report through the content module for developer diagnostics and future tooling.
-- CI reliability: formatting checks are read-only and no longer gate test execution; CI now also runs when workflow, Cargo, or data files change.
+- CI reliability: automatic rustfmt commits are retained, while formatting no longer gates test execution; CI also runs when workflow, Cargo, or data files change.
 - v0.37.2: Gameplay screen rendering fix
 - Reworked the main gameplay menu to render through the shared UI terminal instead of creating a second terminal that overlaid the dashboard.
 - Prevented menu choices, results, and journal updates from being visually mixed with the previous gameplay frame.
