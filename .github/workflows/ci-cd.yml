@@ -32,15 +32,20 @@ permissions:
 
 jobs:
   format:
-    name: Format
-    if: github.event_name == 'pull_request'
+    name: Format PR
+    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]' && github.event.pull_request.head.repo.full_name == github.repository
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    outputs:
+      changed: ${{ steps.format.outputs.changed }}
+      commit_sha: ${{ steps.format.outputs.commit_sha }}
 
     steps:
-      - name: Checkout PR commit
+      - name: Checkout PR branch
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
+          ref: ${{ github.event.pull_request.head.ref }}
           repository: ${{ github.event.pull_request.head.repo.full_name }}
           fetch-depth: 0
 
@@ -50,9 +55,32 @@ jobs:
           toolchain: stable
           cache: true
 
-      - name: Check formatting
+      - name: Format source
+        id: format
         shell: bash
-        run: cargo fmt --all -- --check
+        env:
+          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
+          ORIGINAL_SHA: ${{ github.event.pull_request.head.sha }}
+        run: |
+          set -euo pipefail
+
+          cargo fmt --all
+
+          if git diff --quiet; then
+            echo "changed=false" >> "$GITHUB_OUTPUT"
+            echo "commit_sha=$ORIGINAL_SHA" >> "$GITHUB_OUTPUT"
+            echo "Formatting is already clean."
+            exit 0
+          fi
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "style: apply rustfmt"
+          git push origin "HEAD:$HEAD_BRANCH"
+
+          echo "changed=true" >> "$GITHUB_OUTPUT"
+          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
   test:
     name: Test
