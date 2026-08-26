@@ -1,5 +1,4 @@
 use super::definitions::*;
-use crate::ui;
 use std::collections::HashSet;
 use std::env;
 use std::fs;
@@ -429,6 +428,18 @@ fn default_campaign_content() -> CampaignContent {
 mod tests {
     use super::*;
 
+    fn valid_event(id: &str) -> EventContent {
+        EventContent {
+            id: id.into(),
+            trigger: "travel_arrival".into(),
+            weight: 1,
+            chance_percent: Some(100),
+            cooldown_turns: None,
+            conditions: None,
+            effects: vec![EventEffectContent::Pause],
+        }
+    }
+
     #[test]
     fn data_root_candidates_do_not_duplicate_canonical_paths() {
         let candidates = data_root_candidates();
@@ -444,42 +455,14 @@ mod tests {
         let locations = HashSet::from(["Ashen Gate"]);
         let factions = HashSet::from(["Cinder Wardens"]);
         let known = HashSet::from(["good.event".into(), "bad.event".into()]);
-        let mut invalid = EventContent {
-            id: "bad.event".into(),
-            trigger: "travel_arrival".into(),
-            weight: 0,
-            chance_percent: Some(100),
-            cooldown_turns: None,
-            conditions: Some(EventConditionContent {
-                locations: vec!["Unknown Place".into()],
-                ..Default::default()
-            }),
-            effects: vec![EventEffectContent::Pause],
-        };
+        let mut invalid = valid_event("bad.event");
+        invalid.weight = 0;
+        invalid.conditions = Some(EventConditionContent {
+            locations: vec!["Unknown Place".into()],
+            ..Default::default()
+        });
         let accepted = filter_valid_events(
-            vec![
-                EventContent {
-                    id: "good.event".into(),
-                    trigger: "travel_arrival".into(),
-                    weight: 1,
-                    chance_percent: Some(100),
-                    cooldown_turns: None,
-                    conditions: None,
-                    effects: vec![EventEffectContent::Pause],
-                },
-                std::mem::replace(
-                    &mut invalid,
-                    EventContent {
-                        id: "unused".into(),
-                        trigger: "travel_arrival".into(),
-                        weight: 1,
-                        chance_percent: Some(100),
-                        cooldown_turns: None,
-                        conditions: None,
-                        effects: vec![EventEffectContent::Pause],
-                    },
-                ),
-            ],
+            vec![valid_event("good.event"), invalid],
             &locations,
             &factions,
             &known,
@@ -489,9 +472,35 @@ mod tests {
         );
         assert_eq!(accepted.len(), 1);
         assert_eq!(accepted[0].id, "good.event");
-        assert!(warnings.iter().any(|warning| warning.contains("zero weight")));
+        assert!(warnings[0].contains("zero weight"));
+        assert!(warnings[0].contains("unknown location"));
+    }
+
+    #[test]
+    fn rejected_prior_event_rejects_dependents() {
+        let mut warnings = Vec::new();
+        let locations = HashSet::from(["Ashen Gate"]);
+        let factions = HashSet::from(["Cinder Wardens"]);
+        let known = HashSet::from(["bad.event".into(), "followup.event".into()]);
+        let mut bad = valid_event("bad.event");
+        bad.weight = 0;
+        let mut followup = valid_event("followup.event");
+        followup.conditions = Some(EventConditionContent {
+            prior_event_id: Some("bad.event".into()),
+            ..Default::default()
+        });
+        let accepted = filter_valid_events(
+            vec![bad, followup],
+            &locations,
+            &factions,
+            &known,
+            &HashSet::new(),
+            "test content",
+            &mut warnings,
+        );
+        assert!(accepted.is_empty());
         assert!(warnings
             .iter()
-            .any(|warning| warning.contains("unknown location")));
+            .any(|warning| warning.contains("followup.event") && warning.contains("unavailable")));
     }
 }
