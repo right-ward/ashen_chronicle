@@ -3,4 +3,4 @@ pub mod loader;
 pub mod seeding;
 
 pub use definitions::*;
-pub use loader::load_campaign_content;
+pub use loader::{data_root_candidates, load_campaign_content, load_campaign_content_report};
