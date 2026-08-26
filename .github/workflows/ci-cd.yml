@@ -6,9 +6,13 @@ on:
       - main
     tags:
       - 'v*.*.*'
+    paths:
+      - '**.rs'
   pull_request:
     branches:
       - main
+    paths:
+      - '**.rs'
   workflow_dispatch:
 
 # PR runs share one concurrency group so a formatting commit or new push
