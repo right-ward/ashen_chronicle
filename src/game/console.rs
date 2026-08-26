@@ -1,4 +1,4 @@
-use crate::game::presentation;
+use crate::game::{presentation, world};
 use crate::model::GameState;
 use crate::ui;
 use crossterm::event::KeyCode;
@@ -54,6 +54,11 @@ fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     background.clear()?;
     let result = legacy::open_console(state, save_path);
     let cleanup = background.clear();
+
+    if let Ok(()) = result {
+        world::bootstrap_campaign_content(state);
+    }
+
     match (result, cleanup) {
         (Err(error), _) => Err(error),
         (Ok(()), Err(error)) => Err(error),
