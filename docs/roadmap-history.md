@@ -383,5 +383,51 @@ src/
 - preserved existing action, combat, screen, world, save, and quit behavior
 - bumped the project version to v0.28.0
 
-Planned follow-up:
-- v0.29.0: Continue decomposing `game/actions.rs` only where a clear responsibility boundary improves maintainability.
+## v0.29.0: Gameplay Action Architecture Cleanup I
+- Time-display formatting now has its own gameplay time module instead of living inside `game/actions.rs`
+
+## v0.30.0: Gameplay Interaction Architecture Cleanup II
+- NPC selection, dialogue, quest offering/turn-in, faction memory, faction reputation, and NPC availability now live in `game/interactions.rs` instead of `game/actions.rs`
+
+## v0.31.0: Gameplay Character Architecture Cleanup III
+- Character progression and character-sheet presentation now live in `game/character.rs` instead of `game/actions.rs`.
+- `game/actions.rs` retains thin compatibility entry points for progression while the implementation lives in the character module.
+
+## v0.32.0: Gameplay Legacy Architecture Cleanup IV
+- Character progression and character-sheet presentation live in `game/character.rs`.
+- NPC dialogue, quest interaction, faction memory/reputation, and NPC availability live in `game/interactions.rs`.
+- Death, corpse creation, corpse recovery, previous-life item recovery, and legacy item-gain presentation live in `game/legacy.rs`.
+- `game/actions.rs` now focuses on ordinary gameplay actions, shared time/condition helpers, menu definitions, inventory/quest views, and journaling.
+
+## v0.33.0: Gameplay Action Architecture Cleanup V
+- `game/menu.rs` owns `GameAction`, menu entries, and main-menu construction.
+- `game/actions.rs` now focuses on ordinary gameplay actions and shared time/condition helpers, plus inventory, quest, journaling, and character-sheet actions.
+- Runtime menu construction and dispatch now depend on the dedicated menu layer rather than `game/actions.rs`.
+
+## v0.34.0: Gameplay Action Architecture Cleanup VI
+- `game/actions.rs` now focuses on player-facing gameplay actions rather than temporal state mutation.
+- Temporal progression and condition lifecycle helpers now live in `game/state_effects.rs`.
+- Travel, meditation, and journaling use the shared state-effects layer.
+
+## v0.35.0: Gameplay Action Architecture Cleanup VII
+- `game/actions.rs` now focuses on travel and meditation gameplay actions.
+- Inventory display, quest-log display, and journal writing now live in `game/records.rs` as a cohesive player-record concern.
+- Character-sheet dispatch now goes directly through `game/character.rs` instead of being wrapped by the action layer.
+
+## v0.36.0: Echoes of the Ashen Road expansion
+- Added the Resonant Forge and Hollow Caravan as the expansion's opening locations.
+- Expanded the road through Broken Stage, Library of Loops, Silence Spire, Endless Corridor, and the Pit.
+- Added expansion encounters, NPCs, faction-linked quests, atmospheres, item art, and location-specific travel events.
+- Adapted the old music/metal concepts around an in-world traveling musical tradition, haunted performances, resonance, memory, repetition, and silence rather than modern-world imagery.
+- Delivered the expansion through the existing stable-ID mod/content system without changing the gameplay engine or save format.
+- Kept the deeper locations in a companion content pack so they can extend and override the opening expansion content through the same loader rules.
+
+## v0.37.0: Developer console foundation
+- Added an overlay developer console with scrollable output, command history, and a `/` shortcut from the normal gameplay menu.
+- Added command access to world navigation, content/mod inspection, quests, factions, NPCs, inventory, character stats, conditions, time, history, save, and content reload.
+- Added Tab autocomplete with arrow-key navigation, Enter selection, Esc cancellation, and stable runtime entity IDs with names/titles shown as hints.
+### v0.37.1: Developer console stability patch
+- Added an opaque, clean terminal handoff when leaving the developer console so the main gameplay layout is redrawn without stale console buffer contents.
+### v0.37.2: Gameplay screen rendering fix
+- Reworked the main gameplay menu to render through the shared UI terminal instead of creating a second terminal that overlaid the dashboard.
+- Prevented menu choices, results, and journal updates from being visually mixed with the previous gameplay frame.
