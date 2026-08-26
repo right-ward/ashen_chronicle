@@ -136,7 +136,10 @@ pub fn data_root_candidates() -> Vec<DataRootCandidate> {
     let mut roots = Vec::new();
     let mut push_root = |root: PathBuf| {
         let normalized = fs::canonicalize(&root).unwrap_or(root);
-        if roots.iter().all(|candidate: &DataRootCandidate| candidate.root != normalized) {
+        if roots
+            .iter()
+            .all(|candidate: &DataRootCandidate| candidate.root != normalized)
+        {
             roots.push(DataRootCandidate {
                 has_base_content: normalized.join(CONTENT_FILE_NAME).is_file(),
                 has_mods_directory: normalized.join(MODS_DIR_NAME).is_dir(),
@@ -163,7 +166,11 @@ fn select_data_root(candidates: &[DataRootCandidate]) -> Option<PathBuf> {
     candidates
         .iter()
         .find(|candidate| candidate.has_base_content && candidate.has_mods_directory)
-        .or_else(|| candidates.iter().find(|candidate| candidate.has_base_content))
+        .or_else(|| {
+            candidates
+                .iter()
+                .find(|candidate| candidate.has_base_content)
+        })
         .map(|candidate| candidate.root.clone())
 }
 
@@ -183,7 +190,10 @@ fn load_mod_content(manifest_path: &Path, manifest: &ModManifest) -> io::Result<
 
 fn discover_mods(mods_root: &Path, warnings: &mut Vec<String>) -> Vec<DiscoveredMod> {
     let Ok(entries) = fs::read_dir(mods_root) else {
-        warnings.push(format!("could not read mods directory {}", mods_root.display()));
+        warnings.push(format!(
+            "could not read mods directory {}",
+            mods_root.display()
+        ));
         return Vec::new();
     };
     let mut found = Vec::new();
@@ -223,10 +233,14 @@ fn merge_campaign_content(
     warnings: &mut Vec<String>,
 ) {
     base.world.region = incoming.world.region;
-    merge_vec_by_key(&mut base.world.locations, incoming.world.locations, |entry| {
+    merge_vec_by_key(
+        &mut base.world.locations,
+        incoming.world.locations,
+        |entry| entry.id.clone(),
+    );
+    merge_vec_by_key(&mut base.factions, incoming.factions, |entry| {
         entry.id.clone()
     });
-    merge_vec_by_key(&mut base.factions, incoming.factions, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.npcs, incoming.npcs, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.quests, incoming.quests, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.encounters, incoming.encounters, |entry| {
