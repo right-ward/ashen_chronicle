@@ -1,6 +1,14 @@
 use crate::content::load_campaign_content;
 use crate::model::{Faction, GameState, Npc, Quest};
 
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) struct CampaignSeedReport {
+    pub locations_added: usize,
+    pub factions_added: usize,
+    pub npcs_added: usize,
+    pub quests_added: usize,
+}
+
 fn faction_id_by_name(state: &GameState, faction_name: &str) -> Option<crate::model::EntityId> {
     state
         .factions
@@ -9,12 +17,13 @@ fn faction_id_by_name(state: &GameState, faction_name: &str) -> Option<crate::mo
         .map(|faction| faction.id)
 }
 
-pub(crate) fn bootstrap_campaign_content(state: &mut GameState) {
+pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedReport {
     let content = state
         .campaign_content
         .clone()
         .unwrap_or_else(load_campaign_content);
-    content.seed_world(&mut state.world);
+    let mut report = CampaignSeedReport::default();
+    report.locations_added = content.seed_world(&mut state.world);
     state.campaign_content = Some(content.clone());
 
     for faction_content in &content.factions {
@@ -29,6 +38,7 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) {
         state
             .factions
             .push(Faction::new(id, faction_content.name.clone()));
+        report.factions_added += 1;
     }
 
     for npc_content in &content.npcs {
@@ -56,6 +66,7 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) {
         );
         npc.memory = npc_content.memory.clone();
         state.npcs.push(npc);
+        report.npcs_added += 1;
     }
 
     for quest_content in &content.quests {
@@ -96,7 +107,10 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) {
             quest_content.required_item_name.clone(),
             quest_content.reward_item_name.clone(),
         ));
+        report.quests_added += 1;
     }
+
+    report
 }
 
 pub(crate) fn validate_loaded_state(state: &GameState) -> Vec<String> {
