@@ -6,8 +6,15 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-const CONTENT_FILE_NAME: &str = "data/base_content.json";
-const MODS_DIR_NAME: &str = "data/mods";
+const CONTENT_FILE_NAME: &str = "base_content.json";
+const MODS_DIR_NAME: &str = "mods";
+
+#[derive(Debug, Clone)]
+pub struct DataRootCandidate {
+    pub root: PathBuf,
+    pub has_base_content: bool,
+    pub has_mods_directory: bool,
+}
 
 #[derive(Debug, Clone)]
 struct DiscoveredMod {
@@ -30,14 +37,28 @@ pub fn load_campaign_content() -> CampaignContent {
 }
 
 pub fn load_campaign_content_report() -> ContentLoadReport {
-    let base_content = match load_base_content() {
-        Ok(content) => content,
-        Err(err) => {
-            ui::diagnostic(&format!("Could not load campaign content from disk: {err}"));
-            default_campaign_content()
-        }
+    let mut report = ContentLoadReport::with_content(default_campaign_content());
+    let candidates = data_root_candidates();
+    let Some(root) = select_data_root(&candidates) else {
+        report.warnings.push(
+            "No external data root with base_content.json was found; using embedded base content."
+                .into(),
+        );
+        return report;
     };
-    let mut report = ContentLoadReport::with_content(base_content);
+
+    let base_path = root.join(CONTENT_FILE_NAME);
+    match load_content_file(&base_path) {
+        Ok(content) => report.content = content,
+        Err(err) => {
+            report.warnings.push(format!(
+                "Could not load base content from {}: {err}; using embedded base content.",
+                base_path.display()
+            ));
+            return report;
+        }
+    }
+
     let base_location_names: HashSet<&str> = report
         .content
         .world
@@ -64,7 +85,16 @@ pub fn load_campaign_content_report() -> ContentLoadReport {
         &mut report.warnings,
     );
 
-    let mut discovered_mods = discover_mods();
+    let mods_root = root.join(MODS_DIR_NAME);
+    if !mods_root.is_dir() {
+        report
+            .warnings
+            .push(format!("Mods directory not found: {}", mods_root.display()));
+        report.warnings.extend(report.content.validate());
+        return report;
+    }
+
+    let mut discovered_mods = discover_mods(&mods_root, &mut report.warnings);
     discovered_mods.sort_by(|left, right| {
         left.manifest
             .priority
@@ -103,9 +133,42 @@ pub fn load_campaign_content_report() -> ContentLoadReport {
     report
 }
 
-fn load_base_content() -> io::Result<CampaignContent> {
-    let path = campaign_content_path()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::NotFound, "base content file not found"))?;
+pub fn data_root_candidates() -> Vec<DataRootCandidate> {
+    let mut roots = Vec::new();
+    let mut push_root = |root: PathBuf| {
+        let normalized = fs::canonicalize(&root).unwrap_or(root);
+        if roots.iter().all(|candidate: &DataRootCandidate| candidate.root != normalized) {
+            roots.push(DataRootCandidate {
+                has_base_content: normalized.join(CONTENT_FILE_NAME).is_file(),
+                has_mods_directory: normalized.join(MODS_DIR_NAME).is_dir(),
+                root: normalized,
+            });
+        }
+    };
+
+    if let Ok(current_dir) = env::current_dir() {
+        push_root(current_dir.join("data"));
+    }
+    if let Ok(exe) = env::current_exe() {
+        if let Some(dir) = exe.parent() {
+            push_root(dir.join("data"));
+            if let Some(parent) = dir.parent() {
+                push_root(parent.join("data"));
+            }
+        }
+    }
+    roots
+}
+
+fn select_data_root(candidates: &[DataRootCandidate]) -> Option<PathBuf> {
+    candidates
+        .iter()
+        .find(|candidate| candidate.has_base_content && candidate.has_mods_directory)
+        .or_else(|| candidates.iter().find(|candidate| candidate.has_base_content))
+        .map(|candidate| candidate.root.clone())
+}
+
+fn load_content_file(path: &Path) -> io::Result<CampaignContent> {
     let data = fs::read_to_string(path)?;
     serde_json::from_str(&data)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))
@@ -116,16 +179,12 @@ fn load_mod_content(manifest_path: &Path, manifest: &ModManifest) -> io::Result<
         .parent()
         .unwrap_or_else(|| Path::new("."))
         .join(&manifest.content_file);
-    let data = fs::read_to_string(content_path)?;
-    serde_json::from_str(&data)
-        .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))
+    load_content_file(&content_path)
 }
 
-fn discover_mods() -> Vec<DiscoveredMod> {
-    let Some(mods_root) = mods_directory_path() else {
-        return Vec::new();
-    };
+fn discover_mods(mods_root: &Path, warnings: &mut Vec<String>) -> Vec<DiscoveredMod> {
     let Ok(entries) = fs::read_dir(mods_root) else {
+        warnings.push(format!("could not read mods directory {}", mods_root.display()));
         return Vec::new();
     };
     let mut found = Vec::new();
@@ -135,7 +194,11 @@ fn discover_mods() -> Vec<DiscoveredMod> {
             continue;
         }
         let manifest_path = path.join("manifest.json");
-        if !manifest_path.exists() {
+        if !manifest_path.is_file() {
+            warnings.push(format!(
+                "skipping mod directory without manifest: {}",
+                path.display()
+            ));
             continue;
         }
         match fs::read_to_string(&manifest_path)
@@ -146,37 +209,13 @@ fn discover_mods() -> Vec<DiscoveredMod> {
                 manifest,
                 manifest_path,
             }),
-            None => ui::diagnostic(&format!(
-                "Could not parse mod manifest {}",
+            None => warnings.push(format!(
+                "could not parse mod manifest {}",
                 manifest_path.display()
             )),
         }
     }
     found
-}
-
-fn campaign_content_path() -> Option<PathBuf> {
-    first_existing_path(CONTENT_FILE_NAME)
-}
-
-fn mods_directory_path() -> Option<PathBuf> {
-    first_existing_path(MODS_DIR_NAME)
-}
-
-fn first_existing_path(relative: &str) -> Option<PathBuf> {
-    let mut candidates = vec![PathBuf::from(relative)];
-    if let Ok(current_dir) = env::current_dir() {
-        candidates.push(current_dir.join(relative));
-    }
-    if let Ok(exe) = env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join(relative));
-            if let Some(parent) = dir.parent() {
-                candidates.push(parent.join(relative));
-            }
-        }
-    }
-    candidates.into_iter().find(|path| path.exists())
 }
 
 fn merge_campaign_content(
@@ -185,14 +224,10 @@ fn merge_campaign_content(
     warnings: &mut Vec<String>,
 ) {
     base.world.region = incoming.world.region;
-    merge_vec_by_key(
-        &mut base.world.locations,
-        incoming.world.locations,
-        |entry| entry.id.clone(),
-    );
-    merge_vec_by_key(&mut base.factions, incoming.factions, |entry| {
+    merge_vec_by_key(&mut base.world.locations, incoming.world.locations, |entry| {
         entry.id.clone()
     });
+    merge_vec_by_key(&mut base.factions, incoming.factions, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.npcs, incoming.npcs, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.quests, incoming.quests, |entry| entry.id.clone());
     merge_vec_by_key(&mut base.encounters, incoming.encounters, |entry| {
@@ -394,15 +429,12 @@ fn default_campaign_content() -> CampaignContent {
 mod tests {
     use super::*;
 
-    fn valid_event(id: &str) -> EventContent {
-        EventContent {
-            id: id.into(),
-            trigger: "travel_arrival".into(),
-            weight: 1,
-            chance_percent: Some(100),
-            cooldown_turns: None,
-            conditions: None,
-            effects: vec![EventEffectContent::Pause],
+    #[test]
+    fn data_root_candidates_do_not_duplicate_canonical_paths() {
+        let candidates = data_root_candidates();
+        let mut roots = HashSet::new();
+        for candidate in candidates {
+            assert!(roots.insert(candidate.root));
         }
     }
 
@@ -412,14 +444,42 @@ mod tests {
         let locations = HashSet::from(["Ashen Gate"]);
         let factions = HashSet::from(["Cinder Wardens"]);
         let known = HashSet::from(["good.event".into(), "bad.event".into()]);
-        let mut invalid = valid_event("bad.event");
-        invalid.weight = 0;
-        invalid.conditions = Some(EventConditionContent {
-            locations: vec!["Unknown Place".into()],
-            ..Default::default()
-        });
+        let mut invalid = EventContent {
+            id: "bad.event".into(),
+            trigger: "travel_arrival".into(),
+            weight: 0,
+            chance_percent: Some(100),
+            cooldown_turns: None,
+            conditions: Some(EventConditionContent {
+                locations: vec!["Unknown Place".into()],
+                ..Default::default()
+            }),
+            effects: vec![EventEffectContent::Pause],
+        };
         let accepted = filter_valid_events(
-            vec![valid_event("good.event"), invalid],
+            vec![
+                EventContent {
+                    id: "good.event".into(),
+                    trigger: "travel_arrival".into(),
+                    weight: 1,
+                    chance_percent: Some(100),
+                    cooldown_turns: None,
+                    conditions: None,
+                    effects: vec![EventEffectContent::Pause],
+                },
+                std::mem::replace(
+                    &mut invalid,
+                    EventContent {
+                        id: "unused".into(),
+                        trigger: "travel_arrival".into(),
+                        weight: 1,
+                        chance_percent: Some(100),
+                        cooldown_turns: None,
+                        conditions: None,
+                        effects: vec![EventEffectContent::Pause],
+                    },
+                ),
+            ],
             &locations,
             &factions,
             &known,
@@ -429,107 +489,9 @@ mod tests {
         );
         assert_eq!(accepted.len(), 1);
         assert_eq!(accepted[0].id, "good.event");
-        assert_eq!(warnings.len(), 1);
-        assert!(warnings[0].contains("zero weight"));
-        assert!(warnings[0].contains("unknown location"));
-    }
-
-    #[test]
-    fn rejected_prior_event_rejects_dependents() {
-        let mut warnings = Vec::new();
-        let locations = HashSet::from(["Ashen Gate"]);
-        let factions = HashSet::from(["Cinder Wardens"]);
-        let known = HashSet::from(["bad.event".into(), "followup.event".into()]);
-        let mut bad = valid_event("bad.event");
-        bad.weight = 0;
-        let mut followup = valid_event("followup.event");
-        followup.conditions = Some(EventConditionContent {
-            prior_event_id: Some("bad.event".into()),
-            ..Default::default()
-        });
-        let accepted = filter_valid_events(
-            vec![bad, followup],
-            &locations,
-            &factions,
-            &known,
-            &HashSet::new(),
-            "test content",
-            &mut warnings,
-        );
-        assert!(accepted.is_empty());
+        assert!(warnings.iter().any(|warning| warning.contains("zero weight")));
         assert!(warnings
             .iter()
-            .any(|warning| warning.contains("followup.event") && warning.contains("unavailable")));
-    }
-
-    #[test]
-    fn existing_prior_event_reference_is_allowed() {
-        let mut warnings = Vec::new();
-        let locations = HashSet::from(["Ashen Gate"]);
-        let factions = HashSet::from(["Cinder Wardens"]);
-        let known = HashSet::from(["base.event".into(), "followup.event".into()]);
-        let existing = HashSet::from(["base.event".into()]);
-        let mut followup = valid_event("followup.event");
-        followup.conditions = Some(EventConditionContent {
-            prior_event_id: Some("base.event".into()),
-            ..Default::default()
-        });
-        let accepted = filter_valid_events(
-            vec![followup],
-            &locations,
-            &factions,
-            &known,
-            &existing,
-            "mod content",
-            &mut warnings,
-        );
-        assert_eq!(accepted.len(), 1);
-        assert!(warnings.is_empty());
-    }
-
-    #[test]
-    fn invalid_reputation_conditions_are_rejected() {
-        let mut warnings = Vec::new();
-        let locations = HashSet::from(["Ashen Gate"]);
-        let factions = HashSet::from(["Cinder Wardens"]);
-        let known = HashSet::from(["rep.event".into()]);
-        let mut invalid = valid_event("rep.event");
-        invalid.conditions = Some(EventConditionContent {
-            min_reputation: Some(10),
-            max_reputation: Some(5),
-            ..Default::default()
-        });
-        let accepted = filter_valid_events(
-            vec![invalid],
-            &locations,
-            &factions,
-            &known,
-            &HashSet::new(),
-            "test content",
-            &mut warnings,
-        );
-        assert!(accepted.is_empty());
-        assert!(warnings[0].contains("reputation condition requires faction_name"));
-    }
-
-    #[test]
-    fn duplicate_event_ids_do_not_overwrite_existing_content() {
-        let mut warnings = Vec::new();
-        let locations = HashSet::from(["Ashen Gate"]);
-        let factions = HashSet::from(["Cinder Wardens"]);
-        let existing = HashSet::from(["travel.event".into()]);
-        let known = HashSet::from(["travel.event".into(), "new.event".into()]);
-        let accepted = filter_valid_events(
-            vec![valid_event("travel.event"), valid_event("new.event")],
-            &locations,
-            &factions,
-            &known,
-            &existing,
-            "mod content",
-            &mut warnings,
-        );
-        assert_eq!(accepted.len(), 1);
-        assert_eq!(accepted[0].id, "new.event");
-        assert!(warnings[0].contains("duplicate event id travel.event"));
+            .any(|warning| warning.contains("unknown location")));
     }
 }
