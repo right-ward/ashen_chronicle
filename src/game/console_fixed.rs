@@ -49,7 +49,7 @@ pub(crate) fn choose_main_menu(
             frame.render_widget(block, popup);
 
             let mut lines = vec![
-                Line::from("↑↓ / jk  Enter: choose  /: console  Esc: back"),
+                Line::from("↑↓ / jk  Enter: choose  Esc: back"),
                 Line::from(""),
             ];
             for (index, option) in options.iter().enumerate() {
