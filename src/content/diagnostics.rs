@@ -3,15 +3,17 @@ use std::fmt::Write;
 
 pub fn campaign_content_load_diagnostics() -> String {
     let candidates = data_root_candidates();
-    let selected = candidates
+    let selected_root = candidates
         .iter()
         .find(|candidate| candidate.has_base_content && candidate.has_mods_directory)
-        .or_else(|| candidates.iter().find(|candidate| candidate.has_base_content));
+        .or_else(|| candidates.iter().find(|candidate| candidate.has_base_content))
+        .map(|candidate| candidate.root.clone());
     let report = load_campaign_content_report();
     let base_source = if report
         .warnings
         .iter()
         .any(|warning| warning.contains("using embedded base content"))
+        || selected_root.is_none()
     {
         "embedded"
     } else {
@@ -22,8 +24,9 @@ pub fn campaign_content_load_diagnostics() -> String {
     let _ = writeln!(
         output,
         "selected data root: {}",
-        selected
-            .map(|candidate| candidate.root.display().to_string())
+        selected_root
+            .as_ref()
+            .map(|root| root.display().to_string())
             .unwrap_or_else(|| "<none>".into())
     );
     let _ = writeln!(output, "base source: {base_source}");
@@ -32,9 +35,10 @@ pub fn campaign_content_load_diagnostics() -> String {
     if candidates.is_empty() {
         output.push_str("  <none>\n");
     } else {
-        for candidate in candidates {
-            let marker = selected
-                .map(|chosen| chosen.root == candidate.root)
+        for candidate in &candidates {
+            let marker = selected_root
+                .as_ref()
+                .map(|root| *root == candidate.root)
                 .unwrap_or(false);
             let _ = writeln!(
                 output,
