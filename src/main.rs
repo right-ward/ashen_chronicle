@@ -2,8 +2,8 @@ mod content;
 mod events;
 mod game;
 mod model;
-mod persistence;
-mod ui;
+pub mod persistence;
+pub mod ui;
 
 fn main() {
     if let Err(err) = game::run() {
