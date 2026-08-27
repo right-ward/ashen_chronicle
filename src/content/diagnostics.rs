@@ -6,7 +6,11 @@ pub fn campaign_content_load_diagnostics() -> String {
     let selected_root = candidates
         .iter()
         .find(|candidate| candidate.has_base_content && candidate.has_mods_directory)
-        .or_else(|| candidates.iter().find(|candidate| candidate.has_base_content))
+        .or_else(|| {
+            candidates
+                .iter()
+                .find(|candidate| candidate.has_base_content)
+        })
         .map(|candidate| candidate.root.clone());
     let report = load_campaign_content_report();
     let base_source = if report
@@ -59,11 +63,7 @@ pub fn campaign_content_load_diagnostics() -> String {
             let _ = writeln!(
                 output,
                 "  {} | {} | version={} priority={} enabled={}",
-                manifest.id,
-                manifest.name,
-                manifest.version,
-                manifest.priority,
-                manifest.enabled
+                manifest.id, manifest.name, manifest.version, manifest.priority, manifest.enabled
             );
         }
     }
