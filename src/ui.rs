@@ -175,7 +175,7 @@ pub(crate) fn render_main_menu(title: &str, options: &[String], selected: usize)
     let mut prompt_lines = vec![
         title.to_string(),
         String::new(),
-        "↑ ↓ / j k  Enter: choose  Esc: back  /: console".to_string(),
+        "↑ ↓ / j k  Enter: choose  Esc: back".to_string(),
         String::new(),
     ];
     for (index, option) in options.iter().enumerate() {
