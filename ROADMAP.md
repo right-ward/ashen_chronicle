@@ -12,16 +12,6 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
 - Exposed the content loading report through the content module for developer diagnostics and future tooling.
 - CI reliability: automatic rustfmt commits are retained, while formatting no longer gates test execution; CI also runs when workflow, Cargo, or data files change.
-- v0.37.2: Gameplay screen rendering fix
-- Reworked the main gameplay menu to render through the shared UI terminal instead of creating a second terminal that overlaid the dashboard.
-- Prevented menu choices, results, and journal updates from being visually mixed with the previous gameplay frame.
-- v0.37.1: Developer console stability patch
-- Added an opaque, clean terminal handoff when leaving the developer console so the main gameplay layout is redrawn without stale console buffer contents.
-- v0.37.0: Developer console foundation
-- Added an overlay developer console with scrollable output, command history, and a `/` shortcut from the normal gameplay menu.
-- Added command access to world navigation, content/mod inspection, quests, factions, NPCs, inventory, character stats, conditions, time, history, save, and content reload.
-- Added Tab autocomplete with arrow-key navigation, Enter selection, Esc cancellation, and stable runtime entity IDs with names/titles shown as hints.
-- Kept the normal gameplay renderer and save format unchanged.
 
 ## Next
 
