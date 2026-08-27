@@ -1,4 +1,4 @@
-use crate::content::load_campaign_content;
+use crate::content::{campaign_content_load_diagnostics, load_campaign_content};
 use crate::model::{Condition, EntityId, GameState, Item};
 use crate::persistence::save_game;
 use crossterm::event::{self, Event, KeyCode, KeyModifiers};
@@ -302,7 +302,7 @@ fn command_candidates() -> Vec<(String, String)> {
         ("status", "character/world state"),
         ("where", "filesystem content paths"),
         ("mods", "external mod directories"),
-        ("content", "loaded content counts"),
+        ("content", "loaded content diagnostics"),
         ("locations", "list location IDs"),
         ("goto", "move to location ID"),
         ("teleport", "goto alias"),
@@ -506,6 +506,12 @@ fn mods(console: &mut ConsoleState) {
 }
 
 fn content(state: &GameState, console: &mut ConsoleState) {
+    console.output.push("-- content loader diagnostics --".into());
+    for line in campaign_content_load_diagnostics().lines() {
+        console.output.push(line.to_string());
+    }
+    console.output.push("-- active game content --".into());
+
     let Some(content) = state.campaign_content.as_ref() else {
         console
             .output
