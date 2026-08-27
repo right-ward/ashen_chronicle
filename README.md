@@ -35,13 +35,47 @@ The goal is to make the world feel persistent rather than disposable.
 ashen_chronicle
 ├── data
 │   ├── mods
+│   │   ├── ashen_expansion
+│   │   │   ├── content.json
+│   │   │   └── manifest.json
+│   │   ├── echoes_depth
+│   │   │   ├── content.json
+│   │   │   └── manifest.json
 │   │   └── README.md
 │   └── base_content.json
+├── docs
+│   ├── systems
+│   │   ├── content.md
+│   │   ├── events.md
+│   │   ├── persistence.md
+│   │   └── ui.md
+│   ├── README.md
+│   ├── architecture.md
+│   ├── development-plan-history.md
+│   └── roadmap-history.md
 ├── src
+│   ├── content
+│   │   ├── definitions.rs
+│   │   ├── diagnostics.rs
+│   │   ├── loader.rs
+│   │   └── seeding.rs
 │   ├── game
 │   │   ├── actions.rs
+│   │   ├── character.rs
 │   │   ├── combat.rs
-│   │   └── screens.rs
+│   │   ├── console.rs
+│   │   ├── console_fixed.rs
+│   │   ├── dispatcher.rs
+│   │   ├── interactions.rs
+│   │   ├── legacy.rs
+│   │   ├── menu.rs
+│   │   ├── presentation.rs
+│   │   ├── records.rs
+│   │   ├── runtime.rs
+│   │   ├── screens.rs
+│   │   ├── state_effects.rs
+│   │   ├── time.rs
+│   │   └── world.rs
 │   ├── content.rs
 │   ├── events.rs
 │   ├── game.rs
@@ -49,13 +83,6 @@ ashen_chronicle
 │   ├── model.rs
 │   ├── persistence.rs
 │   └── ui.rs
-├── AGENTS.md
-├── Cargo.lock
-├── Cargo.toml
-├── DEVELOPMENT_PLAN.md
-├── LICENSE
-├── README.md
-└── ROADMAP.md
 ```
 
 "game.rs" contains the game logic and gameplay flow.
