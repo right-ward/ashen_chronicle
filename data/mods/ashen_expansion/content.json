@@ -140,11 +140,11 @@
       },
       "effects": [
         {
-          "type": "Message",
+          "type": "message",
           "text": "A deep metallic note rolls through the forge, and the walls answer from somewhere below."
         },
         {
-          "type": "History",
+          "type": "history",
           "text": "The forge answered the road with a buried metallic echo."
         }
       ]
@@ -163,11 +163,11 @@
       },
       "effects": [
         {
-          "type": "Message",
+          "type": "message",
           "text": "After dusk, several broken instruments answer one another across the wagons. The tune is slow, heavy, and impossible to place."
         },
         {
-          "type": "History",
+          "type": "history",
           "text": "The Hollow Caravan sang without living performers."
         }
       ]
