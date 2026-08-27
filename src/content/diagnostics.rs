@@ -1,4 +1,4 @@
-use super::{data_root_candidates, load_campaign_content_report};
+use super::loader::{data_root_candidates, load_campaign_content_report};
 use std::fmt::Write;
 
 pub fn campaign_content_load_diagnostics() -> String {
