@@ -2,7 +2,7 @@ mod content;
 mod events;
 mod game;
 mod model;
-pub mod persistence;
+mod persistence;
 pub mod ui;
 
 fn main() {
