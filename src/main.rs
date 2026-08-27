@@ -3,7 +3,7 @@ mod events;
 mod game;
 mod model;
 mod persistence;
-mod ui;
+pub mod ui;
 
 fn main() {
     if let Err(err) = game::run() {
