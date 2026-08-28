@@ -83,6 +83,13 @@ ashen_chronicle
 │   ├── model.rs
 │   ├── persistence.rs
 │   └── ui.rs
+├── AGENTS.md
+├── Cargo.lock
+├── Cargo.toml
+├── DEVELOPMENT_PLAN.md
+├── LICENSE
+├── README.md
+└── ROADMAP.md
 ```
 
 "game.rs" contains the game logic and gameplay flow.
