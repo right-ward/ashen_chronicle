@@ -18,7 +18,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ### v0.39.0 — UI and Input Reliability
 
-- Make overflowing TUI layouts and text-heavy views scrollable, including developer-console output and completion menus.
+- Completed: developer-console output and completion menus now keep overflowing content navigable instead of silently hiding the selected/older entries.
 - Add the developer-console key logger with useful key-event diagnostics while excluding console input itself.
 
 ## Longer-term direction
