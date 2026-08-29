@@ -1,7 +1,8 @@
 use crate::content::{campaign_content_load_diagnostics, load_campaign_content};
 use crate::model::{Condition, EntityId, GameState, Item};
 use crate::persistence::save_game;
-use crossterm::event::{self, Event, KeyCode, KeyModifiers};
+use crate::ui;
+use crossterm::event::KeyCode;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::*;
@@ -59,10 +60,8 @@ pub(crate) fn choose_main_menu(
             frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
         })?;
 
-        let Event::Key(key) = event::read()? else {
-            continue;
-        };
-        match key.code {
+        let key = ui::read_key()?;
+        match key {
             KeyCode::Up | KeyCode::Char('k') => {
                 selected = selected
                     .checked_sub(1)
@@ -92,16 +91,10 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
     loop {
         refresh_completion(&mut console, state);
         draw_console(&mut terminal, &console)?;
-        let Event::Key(key) = event::read()? else {
-            continue;
-        };
-
-        if key.modifiers.contains(KeyModifiers::CONTROL) && key.code == KeyCode::Char('c') {
-            return Ok(());
-        }
+        let key = ui::read_key()?;
 
         if console.autocomplete {
-            match key.code {
+            match key {
                 KeyCode::Up => select_previous(&mut console),
                 KeyCode::Down => select_next(&mut console),
                 KeyCode::Enter => accept_completion(&mut console),
@@ -109,13 +102,13 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
                 KeyCode::Tab => {}
                 _ => {
                     cancel_completion(&mut console);
-                    edit_input(&mut console, key.code);
+                    edit_input(&mut console, key);
                 }
             }
             continue;
         }
 
-        match key.code {
+        match key {
             KeyCode::Esc => return Ok(()),
             KeyCode::Enter => {
                 execute_line(state, save_path, &mut console)?;
@@ -134,7 +127,7 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
             KeyCode::Down => history_next(&mut console),
             KeyCode::PageUp => console.scroll = console.scroll.saturating_add(6),
             KeyCode::PageDown => console.scroll = console.scroll.saturating_sub(6),
-            _ => edit_input(&mut console, key.code),
+            _ => edit_input(&mut console, key),
         }
     }
 }
