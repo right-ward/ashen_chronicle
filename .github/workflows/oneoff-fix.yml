@@ -24,6 +24,7 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
+          import re
 
           path = Path('src/ui.rs')
           text = path.read_text()
@@ -34,11 +35,15 @@ jobs:
               raise SystemExit(f'expected 1 menu wrap, found {text.count(old_menu)}')
           text = text.replace(old_menu, new_menu, 1)
 
-          old_panel = '                .merge_borders(MergeStrategy::Exact),\n        )\n        .wrap(Wrap { trim: true });\n    frame.render_widget(paragraph, area);'
-          new_panel = '                .merge_borders(MergeStrategy::Exact),\n        )\n        .wrap(Wrap { trim: false });\n    frame.render_widget(paragraph, area);'
-          if text.count(old_panel) != 1:
-              raise SystemExit(f'expected 1 panel wrap, found {text.count(old_panel)}')
-          text = text.replace(old_panel, new_panel, 1)
+          match = re.search(r'(fn render_panel\\(.*?\\n\\})', text, re.S)
+          if not match:
+              raise SystemExit('render_panel function not found')
+          function = match.group(1)
+          old_wrap = '.wrap(Wrap { trim: true });'
+          if function.count(old_wrap) != 1:
+              raise SystemExit(f'expected 1 render_panel wrap, found {function.count(old_wrap)}')
+          function = function.replace(old_wrap, '.wrap(Wrap { trim: false });', 1)
+          text = text[:match.start(1)] + function + text[match.end(1):]
 
           path.write_text(text)
           PY
