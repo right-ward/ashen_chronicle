@@ -18,7 +18,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ### v0.39.0 — UI and Input Reliability
 
-- Completed: developer-console output and completion menus now keep overflowing content navigable instead of silently hiding the selected/older entries.
+- Completed: developer-console output and completion menus now support bounded scrolling and keep overflowing content navigable, including wrapped output lines.
+- Completed: developer-console implementation is split into focused entrypoint, UI/state, and command modules for easier maintenance.
 - Add the developer-console key logger with useful key-event diagnostics while excluding console input itself.
 
 ## Longer-term direction
