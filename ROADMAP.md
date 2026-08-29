@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.39.0: UI and input reliability
+- v0.39.0: UI and input reliability — in progress
 - Unified base-content and mod discovery around a single resolved `data/` root so the loader cannot silently combine files from different roots.
 - Added explicit data-root candidate diagnostics and warnings for missing, unreadable, or malformed external content.
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
@@ -15,6 +15,11 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Input handling: UI and developer-console key processing now accepts only `KeyEventKind::Press` events, preventing non-press terminal events from being interpreted as duplicate input.
 
 ## Next
+
+### v0.39.0 — remaining
+
+- Fix in-game ASCII art so leading spaces are preserved instead of being flattened. (#57)
+- Fix transparent/stacked game screens so each screen is cleared and rendered independently. (#60)
 
 ### v0.40.0
 
