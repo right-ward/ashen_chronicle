@@ -1,5 +1,6 @@
 #[path = "console_commands.rs"]
 mod commands;
+#[path = "console_ui.rs"]
 mod console_ui;
 
 use crate::game::world;
