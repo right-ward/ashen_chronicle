@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.39.0: UI and input reliability — implementation complete
+- v0.39.1: UI regression patch — implementation complete
 - Unified base-content and mod discovery around a single resolved `data/` root so the loader cannot silently combine files from different roots.
 - Added explicit data-root candidate diagnostics and warnings for missing, unreadable, or malformed external content.
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
@@ -19,6 +19,11 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ### v0.40.0
 
 - Continue modularizing and improving the existing TUI presentation before the longer-term GUI transition.
+
+## Completed in v0.39.1
+
+- Restored the in-game action menu to the final dashboard panel instead of drawing it as a detached overlay.
+- Restored clean developer-console screen lifecycle: the console opens on a cleared screen and returns to the preserved game alternate screen without stacking frames.
 
 ## Completed in v0.39.0
 
