@@ -5,7 +5,10 @@ mod console_ui;
 
 use crate::game::world;
 use crate::model::GameState;
+use crossterm::cursor;
 use crossterm::event::KeyCode;
+use crossterm::execute;
+use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
 use ratatui::Terminal;
 use std::io;
@@ -17,20 +20,43 @@ pub(crate) fn choose_main_menu(
     title: &str,
     options: &[String],
 ) -> io::Result<Option<usize>> {
-    console_ui::choose_main_menu(state, save_path, title, options)
+    if options.is_empty() {
+        return Ok(None);
+    }
+
+    let mut selected = 0usize;
+    loop {
+        crate::ui::render_main_menu(title, options, selected)?;
+
+        match crate::ui::read_key()? {
+            KeyCode::Up | KeyCode::Char('k') => {
+                selected = selected
+                    .checked_sub(1)
+                    .unwrap_or(options.len().saturating_sub(1));
+            }
+            KeyCode::Down | KeyCode::Char('j') => {
+                selected = (selected + 1) % options.len();
+            }
+            KeyCode::Home => selected = 0,
+            KeyCode::End => selected = options.len().saturating_sub(1),
+            KeyCode::Enter => return Ok(Some(selected)),
+            KeyCode::Esc => return Ok(None),
+            KeyCode::Char('/') => open_console(state, save_path)?,
+            _ => {}
+        }
+    }
 }
 
 pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
-    let mut background = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-    background.clear()?;
+    enter_console_screen()?;
     let result = run_console_session(state, save_path);
-    let cleanup = background.clear();
+    let restore = restore_game_screen();
 
     if result.is_ok() {
         world::bootstrap_campaign_content(state);
     }
 
-    match (result, cleanup) {
+    match (result, restore) {
         (Err(error), _) => Err(error),
         (Ok(()), Err(error)) => Err(error),
         (Ok(()), Ok(())) => Ok(()),
@@ -41,6 +67,7 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
     crate::ui::set_console_input_active(true);
     let result = (|| -> io::Result<()> {
         let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
+        terminal.clear()?;
         let mut console = console_ui::ConsoleState::default();
         console
             .output
@@ -99,4 +126,23 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
     })();
     crate::ui::set_console_input_active(false);
     result
+}
+
+fn enter_console_screen() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    execute!(stdout, LeaveAlternateScreen, cursor::Show)?;
+    execute!(stdout, Clear(ClearType::All), cursor::MoveTo(0, 0))?;
+    Ok(())
+}
+
+fn restore_game_screen() -> io::Result<()> {
+    let mut stdout = io::stdout();
+    execute!(
+        stdout,
+        Clear(ClearType::All),
+        cursor::MoveTo(0, 0),
+        EnterAlternateScreen,
+        cursor::Hide
+    )?;
+    Ok(())
 }
