@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.39.0: UI and input reliability — in progress
+- v0.39.0: UI and input reliability — implementation complete
 - Unified base-content and mod discovery around a single resolved `data/` root so the loader cannot silently combine files from different roots.
 - Added explicit data-root candidate diagnostics and warnings for missing, unreadable, or malformed external content.
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
@@ -15,11 +15,6 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Input handling: UI and developer-console key processing now accepts only `KeyEventKind::Press` events, preventing non-press terminal events from being interpreted as duplicate input.
 
 ## Next
-
-### v0.39.0 — remaining
-
-- Fix in-game ASCII art so leading spaces are preserved instead of being flattened. (#57) — implementation queued
-- Fix transparent/stacked game screens so each screen is cleared and rendered independently. (#60)
 
 ### v0.40.0
 
@@ -30,6 +25,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Developer-console output and completion menus support bounded scrolling and keep overflowing content navigable, including wrapped output lines.
 - Developer-console implementation is split into focused entrypoint, UI/state, and command modules for easier maintenance.
 - Added the `logkeys [true|false]` developer-console command. When enabled, it buffers terminal key events outside the developer console with timestamps, event kinds, key codes, and modifiers; console input itself is excluded.
+- Fixed in-game ASCII art flattening by preserving leading whitespace in menu, location, and journal renderers. (#57)
+- Fixed transparent/stacked game screens by clearing the full terminal frame before rendering standalone menu and developer-console screens. (#60)
 
 ## Longer-term direction
 
