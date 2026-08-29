@@ -18,7 +18,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ### v0.39.0 — remaining
 
-- Fix in-game ASCII art so leading spaces are preserved instead of being flattened. (#57)
+- Fix in-game ASCII art so leading spaces are preserved instead of being flattened. (#57) — implementation queued
 - Fix transparent/stacked game screens so each screen is cleared and rendered independently. (#60)
 
 ### v0.40.0
