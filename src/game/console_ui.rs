@@ -346,6 +346,7 @@ pub(super) fn choose_main_menu(
 
     loop {
         terminal.draw(|frame| {
+            frame.render_widget(Clear, frame.area());
             let popup = centered_rect(64, 70, frame.area());
             frame.render_widget(Clear, popup);
             let block = Block::default().title(title).borders(Borders::ALL);
@@ -397,6 +398,7 @@ pub(super) fn draw_console(
     console: &ConsoleState,
 ) -> io::Result<()> {
     terminal.draw(|frame| {
+        frame.render_widget(Clear, frame.area());
         let area = centered_rect(92, 82, frame.area());
         frame.render_widget(Clear, area);
         let block = Block::default()
