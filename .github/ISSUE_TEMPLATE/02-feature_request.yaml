@@ -12,14 +12,6 @@ body:
     required: true
 - type: textarea
   attributes:
-    label: Alternatives
-    description: Is there an alternative tool available or method to implement this?
-    placeholder: |
-      Tool X exists, It can be implemented using Y, ...
-  validations:
-    required: false
-- type: textarea
-  attributes:
     label: Additional Context
     description: |
       If it solves an issue, you can reference the affected issues here.
