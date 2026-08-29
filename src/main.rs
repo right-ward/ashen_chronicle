@@ -3,6 +3,7 @@ mod events;
 mod game;
 mod model;
 mod persistence;
+#[allow(dead_code)]
 pub mod ui;
 
 fn main() {

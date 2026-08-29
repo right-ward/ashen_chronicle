@@ -1,6 +1,7 @@
 mod actions;
 mod character;
 mod combat;
+#[allow(dead_code)]
 mod console;
 mod dispatcher;
 mod interactions;
