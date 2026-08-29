@@ -1,6 +1,6 @@
-mod console_ui;
 #[path = "console_commands.rs"]
 mod commands;
+mod console_ui;
 
 use crate::game::world;
 use crate::model::GameState;
@@ -39,8 +39,12 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
 fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     let mut console = console_ui::ConsoleState::default();
-    console.output.push("Ashen Chronicle developer console".into());
-    console.output.push("help for commands | Tab completion | Esc closes".into());
+    console
+        .output
+        .push("Ashen Chronicle developer console".into());
+    console
+        .output
+        .push("help for commands | Tab completion | Esc closes".into());
 
     loop {
         console_ui::refresh_completion(&mut console, state);

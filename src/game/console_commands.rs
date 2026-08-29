@@ -1,3 +1,4 @@
+use super::console_ui::{ConsoleState, ScrollPosition};
 use crate::content::{campaign_content_load_diagnostics, load_campaign_content};
 use crate::model::{Condition, EntityId, GameState, Item};
 use crate::persistence::save_game;
@@ -5,7 +6,6 @@ use std::env;
 use std::fs;
 use std::io;
 use std::path::Path;
-use super::console_ui::{ConsoleState, ScrollPosition};
 pub(super) fn execute_line(
     state: &mut GameState,
     save_path: &Path,
@@ -171,7 +171,9 @@ fn mods(console: &mut ConsoleState) {
     }
 }
 fn content(state: &GameState, console: &mut ConsoleState) {
-    console.output.push("-- content loader diagnostics --".into());
+    console
+        .output
+        .push("-- content loader diagnostics --".into());
     for line in campaign_content_load_diagnostics().lines() {
         console.output.push(line.to_string());
     }

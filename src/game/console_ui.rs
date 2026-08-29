@@ -452,7 +452,11 @@ pub(super) fn draw_console(
                 .skip(start)
                 .take(visible)
                 .map(|(index, candidate)| {
-                    let marker = if index == console.selected { '▶' } else { ' ' };
+                    let marker = if index == console.selected {
+                        '▶'
+                    } else {
+                        ' '
+                    };
                     Line::from(format!(
                         "{marker} {}  — {}",
                         candidate.value, candidate.hint
