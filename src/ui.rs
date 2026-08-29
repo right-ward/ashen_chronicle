@@ -592,7 +592,7 @@ fn draw_menu_screen(
 
     let paragraph = Paragraph::new(lines.join("\n"))
         .alignment(ratatui::layout::Alignment::Center)
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, inner);
 }
 
@@ -811,7 +811,7 @@ fn render_panel(
                 .style(border_style(compact))
                 .merge_borders(MergeStrategy::Exact),
         )
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }
 
@@ -830,7 +830,7 @@ fn render_log(frame: &mut ratatui::Frame<'_>, area: Rect, log: &[String], compac
                 .style(border_style(compact))
                 .merge_borders(MergeStrategy::Exact),
         )
-        .wrap(Wrap { trim: true });
+        .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }
 
