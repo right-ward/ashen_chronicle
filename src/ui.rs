@@ -10,6 +10,7 @@ use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};
 use ratatui::Terminal;
 use std::io::{self, Stdout, Write};
 use std::sync::{Mutex, OnceLock};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Clone, Default)]
 pub struct Dashboard {
@@ -43,6 +44,9 @@ struct UiRuntime {
     log: Vec<String>,
     initialized: bool,
     terminal: Option<Terminal<CrosstermBackend<Stdout>>>,
+    key_logging_enabled: bool,
+    console_input_active: bool,
+    key_log: Vec<String>,
 }
 
 static UI: OnceLock<Mutex<UiRuntime>> = OnceLock::new();
@@ -169,6 +173,27 @@ pub fn clear_log() {
 
 pub fn diagnostic(text: &str) {
     line(&format!("[diagnostic] {text}"));
+}
+
+pub(crate) fn set_key_logging(enabled: bool) {
+    let mut state = runtime().lock().unwrap();
+    if enabled && !state.key_logging_enabled {
+        state.key_log.clear();
+    }
+    state.key_logging_enabled = enabled;
+}
+
+pub(crate) fn key_logging_enabled() -> bool {
+    runtime().lock().unwrap().key_logging_enabled
+}
+
+pub(crate) fn set_console_input_active(active: bool) {
+    runtime().lock().unwrap().console_input_active = active;
+}
+
+pub(crate) fn take_key_log() -> Vec<String> {
+    let mut state = runtime().lock().unwrap();
+    std::mem::take(&mut state.key_log)
 }
 
 pub(crate) fn render_main_menu(title: &str, options: &[String], selected: usize) -> io::Result<()> {
@@ -429,6 +454,23 @@ fn read_key_event() -> io::Result<KeyCode> {
             ..
         }) = event::read()?
         {
+            let should_log = {
+                let state = runtime().lock().unwrap();
+                state.key_logging_enabled && !state.console_input_active
+            };
+            if should_log {
+                let timestamp_ms = SystemTime::now()
+                    .duration_since(UNIX_EPOCH)
+                    .map(|duration| duration.as_millis())
+                    .unwrap_or(0);
+                let entry = format!(
+                    "timestamp_ms={timestamp_ms} kind={kind:?} code={code:?} modifiers={modifiers:?}"
+                );
+                let mut state = runtime().lock().unwrap();
+                state.key_log.push(entry);
+                trim_key_log(&mut state.key_log);
+            }
+
             if kind != KeyEventKind::Press {
                 continue;
             }
@@ -463,6 +505,14 @@ fn trim_log(log: &mut Vec<String>) {
     if log.len() > MAX_LOG_LINES {
         let excess = log.len() - MAX_LOG_LINES;
         log.drain(0..excess);
+    }
+}
+
+fn trim_key_log(key_log: &mut Vec<String>) {
+    const MAX_KEY_LOG_ENTRIES: usize = 256;
+    if key_log.len() > MAX_KEY_LOG_ENTRIES {
+        let excess = key_log.len() - MAX_KEY_LOG_ENTRIES;
+        key_log.drain(0..excess);
     }
 }
 
