@@ -24,7 +24,6 @@ jobs:
           set -euo pipefail
           python3 - <<'PY'
           from pathlib import Path
-          import re
 
           path = Path('src/ui.rs')
           text = path.read_text()
@@ -35,15 +34,14 @@ jobs:
               raise SystemExit(f'expected 1 menu wrap, found {text.count(old_menu)}')
           text = text.replace(old_menu, new_menu, 1)
 
-          match = re.search(r'(fn render_panel\\(.*?\\n\\})', text, re.S)
-          if not match:
-              raise SystemExit('render_panel function not found')
-          function = match.group(1)
+          start = text.index('fn render_panel')
+          end = text.index('fn render_log', start)
+          function = text[start:end]
           old_wrap = '.wrap(Wrap { trim: true });'
           if function.count(old_wrap) != 1:
               raise SystemExit(f'expected 1 render_panel wrap, found {function.count(old_wrap)}')
           function = function.replace(old_wrap, '.wrap(Wrap { trim: false });', 1)
-          text = text[:match.start(1)] + function + text[match.end(1):]
+          text = text[:start] + function + text[end:]
 
           path.write_text(text)
           PY
