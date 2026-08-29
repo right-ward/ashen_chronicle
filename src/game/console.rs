@@ -21,7 +21,7 @@ pub(crate) fn choose_main_menu(
     options: &[String],
 ) -> io::Result<Option<usize>> {
     if options.is_empty() {
-        return Ok(None);
+        return console_ui::choose_main_menu(state, save_path, title, options);
     }
 
     let mut selected = 0usize;
