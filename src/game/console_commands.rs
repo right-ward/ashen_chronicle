@@ -85,9 +85,7 @@ fn logkeys(console: &mut ConsoleState, args: &[&str]) {
         None | Some("false") => false,
         Some("true") => true,
         Some(_) => {
-            console
-                .output
-                .push("usage: logkeys [true|false]".into());
+            console.output.push("usage: logkeys [true|false]".into());
             return;
         }
     };
