@@ -271,6 +271,7 @@ fn command_candidates() -> Vec<(String, String)> {
         ("history", "recent history"),
         ("reload", "reload campaign content"),
         ("save", "save current game"),
+        ("logkeys", "toggle key-event logging"),
         ("exit", "close console"),
     ]
     .into_iter()

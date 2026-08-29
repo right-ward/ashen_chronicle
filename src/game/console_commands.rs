@@ -66,6 +66,7 @@ pub(super) fn execute_line(
             console.output.push("Campaign content reloaded.".into());
         }
         "save" => save(state, save_path, console)?,
+        "logkeys" => logkeys(console, args),
         "exit" | "quit" => console.exit = true,
         _ => console
             .output
@@ -74,10 +75,29 @@ pub(super) fn execute_line(
     Ok(())
 }
 fn help(console: &mut ConsoleState) {
-    console.output.push("help clear status where mods content locations goto teleport npc npcs quests quest factions faction inventory give remove heal damage kill revive xp level attr condition time day history reload save exit".into());
+    console.output.push("help clear status where mods content locations goto teleport npc npcs quests quest factions faction inventory give remove heal damage kill revive xp level attr condition time day history reload save logkeys exit".into());
     console
         .output
         .push("Tab: candidates | ↑↓: select | Enter: accept | Esc: cancel autocomplete".into());
+}
+fn logkeys(console: &mut ConsoleState, args: &[&str]) {
+    let enabled = match args.first().copied() {
+        None | Some("false") => false,
+        Some("true") => true,
+        Some(_) => {
+            console.output.push("usage: logkeys [true|false]".into());
+            return;
+        }
+    };
+    crate::ui::set_key_logging(enabled);
+    console.output.push(format!(
+        "Key-event logging {}.",
+        if crate::ui::key_logging_enabled() {
+            "enabled"
+        } else {
+            "disabled"
+        }
+    ));
 }
 fn status(state: &GameState, console: &mut ConsoleState) {
     let location = state

@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.38.2: Content loading and world seeding hardening
+- v0.39.0: UI and input reliability — in progress
 - Unified base-content and mod discovery around a single resolved `data/` root so the loader cannot silently combine files from different roots.
 - Added explicit data-root candidate diagnostics and warnings for missing, unreadable, or malformed external content.
 - Strengthened campaign seeding so existing worlds reconcile newly loaded locations, metadata, exits, and persistent campaign entities instead of relying on first-creation state only.
@@ -16,11 +16,20 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-### v0.39.0 — UI and Input Reliability
+### v0.39.0 — remaining
 
-- Completed: developer-console output and completion menus now support bounded scrolling and keep overflowing content navigable, including wrapped output lines.
-- Completed: developer-console implementation is split into focused entrypoint, UI/state, and command modules for easier maintenance.
-- Add the developer-console key logger with useful key-event diagnostics while excluding console input itself.
+- Fix in-game ASCII art so leading spaces are preserved instead of being flattened. (#57)
+- Fix transparent/stacked game screens so each screen is cleared and rendered independently. (#60)
+
+### v0.40.0
+
+- Continue modularizing and improving the existing TUI presentation before the longer-term GUI transition.
+
+## Completed in v0.39.0
+
+- Developer-console output and completion menus support bounded scrolling and keep overflowing content navigable, including wrapped output lines.
+- Developer-console implementation is split into focused entrypoint, UI/state, and command modules for easier maintenance.
+- Added the `logkeys [true|false]` developer-console command. When enabled, it buffers terminal key events outside the developer console with timestamps, event kinds, key codes, and modifiers; console input itself is excluded.
 
 ## Longer-term direction
 
