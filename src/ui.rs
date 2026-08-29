@@ -1,5 +1,5 @@
 use crossterm::cursor;
-use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyModifiers};
+use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifiers};
 use crossterm::execute;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
@@ -423,9 +423,15 @@ fn wait_for_key(message: &str) -> io::Result<()> {
 fn read_key_event() -> io::Result<KeyCode> {
     loop {
         if let Event::Key(KeyEvent {
-            code, modifiers, ..
+            code,
+            modifiers,
+            kind,
+            ..
         }) = event::read()?
         {
+            if kind != KeyEventKind::Press {
+                continue;
+            }
             if modifiers.contains(KeyModifiers::CONTROL) && matches!(code, KeyCode::Char('c')) {
                 return Ok(KeyCode::Esc);
             }
