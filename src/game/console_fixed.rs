@@ -2,7 +2,7 @@ use crate::content::{campaign_content_load_diagnostics, load_campaign_content};
 use crate::model::{Condition, EntityId, GameState, Item};
 use crate::persistence::save_game;
 use crate::ui;
-use crossterm::event::{KeyCode, KeyModifiers};
+use crossterm::event::KeyCode;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::*;
@@ -63,9 +63,9 @@ pub(crate) fn choose_main_menu(
             if start > 0 {
                 lines.push(Line::from("⋯ more above ⋯"));
             }
-            for index in start..end {
+            for (index, option) in options.iter().enumerate().take(end).skip(start) {
                 let marker = if index == selected { '▶' } else { ' ' };
-                lines.push(Line::from(format!("{marker} {}. {}", index + 1, options[index])));
+                lines.push(Line::from(format!("{marker} {}. {option}", index + 1)));
             }
             if end < options.len() {
                 lines.push(Line::from("⋯ more below ⋯"));
