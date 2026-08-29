@@ -26,6 +26,7 @@ struct ConsoleState {
     history: Vec<String>,
     history_index: Option<usize>,
     scroll: usize,
+    completion_scroll: usize,
     candidates: Vec<Candidate>,
     selected: usize,
     autocomplete: bool,
@@ -49,19 +50,30 @@ pub(crate) fn choose_main_menu(
             let inner = block.inner(popup);
             frame.render_widget(block, popup);
 
+            let visible_rows = inner.height.saturating_sub(2) as usize;
+            let visible_rows = visible_rows.max(1);
+            let mut start = selected.saturating_sub(visible_rows / 2);
+            start = start.min(options.len().saturating_sub(visible_rows));
+            let end = (start + visible_rows).min(options.len());
+
             let mut lines = vec![
                 Line::from("↑↓ / jk  Enter: choose  Esc: back"),
                 Line::from(""),
             ];
-            for (index, option) in options.iter().enumerate() {
+            if start > 0 {
+                lines.push(Line::from("⋯ more above ⋯"));
+            }
+            for (index, option) in options.iter().enumerate().take(end).skip(start) {
                 let marker = if index == selected { '▶' } else { ' ' };
-                lines.push(Line::from(format!("{marker} {}. {}", index + 1, option)));
+                lines.push(Line::from(format!("{marker} {}. {option}", index + 1)));
+            }
+            if end < options.len() {
+                lines.push(Line::from("⋯ more below ⋯"));
             }
             frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
         })?;
 
-        let key = ui::read_key()?;
-        match key {
+        match ui::read_key()? {
             KeyCode::Up | KeyCode::Char('k') => {
                 selected = selected
                     .checked_sub(1)
@@ -121,10 +133,14 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
                 if !console.candidates.is_empty() {
                     console.autocomplete = true;
                     console.selected = 0;
+                    console.completion_scroll = 0;
+                    keep_completion_selection_visible(&mut console, 8);
                 }
             }
             KeyCode::Up => history_previous(&mut console),
             KeyCode::Down => history_next(&mut console),
+            KeyCode::Home => console.scroll = usize::MAX,
+            KeyCode::End => console.scroll = 0,
             KeyCode::PageUp => console.scroll = console.scroll.saturating_add(6),
             KeyCode::PageDown => console.scroll = console.scroll.saturating_sub(6),
             _ => edit_input(&mut console, key),
@@ -257,13 +273,28 @@ fn refresh_completion(console: &mut ConsoleState, state: &GameState) {
         }
     }
 
+    let candidates_changed = console.candidates.len() != candidates.len()
+        || console
+            .candidates
+            .iter()
+            .zip(candidates.iter())
+            .any(|(left, right)| left.value != right.value || left.hint != right.hint);
+
     console.candidates = candidates;
     if console.candidates.is_empty() {
         console.autocomplete = false;
+        console.completion_scroll = 0;
+        return;
     }
     if console.selected >= console.candidates.len() {
         console.selected = 0;
     }
+    if candidates_changed {
+        console.completion_scroll = console
+            .completion_scroll
+            .min(console.candidates.len().saturating_sub(1));
+    }
+    keep_completion_selection_visible(console, 8);
 }
 
 fn entity_candidates<I>(entities: I, prefix: &str) -> Vec<Candidate>
@@ -351,7 +382,10 @@ fn execute_line(
 
     match *command {
         "help" => help(console),
-        "clear" => console.output.clear(),
+        "clear" => {
+            console.output.clear();
+            console.scroll = 0;
+        }
         "status" => status(state, console),
         "where" => where_content(console),
         "mods" => mods(console),
@@ -865,11 +899,15 @@ fn draw_console(
             .constraints([Constraint::Min(4), Constraint::Length(3)].as_ref())
             .split(inner);
 
-        let start = console
-            .output
-            .len()
-            .saturating_sub(chunks[0].height as usize + console.scroll);
-        let end = console.output.len().saturating_sub(console.scroll);
+        let visible_rows = chunks[0].height as usize;
+        let max_scroll = console.output.len().saturating_sub(visible_rows);
+        let scroll = if console.scroll == usize::MAX {
+            max_scroll
+        } else {
+            console.scroll.min(max_scroll)
+        };
+        let start = console.output.len().saturating_sub(visible_rows + scroll);
+        let end = console.output.len().saturating_sub(scroll);
         let lines = console.output[start..end]
             .iter()
             .map(|line| Line::from(line.as_str()))
@@ -881,7 +919,8 @@ fn draw_console(
         frame.render_widget(input, chunks[1]);
 
         if console.autocomplete && !console.candidates.is_empty() {
-            let popup_height = console.candidates.len().min(8) as u16 + 2;
+            let visible = console.candidates.len().min(8);
+            let popup_height = visible as u16 + 2;
             let popup = Rect {
                 x: chunks[1].x,
                 y: chunks[1].y.saturating_sub(popup_height),
@@ -889,11 +928,15 @@ fn draw_console(
                 height: popup_height,
             };
             frame.render_widget(Clear, popup);
+            let start = console
+                .completion_scroll
+                .min(console.candidates.len().saturating_sub(visible));
             let lines = console
                 .candidates
                 .iter()
                 .enumerate()
-                .take(8)
+                .skip(start)
+                .take(visible)
                 .map(|(index, candidate)| {
                     let marker = if index == console.selected {
                         '▶'
@@ -916,24 +959,41 @@ fn draw_console(
     Ok(())
 }
 
+fn keep_completion_selection_visible(console: &mut ConsoleState, visible: usize) {
+    if console.candidates.is_empty() || visible == 0 {
+        console.completion_scroll = 0;
+        return;
+    }
+    let max_start = console.candidates.len().saturating_sub(visible);
+    if console.selected < console.completion_scroll {
+        console.completion_scroll = console.selected;
+    } else if console.selected >= console.completion_scroll + visible {
+        console.completion_scroll = console.selected + 1 - visible;
+    }
+    console.completion_scroll = console.completion_scroll.min(max_start);
+}
+
 fn select_previous(console: &mut ConsoleState) {
     if !console.candidates.is_empty() {
         console.selected = console
             .selected
             .checked_sub(1)
             .unwrap_or(console.candidates.len() - 1);
+        keep_completion_selection_visible(console, 8);
     }
 }
 
 fn select_next(console: &mut ConsoleState) {
     if !console.candidates.is_empty() {
         console.selected = (console.selected + 1) % console.candidates.len();
+        keep_completion_selection_visible(console, 8);
     }
 }
 
 fn cancel_completion(console: &mut ConsoleState) {
     console.autocomplete = false;
     console.candidates.clear();
+    console.completion_scroll = 0;
 }
 
 fn accept_completion(console: &mut ConsoleState) {
