@@ -1,7 +1,7 @@
 use crate::game::state_effects::{self, add_or_refresh_condition};
-use crate::model::{Condition, EntityId, GameState};
+use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
-use crate::ui::{narrate, pause, prompt};
+use crate::ui::{choose_from_list, narrate};
 use std::path::Path;
 
 macro_rules! println {
@@ -13,19 +13,33 @@ macro_rules! println {
     };
 }
 
-pub(crate) fn travel_to(state: &mut GameState, target_id: EntityId) -> std::io::Result<()> {
+const MEDITATION_TARGETS: [(u32, &str); 8] = [
+    (2, "Dawn"),
+    (3, "Morning"),
+    (5, "High Sun"),
+    (6, "Afternoon"),
+    (8, "Dusk"),
+    (9, "Evening"),
+    (11, "Midnight"),
+    (0, "Deep Night"),
+];
+
+pub(crate) fn travel_to(
+    state: &mut GameState,
+    target_id: crate::model::EntityId,
+) -> std::io::Result<()> {
     let current_location = match state.world.location_by_id(state.character.location_id) {
         Some(location) => location.clone(),
         None => {
             println!("You are lost in a location that no longer exists.");
-            pause();
+            crate::ui::pause();
             return Ok(());
         }
     };
 
     if !current_location.exits.contains(&target_id) {
         println!("That route is not available from here.");
-        pause();
+        crate::ui::pause();
         return Ok(());
     }
 
@@ -78,15 +92,21 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         .location_is_dangerous(state.character.location_id);
     if state.threat.active || location_is_dangerous {
         println!("Not safe enough to meditate here.");
-        pause();
+        crate::ui::pause();
         return Ok(());
     }
-    let input = prompt("How long will you meditate? [1-4 time portions] ")?;
-    let portions = input
-        .parse::<u32>()
-        .ok()
-        .filter(|value| (1..=4).contains(value))
-        .unwrap_or(1);
+
+    let options: Vec<String> = MEDITATION_TARGETS
+        .iter()
+        .map(|(_, label)| (*label).to_string())
+        .collect();
+    let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
+        return Ok(());
+    };
+    let target_slot = MEDITATION_TARGETS[selection].0;
+    let current_slot = state.world.time_points % 12;
+    let portions = ((target_slot + 12 - current_slot) % 12).max(1);
+
     let healing = portions as i32 + state.character.effective_endurance();
     state_effects::advance_time(state, portions);
     state.character.turn += 1;
@@ -99,15 +119,48 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     state.world.record_history(
         state.character.turn,
         format!(
-            "{} meditated for {} time portions and recovered.",
-            character_name, portions
+            "{} meditated until {} and recovered.",
+            character_name, MEDITATION_TARGETS[selection].1
         ),
     );
     save_game(save_path, state)?;
     narrate(&format!(
-        "You meditate until your breathing steadies. You look at the sky...\n{}\nYou recover {} HP and save the game.",
+        "You meditate until your breathing steadies. You look at the sky...\nStopped at {}.\nYou recover {} HP and save the game.",
         crate::game::time::time_display(state.world.time_points, state.world.day),
         healing
     ));
     Ok(())
+}
+
+#[cfg(test)]
+mod tests {
+    use super::MEDITATION_TARGETS;
+
+    #[test]
+    fn meditation_targets_advance_to_the_next_occurrence() {
+        let current = 4;
+        let morning = MEDITATION_TARGETS
+            .iter()
+            .find(|(slot, _)| *slot == 3)
+            .map(|(slot, _)| *slot)
+            .unwrap();
+        let dusk = MEDITATION_TARGETS
+            .iter()
+            .find(|(slot, _)| *slot == 8)
+            .map(|(slot, _)| *slot)
+            .unwrap();
+        assert_eq!((morning + 12 - current) % 12, 11);
+        assert_eq!((dusk + 12 - current) % 12, 4);
+    }
+
+    #[test]
+    fn meditation_does_not_allow_a_zero_time_advance() {
+        let current = 8;
+        let dusk = MEDITATION_TARGETS
+            .iter()
+            .find(|(slot, _)| *slot == 8)
+            .map(|(slot, _)| *slot)
+            .unwrap();
+        assert_eq!(((dusk + 12 - current) % 12).max(1), 1);
+    }
 }

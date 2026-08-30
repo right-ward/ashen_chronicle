@@ -1,26 +1,83 @@
 use crate::game::state_effects;
 use crate::model::{GameState, Quest};
-use crate::ui::{narrate, pause, prompt, set_menu_screen};
+use crate::ui::{choose_from_list, narrate, prompt, set_menu_screen};
 
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
+pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
+    if state.character.inventory.is_empty() {
+        set_menu_screen(
+            format!("Inventory — {}", state.character.display_name()),
+            Some("Your pack is empty.".to_string()),
+            None,
+        );
+        let _ = choose_from_list("Inventory", &["Back".to_string()], None)?;
+        crate::game::presentation::render_state(state);
+        return Ok(());
+    }
+
+    let options: Vec<String> = state
+        .character
+        .inventory
+        .iter()
+        .map(|item| item.name.clone())
+        .collect();
+
+    loop {
+        set_inventory_screen(state, 0);
+        let Some(selection) = choose_from_list("Select an item", &options, Some("Back"))? else {
+            crate::game::presentation::render_state(state);
+            return Ok(());
+        };
+        if selection >= state.character.inventory.len() {
+            continue;
+        }
+        show_inventory_detail(state, selection)?;
+    }
 }
 
-pub(crate) fn show_inventory(state: &GameState) {
-    println!("\nInventory for {}", state.character.display_name());
-    if state.character.inventory.is_empty() {
-        println!("  Nothing.");
+fn inventory_details(state: &GameState, selected: usize) -> (String, Option<String>) {
+    let item = &state.character.inventory[selected];
+    let mut details = vec![format!(
+        "Item {} of {}",
+        selected + 1,
+        state.character.inventory.len()
+    )];
+    details.push(String::new());
+    if !item.description.trim().is_empty() {
+        details.extend(item.description.lines().map(str::to_string));
     } else {
-        for item in &state.character.inventory {
-            println!("  - {}: {}", item.name, item.description);
-        }
+        details.push("No description is available.".to_string());
     }
-    pause();
+
+    let art = state
+        .campaign_content
+        .as_ref()
+        .and_then(|content| content.item_art_for(&item.name))
+        .map(str::to_string);
+
+    (details.join("\n"), art)
+}
+
+fn set_inventory_screen(state: &GameState, selected: usize) {
+    let (details, art) = inventory_details(state, selected);
+    set_menu_screen(
+        format!("Inventory — {}", state.character.display_name()),
+        Some(details),
+        art,
+    );
+}
+
+fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<()> {
+    if selected >= state.character.inventory.len() {
+        return Ok(());
+    }
+    let (details, art) = inventory_details(state, selected);
+    set_menu_screen(
+        state.character.inventory[selected].name.clone(),
+        Some(details),
+        art,
+    );
+    let _ = choose_from_list("Item details", &["Back to inventory".to_string()], None)?;
+    Ok(())
 }
 
 pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
