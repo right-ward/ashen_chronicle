@@ -1,6 +1,6 @@
 use crate::game::state_effects;
 use crate::model::{GameState, Quest};
-use crate::ui::{narrate, set_menu_screen, choose_from_list, prompt};
+use crate::ui::{choose_from_list, narrate, prompt, set_menu_screen};
 
 macro_rules! println {
     () => {
@@ -39,12 +39,11 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
         if selection >= state.character.inventory.len() {
             continue;
         }
-
-        set_inventory_screen(state, selection);
+        show_inventory_detail(state, selection)?;
     }
 }
 
-fn set_inventory_screen(state: &GameState, selected: usize) {
+fn inventory_details(state: &GameState, selected: usize) -> (String, Option<String>) {
     let item = &state.character.inventory[selected];
     let mut details = vec![format!("Item {} of {}", selected + 1, state.character.inventory.len())];
     details.push(String::new());
@@ -60,11 +59,30 @@ fn set_inventory_screen(state: &GameState, selected: usize) {
         .and_then(|content| content.item_art_for(&item.name))
         .map(str::to_string);
 
+    (details.join("\n"), art)
+}
+
+fn set_inventory_screen(state: &GameState, selected: usize) {
+    let (details, art) = inventory_details(state, selected);
     set_menu_screen(
         format!("Inventory — {}", state.character.display_name()),
-        Some(details.join("\n")),
+        Some(details),
         art,
     );
+}
+
+fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<()> {
+    if selected >= state.character.inventory.len() {
+        return Ok(());
+    }
+    let (details, art) = inventory_details(state, selected);
+    set_menu_screen(
+        state.character.inventory[selected].name.clone(),
+        Some(details),
+        art,
+    );
+    let _ = choose_from_list("Item details", &["Back to inventory".to_string()], None)?;
+    Ok(())
 }
 
 pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
