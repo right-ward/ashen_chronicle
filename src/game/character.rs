@@ -39,10 +39,7 @@ pub(crate) fn gain_experience(state: &mut GameState, amount: u32) {
 }
 
 pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
-    let tabs = vec![
-        "Reputation".to_string(),
-        "Journal".to_string(),
-    ];
+    let tabs = vec!["Reputation".to_string(), "Journal".to_string()];
 
     loop {
         set_character_screen(state, 0);

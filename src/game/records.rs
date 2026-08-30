@@ -2,15 +2,6 @@ use crate::game::state_effects;
 use crate::model::{GameState, Quest};
 use crate::ui::{choose_from_list, narrate, prompt, set_menu_screen};
 
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
-
 pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
     if state.character.inventory.is_empty() {
         set_menu_screen(
