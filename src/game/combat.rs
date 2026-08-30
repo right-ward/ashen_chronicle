@@ -84,6 +84,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 location.id,
                 format!("{} was cleared of danger.", location.name),
             );
+            crate::game::quests::record_enemy_defeat(state, &enemy_name, location.id);
             character::gain_experience(state, 15);
             println!("\nCombat result: victory");
             println!("  Defeated: {}", enemy_name);
