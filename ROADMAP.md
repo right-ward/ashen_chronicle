@@ -11,7 +11,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Replaced the direct Travel menu flow with a dedicated fullscreen World Navigation screen.
 - Shows the player's current location, region, description, danger state, and available routes in one focused view.
 - Reuses existing location scene art on the navigation screen when it is available.
-- Route choices identify dangerous destinations and include a short destination description.
+- Route choices now list only the destination location names; destination description, atmosphere, and danger state are presented when the player arrives.
 - Keeps the existing travel effects, including time advancement, conditions, threats, quest synchronization, history, and travel events.
 - Removed the redundant Location panel from the normal gameplay dashboard; location presentation is now focused in World Navigation.
 - Preserved the existing Back behavior so leaving navigation returns to the normal gameplay dashboard without changing state.
