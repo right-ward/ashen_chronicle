@@ -205,6 +205,7 @@ pub struct Npc {
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
 pub enum QuestObjectiveKind {
     #[default]
     AcquireItem,
@@ -561,8 +562,6 @@ pub fn create_inherited_state(
     );
     let mut inherited_factions = state.factions.clone();
     for faction in &mut inherited_factions {
-        // Reputation belongs to the character, not the world. Memories remain
-        // persistent so factions can still react to what previous lives did.
         faction.reputation = 0;
     }
     GameState {
