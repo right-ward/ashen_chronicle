@@ -1,6 +1,6 @@
 name: 🐞 Bug Report
 description: File a bug/issue in a prettier format
-title: "[BUG] <title>"
+title: "[BUG] ..."
 labels: ["bug"]
 assignees: ["right-ward"]
 body:
@@ -14,11 +14,10 @@ body:
   attributes:
     label: Steps To Reproduce
     description: Steps to reproduce the behavior (if possible).
-    placeholder: |
-      1. In this environment...
-      2. With this config...
-      1. Run '...'
-      4. See error...
+    value: |
+      1. ...
+      2. ...
+      3. ...
   validations:
     required: false
 - type: textarea
@@ -26,11 +25,11 @@ body:
     label: Environment
     description: |
       examples:
-        - **OS**: Ubuntu 20.04
-        - **Version**: 0.37.2
+        OS: Ubuntu 20.04
+        Version: latest (or a specific version)
     value: |
         - OS:
         - Version:
-    render: markdown
+    render: bash
   validations:
     required: true
