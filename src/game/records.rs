@@ -45,7 +45,11 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
 
 fn inventory_details(state: &GameState, selected: usize) -> (String, Option<String>) {
     let item = &state.character.inventory[selected];
-    let mut details = vec![format!("Item {} of {}", selected + 1, state.character.inventory.len())];
+    let mut details = vec![format!(
+        "Item {} of {}",
+        selected + 1,
+        state.character.inventory.len()
+    )];
     details.push(String::new());
     if !item.description.trim().is_empty() {
         details.extend(item.description.lines().map(str::to_string));

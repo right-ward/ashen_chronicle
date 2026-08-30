@@ -79,7 +79,10 @@ fn set_character_screen(state: &GameState, _tab: usize) {
                 (_, bonus) if bonus > 0 => format!(" {:+} bonus", bonus),
                 _ => String::new(),
             };
-            format!("  - {} ({} portions){}", condition.name, condition.remaining, effect)
+            format!(
+                "  - {} ({} portions){}",
+                condition.name, condition.remaining, effect
+            )
         }));
         lines
     };
@@ -88,7 +91,11 @@ fn set_character_screen(state: &GameState, _tab: usize) {
         character.display_name(),
         String::new(),
         format!("Level {}", character.level),
-        format!("Experience: {}/{}", character.experience, character.level * 50),
+        format!(
+            "Experience: {}/{}",
+            character.experience,
+            character.level * 50
+        ),
         format!("Health: {}/{}", character.hp, character.max_hp),
         String::new(),
         format!("Might: {}", character.attributes.might),

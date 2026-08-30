@@ -24,7 +24,10 @@ const MEDITATION_TARGETS: [(u32, &str); 8] = [
     (0, "Deep Night"),
 ];
 
-pub(crate) fn travel_to(state: &mut GameState, target_id: crate::model::EntityId) -> std::io::Result<()> {
+pub(crate) fn travel_to(
+    state: &mut GameState,
+    target_id: crate::model::EntityId,
+) -> std::io::Result<()> {
     let current_location = match state.world.location_by_id(state.character.location_id) {
         Some(location) => location.clone(),
         None => {
@@ -117,8 +120,7 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         state.character.turn,
         format!(
             "{} meditated until {} and recovered.",
-            character_name,
-            MEDITATION_TARGETS[selection].1
+            character_name, MEDITATION_TARGETS[selection].1
         ),
     );
     save_game(save_path, state)?;
