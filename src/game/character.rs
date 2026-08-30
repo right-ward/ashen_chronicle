@@ -40,14 +40,13 @@ pub(crate) fn gain_experience(state: &mut GameState, amount: u32) {
 
 pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
     let tabs = vec![
-        "General".to_string(),
         "Reputation".to_string(),
         "Journal".to_string(),
     ];
 
     loop {
         set_character_screen(state, 0);
-        let Some(selection) = choose_from_list("Character", &tabs, Some("Back"))? else {
+        let Some(selection) = choose_from_list("General", &tabs, Some("Back"))? else {
             crate::game::presentation::render_state(state);
             return Ok(());
         };
@@ -57,9 +56,8 @@ pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
 
 fn show_character_tab(state: &GameState, tab: usize) -> std::io::Result<()> {
     match tab {
-        0 => show_general_tab(state),
-        1 => show_reputation_tab(state),
-        2 => show_journal_tab(state),
+        0 => show_reputation_tab(state),
+        1 => show_journal_tab(state),
         _ => Ok(()),
     }
 }
@@ -109,12 +107,6 @@ fn set_character_screen(state: &GameState, _tab: usize) {
     general.extend(condition_lines);
 
     set_menu_screen("Character — General", Some(general.join("\n")), None);
-}
-
-fn show_general_tab(state: &GameState) -> std::io::Result<()> {
-    set_character_screen(state, 0);
-    let _ = choose_from_list("General", &["Back to character".to_string()], None)?;
-    Ok(())
 }
 
 fn show_reputation_tab(state: &GameState) -> std::io::Result<()> {

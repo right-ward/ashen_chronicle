@@ -125,7 +125,7 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     );
     save_game(save_path, state)?;
     narrate(&format!(
-        "You meditate until your breathing steadies. You look at the sky...\nStopped at {}.\nYou recover {} HP and save the game.",
+        "You meditate until your breathing steadies. You look at the sky...\n{}.\nYou recover {} HP and save the game.",
         crate::game::time::time_display(state.world.time_points, state.world.day),
         healing
     ));
