@@ -13,6 +13,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Reuses existing location scene art on the navigation screen when it is available.
 - Route choices identify dangerous destinations and include a short destination description.
 - Keeps the existing travel effects, including time advancement, conditions, threats, quest synchronization, history, and travel events.
+- Removed the redundant Location panel from the normal gameplay dashboard; location presentation is now focused in World Navigation.
 - Preserved the existing Back behavior so leaving navigation returns to the normal gameplay dashboard without changing state.
 
 ## Next
