@@ -14,7 +14,7 @@ pub(crate) fn dispatch(
         menu::GameAction::SearchRemains => legacy::search_remains(state)?,
         menu::GameAction::Talk => interactions::talk(state)?,
         menu::GameAction::Meditate => actions::meditate_and_save(state, save_path)?,
-        menu::GameAction::QuestLog => records::review_quests(state),
+        menu::GameAction::QuestLog => records::review_quests(state)?,
         menu::GameAction::Inventory => records::show_inventory(state),
         menu::GameAction::Journal => records::write_note(state)?,
         menu::GameAction::CharacterSheet => character::character_sheet(state),
