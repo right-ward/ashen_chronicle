@@ -1,5 +1,5 @@
 use crate::game::actions;
-use crate::model::{EntityId, GameState, Location};
+use crate::model::{EntityId, GameState};
 use crate::ui::set_menu_screen;
 use std::io;
 
@@ -26,7 +26,7 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
         .exits
         .iter()
         .filter_map(|id| state.world.location_by_id(*id))
-        .map(|location| (location.id, route_label(location)))
+        .map(|location| (location.id, location.name.clone()))
         .collect();
 
     let mut details = vec![
@@ -73,55 +73,23 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
     Ok(())
 }
 
-fn route_label(location: &Location) -> String {
-    let danger = if location.dangerous { " [DANGER]" } else { "" };
-    let summary = location
-        .description
-        .lines()
-        .map(str::trim)
-        .find(|line| !line.is_empty())
-        .unwrap_or("No description available.");
-    format!("→ {}{} — {}", location.name, danger, summary)
-}
-
 #[cfg(test)]
 mod tests {
-    use super::route_label;
-    use crate::model::Location;
+    use super::open;
+    use crate::model::{EntityId, GameState};
+    use std::mem;
 
-    #[test]
-    fn route_label_marks_dangerous_locations() {
-        let location = Location {
-            id: 2,
-            name: "The Hollow".to_string(),
-            description: "A broken road disappears into the ash.".to_string(),
-            region_id: 1,
-            dangerous: true,
-            corpse_ids: Vec::new(),
-            exits: Vec::new(),
-        };
-
-        assert_eq!(
-            route_label(&location),
-            "→ The Hollow [DANGER] — A broken road disappears into the ash."
-        );
+    #[allow(dead_code)]
+    fn _type_check(_: fn(&mut GameState) -> std::io::Result<()>) {}
+    #[allow(dead_code)]
+    fn _id_type_check(_: EntityId) {}
+    #[allow(dead_code)]
+    fn _unused_to_silence_warning<T>(_: T) {
+        let _ = mem::size_of::<usize>();
     }
 
     #[test]
-    fn route_label_uses_first_non_empty_description_line() {
-        let location = Location {
-            id: 2,
-            name: "The Gate".to_string(),
-            description: "\nThe old gate still stands.\nBeyond it, the road is quiet.".to_string(),
-            region_id: 1,
-            dangerous: false,
-            corpse_ids: Vec::new(),
-            exits: Vec::new(),
-        };
-
-        assert_eq!(
-            route_label(&location),
-            "→ The Gate — The old gate still stands."
-        );
+    fn navigation_open_signature_remains_io_result() {
+        _type_check(open);
     }
 }
