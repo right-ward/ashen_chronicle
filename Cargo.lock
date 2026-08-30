@@ -7,34 +7,3 @@ name = "adler2"
 version = "2.0.1"
 source = "registry+https://github.com/rust-lang/crates.io-index"
 checksum = "320119579fcad9c21884f5c4861d16174d0e06250625266f50fe6898340abefa"
-
-[[package]]
-name = "aho-corasick"
-version = "1.1.5"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "c982642fa9e860605528dd1a1d6d2d78b32fcedf0d6f0bfcf652224d7f93efb6"
-dependencies = [
- "memchr",
-]
-
-[[package]]
-name = "allocator-api2"
-version = "0.2.21"
-source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "683d7914e73984e10f0d05f3a9d6d6f3d3e75e0c8824c70654113b2fe679bde6"
-
-[[package]]
-name = "ashen_chronicle"
-version = "0.40.0"
-dependencies = [
- "crossterm",
- "flate2",
- "ratatui",
- "serde",
- "serde_json",
-]
-
-[[package]]
-name = "atomic"
-version = "0.6.1"
-source = "registry+https://github.com/rust-lang/crates.io-index"
