@@ -14,29 +14,27 @@ fn quest_key(state: &GameState, quest_index: usize) -> Option<String> {
 }
 
 pub(crate) fn normalize_quest(state: &mut GameState, quest_index: usize) -> bool {
-    let Some(quest) = state.quests.get_mut(quest_index) else {
+    let Some(quest_snapshot) = state.quests.get(quest_index).cloned() else {
         return false;
     };
-    if !quest.objectives.is_empty() {
+    if !quest_snapshot.objectives.is_empty() {
         return false;
     }
 
     let target_location = state
         .world
-        .location_by_id(quest.target_location_id)
+        .location_by_id(quest_snapshot.target_location_id)
         .map(|location| location.name.clone())
-        .unwrap_or_else(|| quest.target_location_id.to_string());
-    let required_item_name = quest.required_item_name.clone();
-    let target_location_id = quest.target_location_id;
+        .unwrap_or_else(|| quest_snapshot.target_location_id.to_string());
     let mut objectives = vec![QuestObjective::new(
         QuestObjectiveKind::VisitLocation,
         target_location,
         1,
     )];
-    if !required_item_name.trim().is_empty() {
+    if !quest_snapshot.required_item_name.trim().is_empty() {
         objectives.push(QuestObjective::new(
             QuestObjectiveKind::AcquireItem,
-            required_item_name,
+            quest_snapshot.required_item_name,
             1,
         ));
     }
@@ -46,7 +44,7 @@ pub(crate) fn normalize_quest(state: &mut GameState, quest_index: usize) -> bool
         .and_then(|content| {
             state
                 .world
-                .location_by_id(target_location_id)
+                .location_by_id(quest_snapshot.target_location_id)
                 .and_then(|location| content.encounter_for(&location.name))
         })
         .map(|encounter| encounter.enemy_name.clone())
@@ -57,7 +55,9 @@ pub(crate) fn normalize_quest(state: &mut GameState, quest_index: usize) -> bool
             1,
         ));
     }
-    state.quests[quest_index].objectives = objectives;
+    if let Some(quest) = state.quests.get_mut(quest_index) {
+        quest.objectives = objectives;
+    }
     true
 }
 
@@ -147,7 +147,10 @@ pub(crate) fn record_enemy_defeat(
                     && objective.target == enemy_name
                     && !objective.completed
                 {
-                    objective.progress = objective.progress.saturating_add(1).min(objective.required);
+                    objective.progress = objective
+                        .progress
+                        .saturating_add(1)
+                        .min(objective.required);
                     objective.completed = objective.progress >= objective.required;
                 }
             }
@@ -196,7 +199,12 @@ pub(crate) fn try_complete(state: &mut GameState, quest_index: usize) -> bool {
     let Some(key) = quest_key(state, quest_index) else {
         return false;
     };
-    if state.world.completed_quest_ids.iter().any(|known| known == &key) {
+    if state
+        .world
+        .completed_quest_ids
+        .iter()
+        .any(|known| known == &key)
+    {
         return false;
     }
 
@@ -270,15 +278,28 @@ pub(crate) fn try_complete(state: &mut GameState, quest_index: usize) -> bool {
     true
 }
 
-fn adjust_faction_reputation(state: &mut GameState, faction_id: EntityId, delta: i32, memory: String) {
-    if let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == faction_id) {
+fn adjust_faction_reputation(
+    state: &mut GameState,
+    faction_id: EntityId,
+    delta: i32,
+    memory: String,
+) {
+    if let Some(faction) = state
+        .factions
+        .iter_mut()
+        .find(|faction| faction.id == faction_id)
+    {
         faction.reputation += delta;
         push_memory(&mut faction.memory, memory);
     }
 }
 
 fn remember_faction(state: &mut GameState, faction_id: EntityId, memory: String) {
-    if let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == faction_id) {
+    if let Some(faction) = state
+        .factions
+        .iter_mut()
+        .find(|faction| faction.id == faction_id)
+    {
         push_memory(&mut faction.memory, memory);
     }
 }
@@ -312,7 +333,9 @@ mod tests {
         );
         let location_id = state.world.locations[0].id;
         let faction_id = 100;
-        state.factions.push(crate::model::Faction::new(faction_id, "Test Faction"));
+        state
+            .factions
+            .push(crate::model::Faction::new(faction_id, "Test Faction"));
         state.quests.push(Quest::new(
             101,
             "quest.test",
@@ -345,7 +368,9 @@ mod tests {
         );
         let location_id = state.world.locations[0].id;
         let faction_id = 100;
-        state.factions.push(crate::model::Faction::new(faction_id, "Test Faction"));
+        state
+            .factions
+            .push(crate::model::Faction::new(faction_id, "Test Faction"));
         state.quests.push(Quest::new(
             101,
             "quest.test",
