@@ -15,19 +15,6 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Keeps the existing travel effects, including time advancement, conditions, threats, quest synchronization, history, and travel events.
 - Preserved the existing Back behavior so leaving navigation returns to the normal gameplay dashboard without changing state.
 
-### v0.41.1: quest navigation bugfix
-
-- Fixed quest details so their Back action returns to the Quests screen instead of exiting directly to gameplay.
-- Preserved the existing Quests screen Back action that returns to the normal gameplay dashboard.
-
-### v0.41.0: dedicated quest representation
-
-- Replaced the log-style quest review with a dedicated player-facing fullscreen quest screen.
-- Quest index entries clearly distinguish `ACTIVE`, `READY`, and `COMPLETED` states.
-- Quest details show the description, objective progress, and reward without mixing into the gameplay journal.
-- Returning from the quest screen restores the normal gameplay dashboard without changing quest or gameplay state.
-- Kept existing hidden-quest filtering, objective tracking, completion behavior, and save compatibility unchanged.
-
 ## Next
 
 ### v0.43.0 - 0.46.0
