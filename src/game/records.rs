@@ -47,29 +47,29 @@ pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
         .map(|(_, quest)| format!("{} {}", quest_status_marker(state, quest), quest.title))
         .collect();
 
-    set_menu_screen(
-        format!("Quest Log — {}", state.character.display_name()),
-        Some(
-            "ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished"
-                .to_string(),
-        ),
-        None,
-    );
+    loop {
+        set_menu_screen(
+            format!("Quest Log — {}", state.character.display_name()),
+            Some(
+                "ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished"
+                    .to_string(),
+            ),
+            None,
+        );
 
-    let Some(selection) = crate::ui::choose_from_list("Select a quest", &options, Some("Back"))?
-    else {
-        crate::game::presentation::render_state(state);
-        return Ok(());
-    };
+        let Some(selection) =
+            crate::ui::choose_from_list("Select a quest", &options, Some("Back"))?
+        else {
+            crate::game::presentation::render_state(state);
+            return Ok(());
+        };
 
-    let Some((quest_index, _)) = visible_quests.get(selection).copied() else {
-        crate::game::presentation::render_state(state);
-        return Ok(());
-    };
+        let Some((quest_index, _)) = visible_quests.get(selection).copied() else {
+            continue;
+        };
 
-    show_quest_detail(state, quest_index)?;
-    crate::game::presentation::render_state(state);
-    Ok(())
+        show_quest_detail(state, quest_index)?;
+    }
 }
 
 fn show_quest_detail(state: &GameState, quest_index: usize) -> std::io::Result<()> {
