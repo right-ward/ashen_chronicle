@@ -23,7 +23,7 @@ pub(crate) struct MenuEntry {
 pub(crate) fn build_main_menu(state: &GameState) -> Vec<MenuEntry> {
     let mut menu = vec![
         MenuEntry {
-            label: "Travel".to_string(),
+            label: "World navigation".to_string(),
             action: GameAction::Travel,
         },
         MenuEntry {
