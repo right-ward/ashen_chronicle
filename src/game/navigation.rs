@@ -54,11 +54,7 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
         .location_art_for(&current_location.name)
         .map(str::to_string);
 
-    set_menu_screen(
-        format!("World Navigation — {}", state.character.display_name()),
-        Some(details.join("\n")),
-        art,
-    );
+    set_menu_screen("World Navigation", Some(details.join("\n")), art);
 
     if destinations.is_empty() {
         let _ = crate::ui::choose_from_list("Routes", &["Back".to_string()], None)?;
