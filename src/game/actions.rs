@@ -55,6 +55,7 @@ pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
                 state.character.turn,
                 format!("{} traveled to {}.", character_name, location_name),
             );
+            crate::game::quests::sync_active_quests(state);
             println!("You travel to {}.", location_name);
             let dangerous = location.as_ref().map(|loc| loc.dangerous).unwrap_or(false);
             let context = crate::events::EventContext::for_travel_arrival(

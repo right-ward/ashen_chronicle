@@ -1,5 +1,5 @@
-use crate::game::{character, legacy, state_effects};
-use crate::model::{EntityId, Faction, GameState, Item, Quest};
+use crate::game::{quests, state_effects};
+use crate::model::{EntityId, Faction, GameState, Quest};
 use crate::ui::{choose_from_list, pause};
 
 macro_rules! println {
@@ -117,7 +117,7 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
             0 => {
                 let mut found_offer = false;
                 for quest_index in quest_indices {
-                    let (quest_key, title, description, faction_id, offered, completed) = {
+                    let (key, title, description, faction_id, offered, completed) = {
                         let quest = &state.quests[quest_index];
                         (
                             quest_key(quest),
@@ -132,7 +132,7 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
                         .world
                         .completed_quest_ids
                         .iter()
-                        .any(|known| known == &quest_key)
+                        .any(|known| known == &key)
                         || completed
                     {
                         continue;
@@ -147,7 +147,11 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
                         if let Some(quest) = state.quests.get_mut(quest_index) {
                             quest.offered = true;
                         }
+                        quests::sync_objectives(state, quest_index);
                         println!("{} says: '{}'", npc_name, description);
+                        for objective in quests::objective_summary(state, quest_index) {
+                            println!("  {}", objective);
+                        }
                         remember_npc(state, npc_id, format!("offered the quest {}", title));
                         remember_faction(
                             state,
@@ -167,21 +171,20 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
             1 => {
                 let mut handled = false;
                 for quest_index in quest_indices {
-                    let (quest_key, _title, offered, completed, required_item_name) = {
+                    let (key, title, offered, completed) = {
                         let quest = &state.quests[quest_index];
                         (
                             quest_key(quest),
                             quest.title.clone(),
                             quest.offered,
                             quest.completed,
-                            quest.required_item_name.clone(),
                         )
                     };
                     if state
                         .world
                         .completed_quest_ids
                         .iter()
-                        .any(|known| known == &quest_key)
+                        .any(|known| known == &key)
                         || completed
                     {
                         continue;
@@ -192,18 +195,15 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
                         continue;
                     }
                     handled = true;
-                    if state
-                        .character
-                        .inventory
-                        .iter()
-                        .any(|item| item.name == required_item_name)
-                    {
-                        complete_quest(state, quest_index);
-                    } else {
+                    if !quests::try_complete(state, quest_index) {
                         println!(
-                            "{} looks at you expectantly. You have not brought the required proof.",
+                            "{} looks at you expectantly. The work is not finished yet:",
                             npc_name
                         );
+                        for objective in quests::objective_summary(state, quest_index) {
+                            println!("  {}", objective);
+                        }
+                        println!("Quest: {}", title);
                     }
                 }
                 if !handled {
@@ -224,92 +224,6 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
     Ok(())
 }
 
-fn complete_quest(state: &mut GameState, quest_index: usize) -> bool {
-    let (quest_key, title, required_item_name, faction_id) = {
-        let quest = &state.quests[quest_index];
-        (
-            quest_key(quest),
-            quest.title.clone(),
-            quest.required_item_name.clone(),
-            quest.faction_id,
-        )
-    };
-    if state
-        .world
-        .completed_quest_ids
-        .iter()
-        .any(|known| known == &quest_key)
-    {
-        return false;
-    }
-    let Some(item_index) = state
-        .character
-        .inventory
-        .iter()
-        .position(|item| item.name == required_item_name)
-    else {
-        return false;
-    };
-    state.character.inventory.remove(item_index);
-    let current_character_name = state.character.display_name();
-    if let Some(quest) = state.quests.get_mut(quest_index) {
-        quest.completed = true;
-        quest.reward_claimed = true;
-        quest.completed_by = Some(current_character_name.clone());
-    }
-    state.world.completed_quest_ids.push(quest_key.clone());
-    adjust_faction_reputation(
-        state,
-        faction_id,
-        5,
-        &format!("{} completed {}.", current_character_name, title),
-    );
-    let reward_name = state
-        .quests
-        .get(quest_index)
-        .map(|quest| quest.reward_item_name.clone())
-        .filter(|name| !name.is_empty())
-        .unwrap_or_else(|| "Unnamed Reward".to_string());
-    let reward = Item {
-        id: state.world.allocate_id(),
-        name: reward_name,
-        description: format!("A token earned by completing {}.", title),
-    };
-    state.character.inventory.push(reward.clone());
-    legacy::notify_item_gain(state, &reward);
-    grant_reward_reputation(state, &reward);
-    state.world.record_history(
-        state.character.turn,
-        format!("{} completed {}.", current_character_name, title),
-    );
-    println!("\nQuest complete: {}", title);
-    println!("  Quest item consumed: {}", required_item_name);
-    println!("  Reward: {}", reward.name);
-    character::gain_experience(state, 25);
-    println!("  Reputation: +5 for completing the deed, +5 while carrying the reward");
-    true
-}
-
-pub(crate) fn grant_reward_reputation(state: &mut GameState, item: &Item) {
-    let Some(faction_name) = (match item.name.as_str() {
-        "Wardens' Seal" => Some("Cinder Wardens"),
-        "Rootworker's Token" => Some("Hollow Market Kin"),
-        "Bell Covenant Charm" => Some("Drowned Bell Covenant"),
-        _ => None,
-    }) else {
-        return;
-    };
-    let Some(faction_id) = faction_id_by_name(state, faction_name) else {
-        return;
-    };
-    adjust_faction_reputation(
-        state,
-        faction_id,
-        5,
-        &format!("Carrying {} marks affiliation with the faction.", item.name),
-    );
-}
-
 fn remember_npc(state: &mut GameState, npc_id: EntityId, memory: String) {
     if let Some(index) = npc_index_by_id(state, npc_id) {
         let npc = &mut state.npcs[index];
@@ -324,22 +238,6 @@ fn remember_npc(state: &mut GameState, npc_id: EntityId, memory: String) {
 fn remember_faction(state: &mut GameState, faction_id: EntityId, memory: String) {
     if let Some(faction) = faction_by_id_mut(state, faction_id) {
         faction.memory.push(memory);
-        if faction.memory.len() > 5 {
-            let remove_count = faction.memory.len() - 5;
-            faction.memory.drain(0..remove_count);
-        }
-    }
-}
-
-fn adjust_faction_reputation(
-    state: &mut GameState,
-    faction_id: EntityId,
-    delta: i32,
-    reason: &str,
-) {
-    if let Some(faction) = faction_by_id_mut(state, faction_id) {
-        faction.reputation += delta;
-        faction.memory.push(reason.to_string());
         if faction.memory.len() > 5 {
             let remove_count = faction.memory.len() - 5;
             faction.memory.drain(0..remove_count);

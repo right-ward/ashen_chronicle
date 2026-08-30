@@ -29,14 +29,15 @@ pub(crate) fn review_quests(state: &GameState) {
     let visible_quests: Vec<_> = state
         .quests
         .iter()
-        .filter(|quest| quest.offered || quest.completed)
+        .enumerate()
+        .filter(|(_, quest)| quest.offered || quest.completed)
         .collect();
     if visible_quests.is_empty() {
         println!("  Nothing yet.");
         pause();
         return;
     }
-    for quest in visible_quests {
+    for (index, quest) in visible_quests {
         let status = if quest.completed {
             if quest.reward_claimed {
                 "completed"
@@ -48,6 +49,9 @@ pub(crate) fn review_quests(state: &GameState) {
         };
         println!("  - {} [{}]", quest.title, status);
         println!("    {}", quest.description);
+        for objective in crate::game::quests::objective_summary(state, index) {
+            println!("    {}", objective);
+        }
     }
     pause();
 }

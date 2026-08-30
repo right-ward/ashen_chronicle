@@ -112,6 +112,7 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedR
         report.quests_added += 1;
     }
 
+    crate::game::quests::normalize_all(state);
     report
 }
 
@@ -176,6 +177,26 @@ pub(crate) fn validate_loaded_state(state: &GameState) -> Vec<String> {
                 "quest {} references unknown giver npc id {}",
                 quest.title, quest.giver_npc_id
             ));
+        }
+        for objective in &quest.objectives {
+            if objective.target.trim().is_empty() {
+                warnings.push(format!(
+                    "quest {} contains an objective with an empty target",
+                    quest.title
+                ));
+            }
+            if objective.required == 0 {
+                warnings.push(format!(
+                    "quest {} contains an objective with zero required progress",
+                    quest.title
+                ));
+            }
+            if objective.progress > objective.required {
+                warnings.push(format!(
+                    "quest {} objective {} exceeds required progress",
+                    quest.title, objective.target
+                ));
+            }
         }
     }
     warnings

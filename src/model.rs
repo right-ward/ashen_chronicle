@@ -204,6 +204,52 @@ pub struct Npc {
     pub memory: Vec<String>,
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
+#[serde(rename_all = "snake_case")]
+pub enum QuestObjectiveKind {
+    #[default]
+    AcquireItem,
+    VisitLocation,
+    DefeatEnemy,
+}
+
+#[derive(Debug, Clone, Serialize, Deserialize, Default)]
+pub struct QuestObjective {
+    pub kind: QuestObjectiveKind,
+    pub target: String,
+    #[serde(default = "default_objective_required")]
+    pub required: u32,
+    #[serde(default)]
+    pub progress: u32,
+    #[serde(default)]
+    pub completed: bool,
+}
+
+fn default_objective_required() -> u32 {
+    1
+}
+
+impl QuestObjective {
+    pub fn new(kind: QuestObjectiveKind, target: impl Into<String>, required: u32) -> Self {
+        let required = required.max(1);
+        Self {
+            kind,
+            target: target.into(),
+            required,
+            progress: 0,
+            completed: false,
+        }
+    }
+
+    pub fn display_label(&self) -> String {
+        match self.kind {
+            QuestObjectiveKind::AcquireItem => format!("Acquire {}", self.target),
+            QuestObjectiveKind::VisitLocation => format!("Visit {}", self.target),
+            QuestObjectiveKind::DefeatEnemy => format!("Defeat {}", self.target),
+        }
+    }
+}
+
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
 pub struct Quest {
     pub id: EntityId,
@@ -219,6 +265,8 @@ pub struct Quest {
     pub required_item_name: String,
     #[serde(default)]
     pub reward_item_name: String,
+    #[serde(default)]
+    pub objectives: Vec<QuestObjective>,
     #[serde(default)]
     pub completed_by: Option<String>,
     #[serde(default)]
@@ -449,6 +497,7 @@ impl Quest {
             giver_npc_id,
             required_item_name: required_item_name.into(),
             reward_item_name: reward_item_name.into(),
+            objectives: Vec::new(),
             completed_by: None,
             offered: false,
             completed: false,
@@ -513,8 +562,6 @@ pub fn create_inherited_state(
     );
     let mut inherited_factions = state.factions.clone();
     for faction in &mut inherited_factions {
-        // Reputation belongs to the character, not the world. Memories remain
-        // persistent so factions can still react to what previous lives did.
         faction.reputation = 0;
     }
     GameState {
@@ -560,5 +607,18 @@ mod tests {
         assert!(matches!(inherited.world.mode, WorldMode::Inherited));
         assert_eq!(inherited.world.event_cooldowns, state.world.event_cooldowns);
         assert_eq!(inherited.world.event_cooldowns[0].ready_at_turn, 14);
+    }
+
+    #[test]
+    fn objective_defaults_are_safe_for_old_saves() {
+        let json = r#"{
+            "kind": "acquire_item",
+            "target": "Old Token"
+        }"#;
+        let objective: QuestObjective =
+            serde_json::from_str(json).expect("legacy objective should load");
+        assert_eq!(objective.required, 1);
+        assert_eq!(objective.progress, 0);
+        assert!(!objective.completed);
     }
 }
