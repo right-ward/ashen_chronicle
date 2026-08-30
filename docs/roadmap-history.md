@@ -468,3 +468,11 @@ src/
 - Fixed quest details so their Back action returns to the Quests screen instead of exiting directly to gameplay.
 - Preserved the existing Quests screen Back action that returns to the normal gameplay dashboard.
 
+### v0.42.0: world navigation presentation
+- Replaced the direct Travel menu flow with a dedicated fullscreen World Navigation screen.
+- Shows the player's current location, region, description, danger state, and available routes in one focused view.
+- Reuses existing location scene art on the navigation screen when it is available.
+- Route choices identify dangerous destinations and include a short destination description.
+- Keeps the existing travel effects, including time advancement, conditions, threats, quest synchronization, history, and travel events.
+- Preserved the existing Back behavior so leaving navigation returns to the normal gameplay dashboard without changing state.
+

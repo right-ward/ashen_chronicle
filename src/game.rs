@@ -8,6 +8,7 @@ mod dispatcher;
 mod interactions_core;
 mod legacy;
 mod menu;
+mod navigation;
 mod presentation;
 mod quests;
 mod records;
