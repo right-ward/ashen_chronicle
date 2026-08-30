@@ -34,7 +34,11 @@ mod interactions {
         let Some(faction_id) = interactions_core::faction_id_by_name(state, faction_name) else {
             return;
         };
-        if let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == faction_id) {
+        if let Some(faction) = state
+            .factions
+            .iter_mut()
+            .find(|faction| faction.id == faction_id)
+        {
             faction.reputation += 5;
             faction.memory.push(format!(
                 "Carrying {} marks affiliation with the faction.",
