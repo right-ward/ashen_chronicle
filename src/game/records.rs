@@ -1,6 +1,6 @@
 use crate::game::state_effects;
-use crate::model::GameState;
-use crate::ui::{narrate, pause, prompt};
+use crate::model::{GameState, Quest};
+use crate::ui::{narrate, pause, prompt, set_menu_screen};
 
 macro_rules! println {
     () => {
@@ -23,37 +23,106 @@ pub(crate) fn show_inventory(state: &GameState) {
     pause();
 }
 
-pub(crate) fn review_quests(state: &GameState) {
-    println!();
-    println!("Quest log for {}", state.character.display_name());
+pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
     let visible_quests: Vec<_> = state
         .quests
         .iter()
         .enumerate()
         .filter(|(_, quest)| quest.offered || quest.completed)
         .collect();
+
     if visible_quests.is_empty() {
-        println!("  Nothing yet.");
-        pause();
-        return;
+        set_menu_screen(
+            "Quest Log",
+            Some("No quests have been recorded yet.".to_string()),
+            None,
+        );
+        let _ = crate::ui::choose_from_list("Quest Log", &["Back".to_string()], None)?;
+        crate::game::presentation::render_state(state);
+        return Ok(());
     }
-    for (index, quest) in visible_quests {
-        let status = if quest.completed {
-            if quest.reward_claimed {
-                "completed"
-            } else {
-                "completed, reward pending"
-            }
-        } else {
-            "active"
-        };
-        println!("  - {} [{}]", quest.title, status);
-        println!("    {}", quest.description);
-        for objective in crate::game::quests::objective_summary(state, index) {
-            println!("    {}", objective);
-        }
+
+    let options: Vec<String> = visible_quests
+        .iter()
+        .map(|(_, quest)| format!("{} {}", quest_status_marker(state, quest), quest.title))
+        .collect();
+
+    set_menu_screen(
+        format!("Quest Log — {}", state.character.display_name()),
+        Some("ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished".to_string()),
+        None,
+    );
+
+    let Some(selection) = crate::ui::choose_from_list("Select a quest", &options, Some("Back"))? else {
+        crate::game::presentation::render_state(state);
+        return Ok(());
+    };
+
+    let Some((quest_index, _)) = visible_quests.get(selection).copied() else {
+        crate::game::presentation::render_state(state);
+        return Ok(());
+    };
+
+    show_quest_detail(state, quest_index)?;
+    crate::game::presentation::render_state(state);
+    Ok(())
+}
+
+fn show_quest_detail(state: &GameState, quest_index: usize) -> std::io::Result<()> {
+    let Some(quest) = state.quests.get(quest_index) else {
+        return Ok(());
+    };
+
+    let status = quest_status_label(state, quest);
+    let mut detail_lines = vec![format!("Status: {}", status), String::new()];
+    if !quest.description.trim().is_empty() {
+        detail_lines.extend(quest.description.lines().map(str::to_string));
+        detail_lines.push(String::new());
     }
-    pause();
+    detail_lines.push("Objectives".to_string());
+    let objectives = crate::game::quests::objective_summary(state, quest_index);
+    if objectives.is_empty() {
+        detail_lines.push("  No objectives recorded.".to_string());
+    } else {
+        detail_lines.extend(objectives.into_iter().map(|line| format!("  {}", line)));
+    }
+    detail_lines.push(String::new());
+    if !quest.reward_item_name.trim().is_empty() {
+        detail_lines.push(format!("Reward: {}", quest.reward_item_name));
+    } else {
+        detail_lines.push("Reward: —".to_string());
+    }
+
+    set_menu_screen(quest.title.clone(), Some(detail_lines.join("\n")), None);
+    let _ = crate::ui::choose_from_list("Quest details", &["Back".to_string()], None)?;
+    Ok(())
+}
+
+fn quest_status_marker(state: &GameState, quest: &Quest) -> &'static str {
+    if quest.completed {
+        "[COMPLETED]"
+    } else if quest_is_ready(state, quest) {
+        "[READY]"
+    } else {
+        "[ACTIVE]"
+    }
+}
+
+fn quest_status_label(state: &GameState, quest: &Quest) -> &'static str {
+    if quest.completed {
+        "COMPLETED"
+    } else if quest_is_ready(state, quest) {
+        "READY"
+    } else {
+        "ACTIVE"
+    }
+}
+
+fn quest_is_ready(state: &GameState, quest: &Quest) -> bool {
+    let _ = state;
+    !quest.completed
+        && !quest.objectives.is_empty()
+        && quest.objectives.iter().all(|objective| objective.completed)
 }
 
 pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
