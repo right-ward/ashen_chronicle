@@ -45,7 +45,10 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
         enemy_id: state.world.allocate_id(),
     };
     let character_name = state.character.display_name();
-    let mut events = vec![format!("{} engages {} at {}.", character_name, encounter.enemy_name, location.name)];
+    let mut events = vec![format!(
+        "{} engages {} at {}.",
+        character_name, encounter.enemy_name, location.name
+    )];
     render_combat_screen(state, &encounter, &events, &location.name);
 
     loop {
@@ -215,7 +218,11 @@ fn render_combat_screen(
         enemy_max_hp: Some(encounter.enemy_max_hp),
         time_display: format!("Turn {}", character.turn),
         condition_line: Some(format!("You: {}", character.display_name())),
-        location_name: Some(format!("{}  vs  {}", character.display_name(), encounter.enemy_name)),
+        location_name: Some(format!(
+            "{}  vs  {}",
+            character.display_name(),
+            encounter.enemy_name
+        )),
         location_description: Some(format!("Encounter location: {}", location_name)),
         danger_line: Some(format!("Enemy power: {}", encounter.enemy_power)),
         threat_line: None,
