@@ -600,7 +600,7 @@ fn draw_dashboard(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,
     dashboard: &Dashboard,
-    scene: &[String],
+    _scene: &[String],
     log: &[String],
     prompt: Option<&[String]>,
     notice: Option<&str>,
@@ -624,22 +624,11 @@ fn draw_dashboard(
     if compact {
         let body = Layout::default()
             .direction(Direction::Vertical)
-            .constraints([
-                Constraint::Percentage(34),
-                Constraint::Percentage(38),
-                Constraint::Percentage(28),
-            ])
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
             .spacing(Spacing::Overlap(1))
             .split(root[0]);
         render_status_panel(frame, body[0], dashboard, compact);
-        render_panel(
-            frame,
-            body[1],
-            "Location",
-            location_lines(dashboard, scene),
-            compact,
-        );
-        render_log(frame, body[2], log, compact);
+        render_log(frame, body[1], log, compact);
     } else {
         let body = Layout::default()
             .direction(Direction::Horizontal)
@@ -662,19 +651,7 @@ fn draw_dashboard(
                 .unwrap_or_else(|| "Use arrows, Enter, and Esc.".to_string())],
             compact,
         );
-        let right = Layout::default()
-            .direction(Direction::Vertical)
-            .constraints([Constraint::Length(16), Constraint::Min(4)])
-            .spacing(Spacing::Overlap(1))
-            .split(body[1]);
-        render_panel(
-            frame,
-            right[0],
-            "Location",
-            location_lines(dashboard, scene),
-            compact,
-        );
-        render_log(frame, right[1], log, compact);
+        render_log(frame, body[1], log, compact);
     }
 
     if let Some(prompt_lines) = prompt {
