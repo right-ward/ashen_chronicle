@@ -1,4 +1,6 @@
-use crate::game::{actions, character, combat, interactions, legacy, menu, navigation, records, screens};
+use crate::game::{
+    actions, character, combat, interactions, legacy, menu, navigation, records, screens,
+};
 use crate::model::GameState;
 use std::io;
 use std::path::Path;
