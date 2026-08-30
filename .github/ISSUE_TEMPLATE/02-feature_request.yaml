@@ -1,21 +1,16 @@
 name: 🌱 Feature
 description: Suggest a feature/enhancement
-title: "[FEAT] <title>"
+title: "[FEAT] ..."
 labels: ["enhancement"]
 assignees: ["right-ward"]
 body:
 - type: textarea
   attributes:
     label: Feature description
-    description: A clear and concise description of what you’d like to see or be added.
-  validations:
-    required: true
-- type: textarea
-  attributes:
-    label: Additional Context
     description: |
-      If it solves an issue, you can reference the affected issues here.
+      A clear and concise description of what you’d like to see or be added.
+      If it solves an issue, you can reference the affected issues here, too.
 
       Tip: You can attach images or other files by clicking this area to highlight it and then dragging files in.
   validations:
-    required: false
+    required: true
