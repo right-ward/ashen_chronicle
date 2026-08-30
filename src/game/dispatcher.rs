@@ -1,4 +1,4 @@
-use crate::game::{actions, character, combat, interactions, legacy, menu, records, screens};
+use crate::game::{actions, character, combat, interactions, legacy, menu, navigation, records, screens};
 use crate::model::GameState;
 use std::io;
 use std::path::Path;
@@ -9,7 +9,7 @@ pub(crate) fn dispatch(
     save_path: &Path,
 ) -> io::Result<bool> {
     match action {
-        menu::GameAction::Travel => actions::travel(state)?,
+        menu::GameAction::Travel => navigation::open(state)?,
         menu::GameAction::InvestigateThreat => combat::investigate_threat(state)?,
         menu::GameAction::SearchRemains => legacy::search_remains(state)?,
         menu::GameAction::Talk => interactions::talk(state)?,
