@@ -22,7 +22,7 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
         .collect();
 
     loop {
-        set_inventory_screen(state, 0);
+        set_inventory_screen(state);
         let Some(selection) = choose_from_list("Select an item", &options, Some("Back"))? else {
             crate::game::presentation::render_state(state);
             return Ok(());
@@ -32,6 +32,14 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
         }
         show_inventory_detail(state, selection)?;
     }
+}
+
+fn set_inventory_screen(state: &GameState) {
+    set_menu_screen(
+        format!("Inventory — {}", state.character.display_name()),
+        Some("Select an item to inspect its details.".to_string()),
+        None,
+    );
 }
 
 fn inventory_details(state: &GameState, selected: usize) -> (String, Option<String>) {
@@ -55,15 +63,6 @@ fn inventory_details(state: &GameState, selected: usize) -> (String, Option<Stri
         .map(str::to_string);
 
     (details.join("\n"), art)
-}
-
-fn set_inventory_screen(state: &GameState, selected: usize) {
-    let (details, art) = inventory_details(state, selected);
-    set_menu_screen(
-        format!("Inventory — {}", state.character.display_name()),
-        Some(details),
-        art,
-    );
 }
 
 fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<()> {

@@ -1,7 +1,7 @@
 use crate::game::state_effects::{self, add_or_refresh_condition};
 use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
-use crate::ui::{choose_from_list, narrate};
+use crate::ui::{choose_from_list, narrate, set_menu_screen};
 use std::path::Path;
 
 macro_rules! println {
@@ -91,10 +91,23 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         .world
         .location_is_dangerous(state.character.location_id);
     if state.threat.active || location_is_dangerous {
-        println!("Not safe enough to meditate here.");
-        crate::ui::pause();
+        set_menu_screen(
+            "Meditation",
+            Some("The place is not safe enough to meditate here.".to_string()),
+            None,
+        );
+        let _ = choose_from_list("Meditation", &["Back".to_string()], None)?;
         return Ok(());
     }
+
+    set_menu_screen(
+        "Meditation",
+        Some(format!(
+            "You settle into stillness.\nCurrent time:\n{}\n\nChoose when to end your meditation.",
+            crate::game::time::time_display(state.world.time_points, state.world.day)
+        )),
+        None,
+    );
 
     let options: Vec<String> = MEDITATION_TARGETS
         .iter()
@@ -124,11 +137,15 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         ),
     );
     save_game(save_path, state)?;
-    narrate(&format!(
-        "You meditate until your breathing steadies. You look at the sky...\nStopped at {}.\nYou recover {} HP and save the game.",
+
+    let result_lines = format!(
+        "Your breathing steadies as you meditate.\n\n{}\nTime meditated: {} portion(s)\nHP recovered: {}\n\nExhausted is removed.\nWell-rested is applied.",
         crate::game::time::time_display(state.world.time_points, state.world.day),
+        portions,
         healing
-    ));
+    );
+    set_menu_screen("Meditation — Complete", Some(result_lines), None);
+    let _ = choose_from_list("Meditation result", &["Back".to_string()], None)?;
     Ok(())
 }
 
