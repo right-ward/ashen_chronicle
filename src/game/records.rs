@@ -49,11 +49,15 @@ pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
 
     set_menu_screen(
         format!("Quest Log — {}", state.character.display_name()),
-        Some("ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished".to_string()),
+        Some(
+            "ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished"
+                .to_string(),
+        ),
         None,
     );
 
-    let Some(selection) = crate::ui::choose_from_list("Select a quest", &options, Some("Back"))? else {
+    let Some(selection) = crate::ui::choose_from_list("Select a quest", &options, Some("Back"))?
+    else {
         crate::game::presentation::render_state(state);
         return Ok(());
     };
