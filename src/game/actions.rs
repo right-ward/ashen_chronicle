@@ -1,7 +1,7 @@
 use crate::game::state_effects::{self, add_or_refresh_condition};
-use crate::model::{Condition, GameState};
+use crate::model::{Condition, EntityId, GameState};
 use crate::persistence::save_game;
-use crate::ui::{choose_from_list, narrate, pause, prompt};
+use crate::ui::{narrate, pause, prompt};
 use std::path::Path;
 
 macro_rules! println {
@@ -13,7 +13,7 @@ macro_rules! println {
     };
 }
 
-pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
+pub(crate) fn travel_to(state: &mut GameState, target_id: EntityId) -> std::io::Result<()> {
     let current_location = match state.world.location_by_id(state.character.location_id) {
         Some(location) => location.clone(),
         None => {
@@ -22,58 +22,51 @@ pub(crate) fn travel(state: &mut GameState) -> std::io::Result<()> {
             return Ok(());
         }
     };
-    let options: Vec<String> = current_location
-        .exits
-        .iter()
-        .filter_map(|id| state.world.location_by_id(*id).map(|loc| loc.name.clone()))
-        .collect();
-    if options.is_empty() {
-        println!("There is nowhere to travel.");
+
+    if !current_location.exits.contains(&target_id) {
+        println!("That route is not available from here.");
         pause();
         return Ok(());
     }
-    if let Some(choice) = choose_from_list("Travel where?", &options, Some("Back"))? {
-        if let Some(target_id) = current_location.exits.get(choice).copied() {
-            state_effects::advance_time(state, 2);
-            if state_effects::is_night(state.world.time_points) {
-                add_or_refresh_condition(
-                    &mut state.character.conditions,
-                    Condition::new("Exhausted", 2, -1),
-                );
-            }
-            state.character.turn += 1;
-            state.character.location_id = target_id;
-            state.threat.clear();
-            state.last_announced_location_id = None;
-            let location = state.world.location_by_id(target_id).cloned();
-            let location_name = location
-                .as_ref()
-                .map(|loc| loc.name.clone())
-                .unwrap_or_else(|| "Unknown".to_string());
-            let character_name = state.character.display_name();
-            state.world.record_history(
-                state.character.turn,
-                format!("{} traveled to {}.", character_name, location_name),
+
+    state_effects::advance_time(state, 2);
+    if state_effects::is_night(state.world.time_points) {
+        add_or_refresh_condition(
+            &mut state.character.conditions,
+            Condition::new("Exhausted", 2, -1),
+        );
+    }
+    state.character.turn += 1;
+    state.character.location_id = target_id;
+    state.threat.clear();
+    state.last_announced_location_id = None;
+    let location = state.world.location_by_id(target_id).cloned();
+    let location_name = location
+        .as_ref()
+        .map(|loc| loc.name.clone())
+        .unwrap_or_else(|| "Unknown".to_string());
+    let character_name = state.character.display_name();
+    state.world.record_history(
+        state.character.turn,
+        format!("{} traveled to {}.", character_name, location_name),
+    );
+    crate::game::quests::sync_active_quests(state);
+    println!("You travel to {}.", location_name);
+    let dangerous = location.as_ref().map(|loc| loc.dangerous).unwrap_or(false);
+    let context = crate::events::EventContext::for_travel_arrival(
+        &location_name,
+        dangerous,
+        state_effects::is_night(state.world.time_points),
+    );
+    crate::events::trigger_event(state, &context);
+    if let Some(location) = location {
+        if location.dangerous {
+            state.threat.activate(
+                location.id,
+                format!("{} stirs", location.name),
+                "The air is tense. Something here is still awake.".to_string(),
             );
-            crate::game::quests::sync_active_quests(state);
-            println!("You travel to {}.", location_name);
-            let dangerous = location.as_ref().map(|loc| loc.dangerous).unwrap_or(false);
-            let context = crate::events::EventContext::for_travel_arrival(
-                &location_name,
-                dangerous,
-                state_effects::is_night(state.world.time_points),
-            );
-            crate::events::trigger_event(state, &context);
-            if let Some(location) = location {
-                if location.dangerous {
-                    state.threat.activate(
-                        location.id,
-                        format!("{} stirs", location.name),
-                        "The air is tense. Something here is still awake.".to_string(),
-                    );
-                    narrate("This place is dangerous.");
-                }
-            }
+            narrate("This place is dangerous.");
         }
     }
     Ok(())
