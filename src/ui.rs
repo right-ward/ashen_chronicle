@@ -3,7 +3,7 @@ use crossterm::event::{self, Event, KeyCode, KeyEvent, KeyEventKind, KeyModifier
 use crossterm::execute;
 use crossterm::terminal::{self, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
-use ratatui::layout::{Constraint, Direction, Layout, Rect, Spacing};
+use ratatui::layout::{Alignment, Constraint, Direction, Layout, Rect, Spacing};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;
 use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};
@@ -564,7 +564,7 @@ fn draw_menu_screen(
     };
 
     let title = Paragraph::new(menu.title.clone())
-        .alignment(ratatui::layout::Alignment::Center)
+        .alignment(Alignment::Center)
         .block(
             Block::default()
                 .borders(Borders::ALL)
@@ -577,11 +577,58 @@ fn draw_menu_screen(
         vertical: 2,
         horizontal: 3,
     });
-    let mut lines = Vec::new();
+    let mut content_y = inner.y;
+
     if let Some(art) = &menu.art {
-        lines.extend(art.lines().map(str::to_string));
-        lines.push(String::new());
+        let art_lines: Vec<&str> = art.lines().collect();
+        let art_height = (art_lines.len() as u16).min(inner.height);
+        let art_width = (art_lines
+            .iter()
+            .map(|line| line.chars().count())
+            .max()
+            .unwrap_or(0) as u16)
+            .min(inner.width);
+
+        if art_height > 0 && art_width > 0 {
+            let art_area = Rect {
+                x: inner.x + (inner.width.saturating_sub(art_width) / 2),
+                y: content_y,
+                width: art_width,
+                height: art_height,
+            };
+            let art_text = art_lines
+                .iter()
+                .take(art_height as usize)
+                .copied()
+                .collect::<Vec<_>>()
+                .join("\n");
+            let art_paragraph = Paragraph::new(art_text)
+                .alignment(Alignment::Left)
+                .wrap(Wrap { trim: false });
+            frame.render_widget(art_paragraph, art_area);
+
+            content_y = content_y.saturating_add(art_height);
+            if content_y < inner.y.saturating_add(inner.height) {
+                content_y = content_y.saturating_add(1);
+            }
+        }
     }
+
+    let remaining_height = inner
+        .y
+        .saturating_add(inner.height)
+        .saturating_sub(content_y);
+    if remaining_height == 0 {
+        return;
+    }
+
+    let text_area = Rect {
+        x: inner.x,
+        y: content_y,
+        width: inner.width,
+        height: remaining_height,
+    };
+    let mut lines = Vec::new();
     if let Some(subtitle) = &menu.subtitle {
         lines.extend(subtitle.lines().map(str::to_string));
         lines.push(String::new());
@@ -590,10 +637,12 @@ fn draw_menu_screen(
         lines.extend(prompt_lines.iter().cloned());
     }
 
-    let paragraph = Paragraph::new(lines.join("\n"))
-        .alignment(ratatui::layout::Alignment::Center)
-        .wrap(Wrap { trim: false });
-    frame.render_widget(paragraph, inner);
+    if !lines.is_empty() {
+        let paragraph = Paragraph::new(lines.join("\n"))
+            .alignment(Alignment::Center)
+            .wrap(Wrap { trim: false });
+        frame.render_widget(paragraph, text_area);
+    }
 }
 
 fn draw_dashboard(
