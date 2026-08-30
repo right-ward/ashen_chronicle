@@ -17,7 +17,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-### v0.40.0
+### v0.41.0 - 0.46.0
 
 - Continue modularizing and improving the existing TUI presentation before the longer-term GUI transition.
 

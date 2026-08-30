@@ -449,3 +449,12 @@ src/
 - Restored the in-game action menu to the final dashboard panel instead of drawing it as a detached overlay.
 - Restored clean developer-console screen lifecycle: the console opens on a cleared screen and returns to the preserved game alternate screen without stacking frames.
 
+## v0.40.0: quest depth and world consequences
+
+- Expanded quests from single-item turn-ins into explicit persisted objective state.
+- Existing campaign quests now track visit, defeat, and item-acquisition objectives as a single quest chain.
+- Objective progress updates through travel and combat and is visible in the quest log and NPC turn-in flow.
+- Quest completion now records a structured quest history event and updates the existing faction and NPC memory systems, allowing later event conditions to react to completed deeds.
+- Existing quest/save data is migrated through serde defaults and deterministic quest normalization without changing the save-file version.
+- Loaded quest objectives are validated for empty targets, invalid requirements, and impossible progress before runtime use.
+
