@@ -6,18 +6,17 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-### v0.40.0: quest depth and world consequences
+### v0.41.0: dedicated quest representation
 
-- Expanded quests from single-item turn-ins into explicit persisted objective state.
-- Existing campaign quests now track visit, defeat, and item-acquisition objectives as a single quest chain.
-- Objective progress updates through travel and combat and is visible in the quest log and NPC turn-in flow.
-- Quest completion now records a structured quest history event and updates the existing faction and NPC memory systems, allowing later event conditions to react to completed deeds.
-- Existing quest/save data is migrated through serde defaults and deterministic quest normalization without changing the save-file version.
-- Loaded quest objectives are validated for empty targets, invalid requirements, and impossible progress before runtime use.
+- Replaced the log-style quest review with a dedicated player-facing fullscreen quest screen.
+- Quest index entries clearly distinguish `ACTIVE`, `READY`, and `COMPLETED` states.
+- Quest details show the description, objective progress, and reward without mixing into the gameplay journal.
+- Returning from the quest screen restores the normal gameplay dashboard without changing quest or gameplay state.
+- Kept existing hidden-quest filtering, objective tracking, completion behavior, and save compatibility unchanged.
 
 ## Next
 
-### v0.41.0 - 0.46.0
+### v0.42.0 - 0.46.0
 
 - Continue modularizing and improving the existing TUI presentation before the longer-term GUI transition.
 

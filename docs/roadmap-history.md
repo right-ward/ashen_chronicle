@@ -458,3 +458,11 @@ src/
 - Existing quest/save data is migrated through serde defaults and deterministic quest normalization without changing the save-file version.
 - Loaded quest objectives are validated for empty targets, invalid requirements, and impossible progress before runtime use.
 
+## v0.41.0: dedicated quest representation
+
+- Replaced the log-style quest review with a dedicated player-facing fullscreen quest screen.
+- Quest index entries clearly distinguish `ACTIVE`, `READY`, and `COMPLETED` states.
+- Quest details show the description, objective progress, and reward without mixing into the gameplay journal.
+- Returning from the quest screen restores the normal gameplay dashboard without changing quest or gameplay state.
+- Kept existing hidden-quest filtering, objective tracking, completion behavior, and save compatibility unchanged.
+
