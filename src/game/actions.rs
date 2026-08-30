@@ -139,7 +139,7 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     save_game(save_path, state)?;
 
     let result_lines = format!(
-        "Your breathing steadies as you meditate.\n\nEnded at: {}\nTime meditated: {} portion(s)\nHP recovered: {}\n\nExhausted is removed.\nWell-rested is applied.",
+        "Your breathing steadies as you meditate.\n\n{}\nTime meditated: {} portion(s)\nHP recovered: {}\n\nExhausted is removed.\nWell-rested is applied.",
         crate::game::time::time_display(state.world.time_points, state.world.day),
         portions,
         healing
