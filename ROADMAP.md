@@ -6,6 +6,11 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
+### v0.41.1: quest navigation bugfix
+
+- Fixed quest details so their Back action returns to the Quests screen instead of exiting directly to gameplay.
+- Preserved the existing Quests screen Back action that returns to the normal gameplay dashboard.
+
 ### v0.41.0: dedicated quest representation
 
 - Replaced the log-style quest review with a dedicated player-facing fullscreen quest screen.
