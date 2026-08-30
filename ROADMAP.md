@@ -6,15 +6,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-- v0.39.0: UI polish and patching and `logkeys` dev command
-- Developer-console output and completion menus support bounded scrolling and keep overflowing content navigable, including wrapped output lines.
-- Developer-console implementation is split into focused entrypoint, UI/state, and command modules for easier maintenance.
-- Added the `logkeys [true|false]` developer-console command. When enabled, it buffers terminal key events outside the developer console with timestamps, event kinds, key codes, and modifiers; console input itself is excluded.
-- Fixed in-game ASCII art flattening by preserving leading whitespace in menu, location, and journal renderers. (#57)
-- Fixed transparent/stacked game screens by clearing the full terminal frame before rendering standalone menu and developer-console screens. (#60)
-### v0.39.1: patch console and actions layout
-- Restored the in-game action menu to the final dashboard panel instead of drawing it as a detached overlay.
-- Restored clean developer-console screen lifecycle: the console opens on a cleared screen and returns to the preserved game alternate screen without stacking frames.
+### v0.40.0: quest depth and world consequences
+
+- Expanded quests from single-item turn-ins into explicit persisted objective state.
+- Existing campaign quests now track visit, defeat, and item-acquisition objectives as a single quest chain.
+- Objective progress updates through travel and combat and is visible in the quest log and NPC turn-in flow.
+- Quest completion now records a structured quest history event and updates the existing faction and NPC memory systems, allowing later event conditions to react to completed deeds.
+- Existing quest/save data is migrated through serde defaults and deterministic quest normalization without changing the save-file version.
+- Loaded quest objectives are validated for empty targets, invalid requirements, and impossible progress before runtime use.
 
 ## Next
 
