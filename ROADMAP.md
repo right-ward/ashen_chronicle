@@ -6,6 +6,13 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
+### v0.43.1: inventory and meditation presentation refinement
+
+- Inventory item selection now uses a clean list screen with no item art or details shown before selection.
+- Selected inventory items open a dedicated detail screen containing the item's description and available art.
+- Meditation now keeps the time-of-day selection on a dedicated presentation screen and shows the completed meditation, elapsed portions, recovery, and resulting time on a dedicated result screen.
+- Unsafe meditation attempts also use the dedicated Meditation screen instead of the action log.
+
 ### v0.43.0: inventory and character presentation
 - Replaced the plain inventory dump with a dedicated Inventory screen that lets the player select held items and view each item's description and available art.
 - Replaced the plain character sheet with a dedicated Character screen containing General, Reputation, and Journal tabs.
