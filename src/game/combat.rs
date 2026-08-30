@@ -16,6 +16,7 @@ macro_rules! println {
 struct CombatEncounter {
     enemy_name: String,
     enemy_hp: i32,
+    enemy_max_hp: i32,
     enemy_power: i32,
     enemy_id: EntityId,
 }
@@ -39,6 +40,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
     let mut encounter = CombatEncounter {
         enemy_name,
         enemy_hp,
+        enemy_max_hp,
         enemy_power,
         enemy_id: state.world.allocate_id(),
     };
@@ -210,7 +212,7 @@ fn render_combat_screen(
         max_hp: character.max_hp,
         enemy_name: Some(encounter.enemy_name.clone()),
         enemy_hp: Some(encounter.enemy_hp.max(0)),
-        enemy_max_hp: Some(encounter.enemy_hp.max(1).max(encounter.enemy_hp)),
+        enemy_max_hp: Some(encounter.enemy_max_hp),
         time_display: format!("Turn {}", character.turn),
         condition_line: Some(format!("You: {}", character.display_name())),
         location_name: Some(format!("{}  vs  {}", character.display_name(), encounter.enemy_name)),
