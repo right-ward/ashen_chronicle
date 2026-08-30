@@ -1,5 +1,5 @@
 use crate::game::actions;
-use crate::model::{EntityId, GameState, Location};
+use crate::model::{EntityId, GameState};
 use crate::ui::set_menu_screen;
 use std::io;
 
@@ -34,7 +34,7 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
         format!("Region: {}", region_name),
     ];
     if current_location.dangerous {
-        details.push("Danger: this location is dangerous.".to_string());
+        details.push("You sense the danger hiding in this location.".to_string());
     }
     if !current_location.description.trim().is_empty() {
         details.push(String::new());
@@ -71,29 +71,4 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
         }
     }
     Ok(())
-}
-
-fn route_label(location: &Location) -> String {
-    location.name.clone()
-}
-
-#[cfg(test)]
-mod tests {
-    use super::route_label;
-    use crate::model::Location;
-
-    #[test]
-    fn route_label_uses_only_location_name() {
-        let location = Location {
-            id: 2,
-            name: "The Hollow".to_string(),
-            description: "A broken road disappears into the ash.".to_string(),
-            region_id: 1,
-            dangerous: true,
-            corpse_ids: Vec::new(),
-            exits: Vec::new(),
-        };
-
-        assert_eq!(route_label(&location), "The Hollow");
-    }
 }
