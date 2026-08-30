@@ -120,11 +120,7 @@ pub(crate) fn sync_objectives(state: &mut GameState, quest_index: usize) {
     }
 }
 
-pub(crate) fn record_enemy_defeat(
-    state: &mut GameState,
-    enemy_name: &str,
-    location_id: EntityId,
-) {
+pub(crate) fn record_enemy_defeat(state: &mut GameState, enemy_name: &str, location_id: EntityId) {
     normalize_all(state);
     for index in 0..state.quests.len() {
         let relevant = {
@@ -147,10 +143,8 @@ pub(crate) fn record_enemy_defeat(
                     && objective.target == enemy_name
                     && !objective.completed
                 {
-                    objective.progress = objective
-                        .progress
-                        .saturating_add(1)
-                        .min(objective.required);
+                    objective.progress =
+                        objective.progress.saturating_add(1).min(objective.required);
                     objective.completed = objective.progress >= objective.required;
                 }
             }

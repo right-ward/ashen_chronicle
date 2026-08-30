@@ -196,7 +196,10 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
                     }
                     handled = true;
                     if !quests::try_complete(state, quest_index) {
-                        println!("{} looks at you expectantly. The work is not finished yet:", npc_name);
+                        println!(
+                            "{} looks at you expectantly. The work is not finished yet:",
+                            npc_name
+                        );
                         for objective in quests::objective_summary(state, quest_index) {
                             println!("  {}", objective);
                         }

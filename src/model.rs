@@ -615,7 +615,8 @@ mod tests {
             "kind": "acquire_item",
             "target": "Old Token"
         }"#;
-        let objective: QuestObjective = serde_json::from_str(json).expect("legacy objective should load");
+        let objective: QuestObjective =
+            serde_json::from_str(json).expect("legacy objective should load");
         assert_eq!(objective.required, 1);
         assert_eq!(objective.progress, 0);
         assert!(!objective.completed);
