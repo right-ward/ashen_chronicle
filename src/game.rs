@@ -31,7 +31,8 @@ mod interactions {
         }) else {
             return;
         };
-        let Some(faction_id) = super::interactions_core::faction_id_by_name(state, faction_name) else {
+        let Some(faction_id) = super::interactions_core::faction_id_by_name(state, faction_name)
+        else {
             return;
         };
         if let Some(faction) = state
