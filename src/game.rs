@@ -8,6 +8,7 @@ mod interactions;
 mod legacy;
 mod menu;
 mod presentation;
+mod quests;
 mod records;
 mod runtime;
 mod screens;
