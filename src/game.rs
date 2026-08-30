@@ -4,7 +4,7 @@ mod combat;
 #[allow(dead_code)]
 mod console;
 mod dispatcher;
-#[path = "interactions.rs"]
+#[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
 mod menu;
