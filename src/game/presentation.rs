@@ -1,9 +1,6 @@
-use crate::content::CampaignContent;
-use crate::game::interactions;
 use crate::game::time::time_display;
-use crate::model::{EntityId, GameState};
-use crate::ui::{set_dashboard, set_location_scene, Dashboard};
-use std::io;
+use crate::model::GameState;
+use crate::ui::{set_dashboard, Dashboard};
 
 pub(crate) fn render_state(state: &GameState) {
     let world = &state.world;
@@ -49,78 +46,4 @@ pub(crate) fn render_state(state: &GameState) {
         action_hint: Some("Arrows / Enter / Esc".to_string()),
     };
     set_dashboard(dashboard);
-}
-
-pub(crate) fn maybe_run_location_scene(state: &mut GameState) -> io::Result<()> {
-    let location_id = state.character.location_id;
-    if state.last_announced_location_id == Some(location_id) {
-        return Ok(());
-    }
-    state.last_announced_location_id = Some(location_id);
-    let content = state
-        .campaign_content
-        .clone()
-        .unwrap_or_else(crate::content::load_campaign_content);
-    let mut lines = location_art(&content, state, location_id);
-    let atmosphere = location_atmosphere(&content, state, location_id);
-    let npc_ids = interactions::npc_ids_at_location(state, location_id);
-    if !lines.is_empty() && (!atmosphere.is_empty() || !npc_ids.is_empty()) {
-        lines.push(String::new());
-    }
-    lines.extend(atmosphere);
-    if !lines.is_empty() && !npc_ids.is_empty() {
-        lines.push(String::new());
-    }
-    for npc_id in npc_ids {
-        lines.extend(location_scene_for_npc(state, npc_id, location_id));
-    }
-    set_location_scene(lines);
-    Ok(())
-}
-
-fn location_art(
-    content: &CampaignContent,
-    state: &GameState,
-    location_id: EntityId,
-) -> Vec<String> {
-    let Some(location) = state.world.location_by_id(location_id) else {
-        return Vec::new();
-    };
-    content
-        .location_art_for(&location.name)
-        .map(|art| art.lines().map(|line| line.to_string()).collect())
-        .unwrap_or_default()
-}
-
-fn location_atmosphere(
-    content: &CampaignContent,
-    state: &GameState,
-    location_id: EntityId,
-) -> Vec<String> {
-    let Some(location) = state.world.location_by_id(location_id) else {
-        return Vec::new();
-    };
-    content
-        .atmosphere_for(&location.name)
-        .map(|text| vec![text.to_string()])
-        .unwrap_or_default()
-}
-
-fn location_scene_for_npc(
-    state: &mut GameState,
-    npc_id: EntityId,
-    location_id: EntityId,
-) -> Vec<String> {
-    let mut lines = Vec::new();
-    let Some(npc_index) = interactions::npc_index_by_id(state, npc_id) else {
-        return lines;
-    };
-    let npc_name = state.npcs[npc_index].display_name();
-    if state.threat.active && state.threat.source_location_id == Some(location_id) {
-        lines.push(format!(
-            "{} glances at the threat and lowers their voice.",
-            npc_name
-        ));
-    }
-    lines
 }

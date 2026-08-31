@@ -18,6 +18,7 @@ mod screens;
 mod state_effects;
 mod time;
 mod world;
+mod world_screen;
 
 mod interactions {
     pub(crate) use super::interactions_core::*;
