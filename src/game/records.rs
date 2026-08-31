@@ -10,7 +10,6 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
             None,
         );
         let _ = choose_from_list("Inventory", &["Back".to_string()], None)?;
-        crate::game::presentation::render_state(state);
         return Ok(());
     }
 
@@ -24,7 +23,6 @@ pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
     loop {
         set_inventory_screen(state);
         let Some(selection) = choose_from_list("Select an item", &options, Some("Back"))? else {
-            crate::game::presentation::render_state(state);
             return Ok(());
         };
         if selection >= state.character.inventory.len() {
@@ -94,7 +92,6 @@ pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
             None,
         );
         let _ = crate::ui::choose_from_list("Quest Log", &["Back".to_string()], None)?;
-        crate::game::presentation::render_state(state);
         return Ok(());
     }
 
@@ -116,7 +113,6 @@ pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
         let Some(selection) =
             crate::ui::choose_from_list("Select a quest", &options, Some("Back"))?
         else {
-            crate::game::presentation::render_state(state);
             return Ok(());
         };
 
