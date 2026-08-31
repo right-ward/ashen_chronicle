@@ -192,19 +192,26 @@ fn render(
         );
 
         let action_lines = if let Some((title, note)) = result {
-            vec![title.to_string(), String::new(), note.to_string(), String::new(), "Press any key to continue...".to_string()]
+            vec![
+                title.to_string(),
+                String::new(),
+                note.to_string(),
+                String::new(),
+                "Press any key to continue...".to_string(),
+            ]
         } else {
             ACTIONS
                 .iter()
                 .enumerate()
                 .map(|(index, action)| {
-                    let marker = if selected_action == Some(index) { '▶' } else { ' ' };
+                    let marker = if selected_action == Some(index) {
+                        '▶'
+                    } else {
+                        ' '
+                    };
                     format!("{marker} {}. {action}", index + 1)
                 })
-                .chain([
-                    String::new(),
-                    "↑ ↓ / j k  Enter: choose".to_string(),
-                ])
+                .chain([String::new(), "↑ ↓ / j k  Enter: choose".to_string()])
                 .collect()
         };
         frame.render_widget(
@@ -212,7 +219,11 @@ fn render(
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(if result.is_some() { "Result" } else { "Actions" })
+                        .title(if result.is_some() {
+                            "Result"
+                        } else {
+                            "Actions"
+                        })
                         .merge_borders(MergeStrategy::Exact),
                 )
                 .wrap(Wrap { trim: true }),
