@@ -1,6 +1,6 @@
 use super::{character, combat_screen, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
-use crate::ui::{clear_combat_health, pause};
+use crate::ui::pause;
 
 macro_rules! println {
     () => {
@@ -105,7 +105,6 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "The threat is broken. The place is quieter now.",
             )?;
             combat_screen::wait_for_key()?;
-            clear_combat_health();
             break;
         }
 
@@ -211,7 +210,6 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     "The threat remains.",
                 )?;
                 combat_screen::wait_for_key()?;
-                clear_combat_health();
                 break;
             }
             _ => unreachable!(),
@@ -243,13 +241,11 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "You were overwhelmed.",
             )?;
             combat_screen::wait_for_key()?;
-            clear_combat_health();
             break;
         }
 
         trim_combat_events(&mut events);
     }
-    clear_combat_health();
     Ok(())
 }
 
