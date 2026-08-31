@@ -104,7 +104,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "Victory",
                 "The threat is broken. The place is quieter now.",
             )?;
-            let _ = crate::ui::read_key()?;
+            combat_screen::wait_for_key()?;
             clear_combat_health();
             break;
         }
@@ -210,7 +210,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     "Fled",
                     "The threat remains.",
                 )?;
-                let _ = crate::ui::read_key()?;
+                combat_screen::wait_for_key()?;
                 clear_combat_health();
                 break;
             }
@@ -242,7 +242,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "Defeat",
                 "You were overwhelmed.",
             )?;
-            let _ = crate::ui::read_key()?;
+            combat_screen::wait_for_key()?;
             clear_combat_health();
             break;
         }
