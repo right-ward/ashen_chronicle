@@ -1,9 +1,11 @@
+use crossterm::cursor;
+use crossterm::execute;
 use crossterm::terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect, Spacing};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;
-use ratatui::widgets::{Block, Borders, LineGauge, Paragraph, Wrap};
+use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};
 use ratatui::Terminal;
 use std::io;
 
@@ -113,6 +115,7 @@ fn render(
     selected_action: Option<usize>,
     result: Option<(&str, &str)>,
 ) -> io::Result<()> {
+    execute!(io::stdout(), cursor::Hide)?;
     let (width, height) = terminal::size().unwrap_or((100, 40));
     let area = Rect {
         x: 0,
@@ -123,7 +126,7 @@ fn render(
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     terminal.clear()?;
     terminal.draw(|frame| {
-        frame.render_widget(Block::default(), area);
+        frame.render_widget(Clear, area);
         let margin = if width <= 112 || height <= 36 { 1 } else { 2 };
         let outer = Rect {
             x: area.x.saturating_add(margin),
