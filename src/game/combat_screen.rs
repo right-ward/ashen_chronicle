@@ -224,7 +224,11 @@ fn render(
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(if result.is_some() { "Result" } else { "Actions" })
+                        .title(if result.is_some() {
+                            "Result"
+                        } else {
+                            "Actions"
+                        })
                         .merge_borders(MergeStrategy::Exact),
                 )
                 .wrap(Wrap { trim: true }),
