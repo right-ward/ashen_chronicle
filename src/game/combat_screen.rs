@@ -99,6 +99,15 @@ pub(crate) fn wait_for_key() -> io::Result<()> {
     Ok(())
 }
 
+pub(crate) fn finish() {
+    let _ = execute!(
+        io::stdout(),
+        terminal::Clear(terminal::ClearType::All),
+        cursor::MoveTo(0, 0),
+        cursor::Hide,
+    );
+}
+
 #[allow(clippy::too_many_arguments)]
 fn render(
     player_name: &str,
@@ -115,7 +124,6 @@ fn render(
     selected_action: Option<usize>,
     result: Option<(&str, &str)>,
 ) -> io::Result<()> {
-    execute!(io::stdout(), cursor::Hide)?;
     let (width, height) = terminal::size().unwrap_or((100, 40));
     let area = Rect {
         x: 0,
@@ -125,6 +133,8 @@ fn render(
     };
     let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
     terminal.clear()?;
+    terminal.hide_cursor()?;
+    execute!(io::stdout(), cursor::Hide)?;
     terminal.draw(|frame| {
         frame.render_widget(Clear, area);
         let margin = if width <= 112 || height <= 36 { 1 } else { 2 };
@@ -241,6 +251,7 @@ fn render(
             root[2],
         );
     })?;
+    terminal.hide_cursor()?;
     Ok(())
 }
 
