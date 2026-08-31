@@ -5,7 +5,7 @@ use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;
 use ratatui::widgets::{Block, Borders, LineGauge, Paragraph, Wrap};
 use ratatui::Terminal;
-use std::io::{self, Stdout};
+use std::io;
 
 const ACTIONS: [&str; 3] = ["Attack", "Guard", "Flee"];
 
@@ -88,6 +88,11 @@ pub(crate) fn show_result(
         None,
         Some((result_title, result_note)),
     )
+}
+
+pub(crate) fn wait_for_key() -> io::Result<()> {
+    let _ = crate::ui::read_key()?;
+    Ok(())
 }
 
 fn render(
@@ -219,11 +224,7 @@ fn render(
                 .block(
                     Block::default()
                         .borders(Borders::ALL)
-                        .title(if result.is_some() {
-                            "Result"
-                        } else {
-                            "Actions"
-                        })
+                        .title(if result.is_some() { "Result" } else { "Actions" })
                         .merge_borders(MergeStrategy::Exact),
                 )
                 .wrap(Wrap { trim: true }),
@@ -270,19 +271,17 @@ fn render_actor(
         .unfilled_style(Style::default().fg(Color::DarkGray));
     frame.render_widget(gauge, gauge_area);
 
-    let mut lines = Vec::new();
-    if let Some(detail) = detail {
-        lines.push(detail.to_string());
-    }
     let text_area = Rect {
         y: inner.y.saturating_add(1),
         height: inner.height.saturating_sub(1),
         ..inner
     };
-    if text_area.height > 0 && !lines.is_empty() {
-        frame.render_widget(
-            Paragraph::new(lines.join("\n")).wrap(Wrap { trim: true }),
-            text_area,
-        );
+    if let Some(detail) = detail {
+        if text_area.height > 0 {
+            frame.render_widget(
+                Paragraph::new(detail.to_string()).wrap(Wrap { trim: true }),
+                text_area,
+            );
+        }
     }
 }
