@@ -1,3 +1,4 @@
+#[path = "ui_impl.rs"]
 mod ui_impl;
 
 use std::sync::{Mutex, OnceLock};
