@@ -44,7 +44,6 @@ pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
     loop {
         set_character_screen(state, 0);
         let Some(selection) = choose_from_list("General", &tabs, Some("Back"))? else {
-            crate::game::presentation::render_state(state);
             return Ok(());
         };
         show_character_tab(state, selection)?;
