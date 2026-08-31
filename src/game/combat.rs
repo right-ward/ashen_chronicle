@@ -76,7 +76,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 ),
             };
             state.character.inventory.push(trophy.clone());
-            legacy::notify_item_gain(state, &trophy);
+            interactions::grant_reward_reputation(state, &trophy);
             interactions::update_faction_memory_for_location(
                 state,
                 location.id,
@@ -87,6 +87,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             events.push("Victory".to_string());
             events.push(format!("Defeated: {}", enemy_name));
             events.push(format!("Loot: {}", trophy.name));
+            events.push(format!("Description: {}", trophy.description));
             events.push("The threat is broken. The place is quieter now.".to_string());
             trim_combat_events(&mut events);
             combat_screen::show_result(
@@ -105,6 +106,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "The threat is broken. The place is quieter now.",
             )?;
             combat_screen::wait_for_key()?;
+            combat_screen::finish();
             break;
         }
 
@@ -210,6 +212,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     "The threat remains.",
                 )?;
                 combat_screen::wait_for_key()?;
+                combat_screen::finish();
                 break;
             }
             _ => unreachable!(),
@@ -241,11 +244,13 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "You were overwhelmed.",
             )?;
             combat_screen::wait_for_key()?;
+            combat_screen::finish();
             break;
         }
 
         trim_combat_events(&mut events);
     }
+    combat_screen::finish();
     Ok(())
 }
 
