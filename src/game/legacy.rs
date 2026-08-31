@@ -144,17 +144,6 @@ fn corpse_label(corpse: &Corpse) -> String {
     }
 }
 
-pub(crate) fn force_death(state: &mut GameState) {
-    state.character.hp = 0;
-    let location_name = state
-        .world
-        .location_by_id(state.character.location_id)
-        .map(|location| location.name.clone())
-        .unwrap_or_else(|| "an unknown place".to_string());
-    mark_character_dead(state, "a deliberate end".to_string(), &location_name);
-    narrate("The character falls.");
-}
-
 pub(crate) fn mark_character_dead(state: &mut GameState, cause: String, location_name: &str) {
     if !state.character.alive {
         return;

@@ -400,13 +400,6 @@ impl CampaignContent {
         issues
     }
 
-    pub fn atmosphere_for(&self, location_name: &str) -> Option<&str> {
-        self.atmospheres
-            .iter()
-            .find(|entry| entry.location_name == location_name)
-            .map(|entry| entry.text.as_str())
-    }
-
     pub fn encounter_for(&self, location_name: &str) -> Option<&EncounterContent> {
         self.encounters
             .iter()
