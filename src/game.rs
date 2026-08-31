@@ -5,6 +5,7 @@ mod combat_screen;
 #[allow(dead_code)]
 mod console;
 mod dispatcher;
+mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
@@ -18,7 +19,6 @@ mod screens;
 mod state_effects;
 mod time;
 mod world;
-mod history_screen;
 mod world_screen;
 
 mod interactions {

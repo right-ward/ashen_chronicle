@@ -37,9 +37,8 @@ pub(crate) fn run(state: &GameState) -> io::Result<()> {
 
 fn draw_list(state: &GameState, entries: &[usize], selected: usize) -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| {
-        let compact = area.width <= 112
-            || area.height <= 36
-            || area.width <= area.height.saturating_mul(2);
+        let compact =
+            area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
         let margin = if compact { 1 } else { 2 };
         let outer = Rect {
             x: area.x + margin.min(area.width.saturating_sub(1)),
@@ -115,7 +114,11 @@ fn draw_entries(
         let absolute_index = start + row;
         let entry = &state.world.history[*history_index];
         let marker = entry_marker(entry);
-        let selector = if absolute_index == selected { '▶' } else { ' ' };
+        let selector = if absolute_index == selected {
+            '▶'
+        } else {
+            ' '
+        };
         lines.push(format!(
             "{selector} Day {} {marker} {}",
             entry.turn, entry.text
@@ -138,8 +141,7 @@ fn draw_controls(frame: &mut ratatui::Frame<'_>, area: Rect, compact: bool) {
         .style(border_style(compact));
     let inner = block.inner(area);
     frame.render_widget(
-        Paragraph::new("↑ ↓ / j k · Enter: details · Esc: back")
-            .alignment(Alignment::Center),
+        Paragraph::new("↑ ↓ / j k · Enter: details · Esc: back").alignment(Alignment::Center),
         inner,
     );
 }
@@ -159,9 +161,8 @@ fn show_detail(state: &GameState, history_index: usize) -> io::Result<()> {
 }
 
 fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntry) {
-    let compact = area.width <= 112
-        || area.height <= 36
-        || area.width <= area.height.saturating_mul(2);
+    let compact =
+        area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
     let margin = if compact { 1 } else { 2 };
     let outer = Rect {
         x: area.x + margin.min(area.width.saturating_sub(1)),
@@ -179,7 +180,11 @@ fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntry)
     let inner = block.inner(outer);
     frame.render_widget(block, outer);
 
-    let mut lines = vec![format!("Day {}", entry.turn), String::new(), entry.text.clone()];
+    let mut lines = vec![
+        format!("Day {}", entry.turn),
+        String::new(),
+        entry.text.clone(),
+    ];
     if let Some(event_id) = &entry.event_id {
         lines.push(String::new());
         lines.push(format!("Event: {event_id}"));
@@ -211,7 +216,7 @@ fn draw_empty_history() -> io::Result<()> {
         let inner = block.inner(area);
         frame.render_widget(block, area);
         frame.render_widget(
-            Paragraph::new("The world has not recorded any history yet.\n\nPress Esc to return." )
+            Paragraph::new("The world has not recorded any history yet.\n\nPress Esc to return.")
                 .alignment(Alignment::Center)
                 .wrap(Wrap { trim: false }),
             inner,
