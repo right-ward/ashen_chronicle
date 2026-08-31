@@ -1,8 +1,6 @@
-use super::{character, interactions, legacy, state_effects};
+use super::{character, combat_screen, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
-use crate::ui::{
-    choose_from_list, clear_combat_health, clear_log, pause, set_dashboard, Dashboard,
-};
+use crate::ui::{clear_combat_health, pause};
 
 macro_rules! println {
     () => {
@@ -49,7 +47,6 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
         "{} engages {} at {}.",
         character_name, encounter.enemy_name, location.name
     )];
-    render_combat_screen(state, &encounter, &events, &location.name);
 
     loop {
         if !state.character.alive {
@@ -91,20 +88,43 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             events.push(format!("Defeated: {}", enemy_name));
             events.push(format!("Loot: {}", trophy.name));
             events.push("The threat is broken. The place is quieter now.".to_string());
-            render_combat_screen(state, &encounter, &events, &location.name);
-            pause();
+            trim_combat_events(&mut events);
+            combat_screen::show_result(
+                &character_name,
+                state.character.hp,
+                state.character.max_hp,
+                active_condition(state),
+                &encounter.enemy_name,
+                encounter.enemy_hp,
+                encounter.enemy_max_hp,
+                encounter.enemy_power,
+                &location.name,
+                state.character.turn,
+                &events,
+                "Victory",
+                "The threat is broken. The place is quieter now.",
+            )?;
+            let _ = crate::ui::read_key()?;
             clear_combat_health();
             break;
         }
 
-        render_combat_screen(state, &encounter, &events, &location.name);
-        let choices = vec![
-            "Attack".to_string(),
-            "Guard".to_string(),
-            "Flee".to_string(),
-        ];
-        match choose_from_list("Combat actions", &choices, None)? {
-            Some(0) => {
+        let action = combat_screen::choose_action(
+            &state.character.display_name(),
+            state.character.hp,
+            state.character.max_hp,
+            active_condition(state),
+            &encounter.enemy_name,
+            encounter.enemy_hp,
+            encounter.enemy_max_hp,
+            encounter.enemy_power,
+            &location.name,
+            state.character.turn,
+            &events,
+        )?;
+
+        match action {
+            0 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let damage = (3 + state.character.effective_might()).max(1);
@@ -131,7 +151,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     ));
                 }
             }
-            Some(1) => {
+            1 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let retaliation =
@@ -159,7 +179,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     events.push("The blow glances off harmlessly.".to_string());
                 }
             }
-            Some(2) => {
+            2 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let character_name = state.character.display_name();
@@ -174,13 +194,29 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     "You flee. {} remains in {}.",
                     encounter.enemy_name, location.name
                 ));
-                render_combat_screen(state, &encounter, &events, &location.name);
-                pause();
+                trim_combat_events(&mut events);
+                combat_screen::show_result(
+                    &character_name,
+                    state.character.hp,
+                    state.character.max_hp,
+                    active_condition(state),
+                    &encounter.enemy_name,
+                    encounter.enemy_hp,
+                    encounter.enemy_max_hp,
+                    encounter.enemy_power,
+                    &location.name,
+                    state.character.turn,
+                    &events,
+                    "Fled",
+                    "The threat remains.",
+                )?;
+                let _ = crate::ui::read_key()?;
                 clear_combat_health();
                 break;
             }
-            _ => {}
+            _ => unreachable!(),
         }
+
         if state.character.hp <= 0 {
             let location_name = location.name.clone();
             legacy::mark_character_dead(
@@ -190,49 +226,39 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             );
             events.push("Defeat".to_string());
             events.push("You were overwhelmed.".to_string());
-            render_combat_screen(state, &encounter, &events, &location.name);
-            pause();
+            trim_combat_events(&mut events);
+            combat_screen::show_result(
+                &state.character.display_name(),
+                state.character.hp,
+                state.character.max_hp,
+                active_condition(state),
+                &encounter.enemy_name,
+                encounter.enemy_hp,
+                encounter.enemy_max_hp,
+                encounter.enemy_power,
+                &location.name,
+                state.character.turn,
+                &events,
+                "Defeat",
+                "You were overwhelmed.",
+            )?;
+            let _ = crate::ui::read_key()?;
             clear_combat_health();
             break;
         }
+
         trim_combat_events(&mut events);
-        render_combat_screen(state, &encounter, &events, &location.name);
     }
     clear_combat_health();
     Ok(())
 }
 
-fn render_combat_screen(
-    state: &GameState,
-    encounter: &CombatEncounter,
-    events: &[String],
-    location_name: &str,
-) {
-    let character = &state.character;
-    let dashboard = Dashboard {
-        world_name: "COMBAT ENCOUNTER".to_string(),
-        hp: character.hp,
-        max_hp: character.max_hp,
-        enemy_name: Some(encounter.enemy_name.clone()),
-        enemy_hp: Some(encounter.enemy_hp.max(0)),
-        enemy_max_hp: Some(encounter.enemy_max_hp),
-        time_display: format!("Turn {}", character.turn),
-        condition_line: Some(format!("You: {}", character.display_name())),
-        location_name: Some(format!(
-            "{}  vs  {}",
-            character.display_name(),
-            encounter.enemy_name
-        )),
-        location_description: Some(format!("Encounter location: {}", location_name)),
-        danger_line: Some(format!("Enemy power: {}", encounter.enemy_power)),
-        threat_line: None,
-        action_hint: Some("Choose an action. Arrows / Enter".to_string()),
-    };
-    set_dashboard(dashboard);
-    clear_log();
-    for event in events.iter().rev().take(8).rev() {
-        crate::ui::line(event);
-    }
+fn active_condition(state: &GameState) -> Option<&str> {
+    state
+        .character
+        .conditions
+        .first()
+        .map(|condition| condition.name.as_str())
 }
 
 fn trim_combat_events(events: &mut Vec<String>) {
