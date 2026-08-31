@@ -10,7 +10,6 @@ pub(crate) enum GameAction {
     QuestLog,
     Inventory,
     Journal,
-    TestDeath,
     Quit,
     CharacterSheet,
 }
@@ -53,10 +52,6 @@ pub(crate) fn build_main_menu(state: &GameState) -> Vec<MenuEntry> {
         MenuEntry {
             label: "Quit".to_string(),
             action: GameAction::Quit,
-        },
-        MenuEntry {
-            label: "Test the death flow".to_string(),
-            action: GameAction::TestDeath,
         },
     ];
     if state.threat.active {
