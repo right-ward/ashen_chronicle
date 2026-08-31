@@ -8,6 +8,7 @@ pub(crate) enum GameAction {
     Talk,
     Meditate,
     QuestLog,
+    History,
     Inventory,
     Journal,
     Quit,
@@ -40,6 +41,10 @@ pub(crate) fn build_main_menu(state: &GameState) -> Vec<MenuEntry> {
         MenuEntry {
             label: "Quest log".to_string(),
             action: GameAction::QuestLog,
+        },
+        MenuEntry {
+            label: "History".to_string(),
+            action: GameAction::History,
         },
         MenuEntry {
             label: "Write journal note".to_string(),
