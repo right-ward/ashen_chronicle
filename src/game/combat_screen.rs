@@ -9,6 +9,7 @@ use std::io;
 
 const ACTIONS: [&str; 3] = ["Attack", "Guard", "Flee"];
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn choose_action(
     player_name: &str,
     player_hp: i32,
@@ -58,6 +59,7 @@ pub(crate) fn choose_action(
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 pub(crate) fn show_result(
     player_name: &str,
     player_hp: i32,
@@ -95,6 +97,7 @@ pub(crate) fn wait_for_key() -> io::Result<()> {
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render(
     player_name: &str,
     player_hp: i32,
@@ -156,7 +159,7 @@ fn render(
             player_hp,
             player_max_hp,
             player_condition,
-            Color::DarkRed,
+            Color::Red,
         );
         render_actor(
             frame,
@@ -166,7 +169,7 @@ fn render(
             enemy_hp,
             enemy_max_hp,
             Some(&format!("Power: {enemy_power}")),
-            Color::DarkMagenta,
+            Color::Magenta,
         );
 
         let event_title = format!("Events — {location_name} — Turn {turn}");
@@ -238,6 +241,7 @@ fn render(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_actor(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,
