@@ -57,11 +57,7 @@ pub(crate) fn run(state: &mut GameState, save_path: &Path) -> io::Result<bool> {
     }
 }
 
-fn draw(
-    state: &GameState,
-    actions: &[menu::MenuEntry],
-    selected: usize,
-) -> io::Result<()> {
+fn draw(state: &GameState, actions: &[menu::MenuEntry], selected: usize) -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| draw_inner(frame, area, state, actions, selected))
 }
 
@@ -72,14 +68,21 @@ fn draw_inner(
     actions: &[menu::MenuEntry],
     selected: usize,
 ) {
-    let compact = area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
+    let compact =
+        area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
     let horizontal_margin = if compact { 1 } else { 2 };
     let vertical_margin = if compact { 1 } else { 2 };
     let outer = Rect {
         x: area.x + horizontal_margin.min(area.width.saturating_sub(1)),
         y: area.y + vertical_margin.min(area.height.saturating_sub(1)),
-        width: area.width.saturating_sub(horizontal_margin.saturating_mul(2)).max(1),
-        height: area.height.saturating_sub(vertical_margin.saturating_mul(2)).max(1),
+        width: area
+            .width
+            .saturating_sub(horizontal_margin.saturating_mul(2))
+            .max(1),
+        height: area
+            .height
+            .saturating_sub(vertical_margin.saturating_mul(2))
+            .max(1),
     };
 
     let action_height = (actions.len() as u16 + 3).max(6);
@@ -96,7 +99,11 @@ fn draw_inner(
     draw_header(frame, root[0], state, compact);
 
     let body = Layout::default()
-        .direction(if compact { Direction::Vertical } else { Direction::Horizontal })
+        .direction(if compact {
+            Direction::Vertical
+        } else {
+            Direction::Horizontal
+        })
         .constraints(if compact {
             [Constraint::Percentage(55), Constraint::Percentage(45)]
         } else {
