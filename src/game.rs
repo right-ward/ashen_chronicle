@@ -18,6 +18,7 @@ mod screens;
 mod state_effects;
 mod time;
 mod world;
+mod history_screen;
 mod world_screen;
 
 mod interactions {
