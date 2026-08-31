@@ -1,0 +1,195 @@
+name: Apply combat terminal fix
+
+on:
+  push:
+    branches:
+      - feat/v0.44.0-combat-screen
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Apply fix
+        shell: python
+        run: |
+          from pathlib import Path
+          import re
+          import subprocess
+
+          ui = Path("src/ui.rs")
+          text = ui.read_text()
+          marker = "pub(crate) fn read_key() -> io::Result<KeyCode> {\n    read_key_event()\n}\n"
+          helper = marker + "\npub(crate) fn draw_combat_screen<F>(draw: F) -> io::Result<()>\nwhere\n    F: FnOnce(&mut ratatui::Frame<'_>, Rect),\n{\n    let mut state = runtime().lock().unwrap();\n    let Some(terminal) = state.terminal.as_mut() else {\n        return Ok(());\n    };\n    terminal.draw(|frame| {\n        let area = frame.area();\n        frame.render_widget(Clear, area);\n        draw(frame, area);\n    })?;\n    terminal.hide_cursor()?;\n    Ok(())\n}\n"
+          if marker not in text:
+              raise SystemExit("ui.rs insertion marker not found")
+          if "pub(crate) fn draw_combat_screen" not in text:
+              text = text.replace(marker, helper, 1)
+          ui.write_text(text)
+
+          combat = Path("src/game/combat.rs")
+          text = combat.read_text()
+          text = text.replace("            legacy::notify_item_gain(state, &trophy);\n", "", 1)
+          marker = "            events.push(\"Victory\".to_string());\n"
+          if marker not in text:
+              raise SystemExit("victory marker not found")
+          result_block = "            let result_note = format!(\n                \"Loot: {}\\n{}\\n\\nThe threat is broken. The place is quieter now.\",\n                trophy.name, trophy.description\n            );\n" + marker
+          text = text.replace(marker, result_block, 1)
+          text = text.replace("                \"The threat is broken. The place is quieter now.\",\n", "                &result_note,\n", 1)
+          combat.write_text(text)
+
+          screen = Path("src/game/combat_screen.rs")
+          text = screen.read_text()
+          text = text.replace("use crossterm::cursor;\nuse crossterm::execute;\nuse crossterm::terminal;\n", "use crossterm::terminal;\n")
+          text = text.replace("use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};\nuse ratatui::Terminal;\n", "use ratatui::widgets::{Block, LineGauge, Paragraph, Wrap};\n")
+          start = text.index("fn render(")
+          end = text.index("\n#[allow(clippy::too_many_arguments)]\nfn render_actor", start)
+          new_render = r'''fn render(
+    player_name: &str,
+    player_hp: i32,
+    player_max_hp: i32,
+    player_condition: Option<&str>,
+    enemy_name: &str,
+    enemy_hp: i32,
+    enemy_max_hp: i32,
+    enemy_power: i32,
+    location_name: &str,
+    turn: u32,
+    events: &[String],
+    selected_action: Option<usize>,
+    result: Option<(&str, &str)>,
+) -> io::Result<()> {
+    crate::ui::draw_combat_screen(|frame, area| {
+        let margin = if area.width <= 112 || area.height <= 36 { 1 } else { 2 };
+        let outer = Rect {
+            x: area.x.saturating_add(margin),
+            y: area.y.saturating_add(margin),
+            width: area.width.saturating_sub(margin.saturating_mul(2)),
+            height: area.height.saturating_sub(margin.saturating_mul(2)),
+        };
+        if outer.width < 4 || outer.height < 8 {
+            return;
+        }
+
+        let root = Layout::default()
+            .direction(Direction::Vertical)
+            .constraints([
+                Constraint::Percentage(42),
+                Constraint::Percentage(34),
+                Constraint::Percentage(24),
+            ])
+            .spacing(Spacing::Overlap(1))
+            .split(outer);
+
+        let actors = Layout::default()
+            .direction(Direction::Horizontal)
+            .constraints([Constraint::Percentage(50), Constraint::Percentage(50)])
+            .spacing(Spacing::Overlap(1))
+            .split(root[0]);
+
+        render_actor(
+            frame,
+            actors[0],
+            "Player",
+            player_name,
+            player_hp,
+            player_max_hp,
+            player_condition,
+            Color::Red,
+        );
+        render_actor(
+            frame,
+            actors[1],
+            "Enemy",
+            enemy_name,
+            enemy_hp,
+            enemy_max_hp,
+            Some(&format!("Power: {enemy_power}")),
+            Color::Magenta,
+        );
+
+        let event_title = format!("Events — {location_name} — Turn {turn}");
+        let visible = root[1].height.saturating_sub(2) as usize;
+        let lines = if events.is_empty() {
+            vec!["The encounter begins.".to_string()]
+        } else {
+            events
+                .iter()
+                .rev()
+                .take(visible.max(1))
+                .cloned()
+                .collect::<Vec<_>>()
+                .into_iter()
+                .rev()
+                .collect()
+        };
+        frame.render_widget(
+            Paragraph::new(lines.join("\n"))
+                .block(
+                    Block::default()
+                        .borders(ratatui::widgets::Borders::ALL)
+                        .title(event_title)
+                        .merge_borders(MergeStrategy::Exact),
+                )
+                .wrap(Wrap { trim: false }),
+            root[1],
+        );
+
+        let action_lines = if let Some((title, note)) = result {
+            vec![
+                title.to_string(),
+                String::new(),
+                note.to_string(),
+                String::new(),
+                "Press any key to continue...".to_string(),
+            ]
+        } else {
+            ACTIONS
+                .iter()
+                .enumerate()
+                .map(|(index, action)| {
+                    let marker = if selected_action == Some(index) { '▶' } else { ' ' };
+                    format!("{marker} {}. {action}", index + 1)
+                })
+                .chain([String::new(), "↑ ↓ / j k  Enter: choose".to_string()])
+                .collect()
+        };
+        frame.render_widget(
+            Paragraph::new(action_lines.join("\n"))
+                .block(
+                    Block::default()
+                        .borders(ratatui::widgets::Borders::ALL)
+                        .title(if result.is_some() { "Result" } else { "Actions" })
+                        .merge_borders(MergeStrategy::Exact),
+                )
+                .wrap(Wrap { trim: true }),
+            root[2],
+        );
+    })
+}
+'''
+          text = text[:start] + new_render + text[end:]
+          screen.write_text(text)
+
+          subprocess.run(["cargo", "fmt", "--all"], check=True)
+
+      - name: Commit fix
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo "No changes produced."
+            exit 0
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add src/ui.rs src/game/combat.rs src/game/combat_screen.rs
+          git commit -m "fix: share UI terminal with combat screen"
+          git push origin HEAD:feat/v0.44.0-combat-screen
