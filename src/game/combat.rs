@@ -110,7 +110,6 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 &result_note,
             )?;
             combat_screen::wait_for_key()?;
-            combat_screen::finish();
             break;
         }
 
@@ -216,7 +215,6 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     "The threat remains.",
                 )?;
                 combat_screen::wait_for_key()?;
-                combat_screen::finish();
                 break;
             }
             _ => unreachable!(),
@@ -248,13 +246,11 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 "You were overwhelmed.",
             )?;
             combat_screen::wait_for_key()?;
-            combat_screen::finish();
             break;
         }
 
         trim_combat_events(&mut events);
     }
-    combat_screen::finish();
     Ok(())
 }
 
