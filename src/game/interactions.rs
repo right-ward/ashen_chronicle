@@ -1,6 +1,6 @@
 use crate::game::{quests, state_effects};
 use crate::model::{EntityId, Faction, GameState, Quest};
-use crate::ui::{choose_from_list, pause};
+use crate::ui::{choose_from_list, pause, set_menu_screen};
 
 macro_rules! println {
     () => {
@@ -48,6 +48,12 @@ fn faction_by_id_mut(state: &mut GameState, faction_id: EntityId) -> Option<&mut
 }
 
 pub(crate) fn talk(state: &mut GameState) -> std::io::Result<()> {
+    set_menu_screen(
+        "Talk",
+        Some("Choose someone to speak with.".to_string()),
+        None,
+    );
+
     let location_id = state.character.location_id;
     let npc_ids = npc_ids_at_location(state, location_id);
     if npc_ids.is_empty() {
@@ -70,6 +76,18 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
         return Ok(());
     };
     let npc_name = state.npcs[npc_index].display_name();
+    let portrait = state
+        .campaign_content
+        .as_ref()
+        .and_then(|content| content.portrait_for(&state.npcs[npc_index].name))
+        .map(str::to_string);
+
+    set_menu_screen(
+        format!("Talk — {}", npc_name),
+        Some("Choose how to speak with them.".to_string()),
+        portrait,
+    );
+
     if !npc_is_available_now(state.world.time_points) {
         println!(
             "{}",
@@ -80,14 +98,6 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
     }
     if let Some(memory) = state.npcs[npc_index].memory.last() {
         println!("{} remembers: {}", npc_name, memory);
-    }
-    if let Some(portrait) = state
-        .campaign_content
-        .as_ref()
-        .and_then(|content| content.portrait_for(&state.npcs[npc_index].name))
-    {
-        println!("");
-        println!("{}", portrait);
     }
     let quest_indices: Vec<usize> = state
         .quests
