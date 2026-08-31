@@ -935,8 +935,10 @@ fn render_footer(
 
 fn border_style(compact: bool) -> Style {
     if compact {
-        Style::default().add_modifier(Modifier::DIM)
+        Style::default().fg(Color::Gray)
     } else {
         Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD)
     }
 }
