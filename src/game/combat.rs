@@ -84,6 +84,10 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             );
             crate::game::quests::record_enemy_defeat(state, &enemy_name, location.id);
             character::gain_experience(state, 15);
+            let result_note = format!(
+                "Loot: {}\n{}\n\nThe threat is broken. The place is quieter now.",
+                trophy.name, trophy.description
+            );
             events.push("Victory".to_string());
             events.push(format!("Defeated: {}", enemy_name));
             events.push(format!("Loot: {}", trophy.name));
@@ -103,7 +107,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 state.character.turn,
                 &events,
                 "Victory",
-                "The threat is broken. The place is quieter now.",
+                &result_note,
             )?;
             combat_screen::wait_for_key()?;
             combat_screen::finish();

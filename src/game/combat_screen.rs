@@ -1,12 +1,9 @@
-use crossterm::cursor;
-use crossterm::execute;
 use crossterm::terminal;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect, Spacing};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;
-use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};
-use ratatui::Terminal;
+use ratatui::widgets::{Block, LineGauge, Paragraph, Wrap};
 use std::io;
 
 const ACTIONS: [&str; 3] = ["Attack", "Guard", "Flee"];
@@ -124,20 +121,12 @@ fn render(
     selected_action: Option<usize>,
     result: Option<(&str, &str)>,
 ) -> io::Result<()> {
-    let (width, height) = terminal::size().unwrap_or((100, 40));
-    let area = Rect {
-        x: 0,
-        y: 0,
-        width,
-        height,
-    };
-    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-    terminal.clear()?;
-    terminal.hide_cursor()?;
-    execute!(io::stdout(), cursor::Hide)?;
-    terminal.draw(|frame| {
-        frame.render_widget(Clear, area);
-        let margin = if width <= 112 || height <= 36 { 1 } else { 2 };
+    crate::ui::draw_combat_screen(|frame, area| {
+        let margin = if area.width <= 112 || area.height <= 36 {
+            1
+        } else {
+            2
+        };
         let outer = Rect {
             x: area.x.saturating_add(margin),
             y: area.y.saturating_add(margin),
@@ -204,7 +193,7 @@ fn render(
             Paragraph::new(lines.join("\n"))
                 .block(
                     Block::default()
-                        .borders(Borders::ALL)
+                        .borders(ratatui::widgets::Borders::ALL)
                         .title(event_title)
                         .merge_borders(MergeStrategy::Exact),
                 )
@@ -239,7 +228,7 @@ fn render(
             Paragraph::new(action_lines.join("\n"))
                 .block(
                     Block::default()
-                        .borders(Borders::ALL)
+                        .borders(ratatui::widgets::Borders::ALL)
                         .title(if result.is_some() {
                             "Result"
                         } else {
@@ -250,9 +239,7 @@ fn render(
                 .wrap(Wrap { trim: true }),
             root[2],
         );
-    })?;
-    terminal.hide_cursor()?;
-    Ok(())
+    })
 }
 
 #[allow(clippy::too_many_arguments)]

@@ -220,6 +220,23 @@ pub(crate) fn read_key() -> io::Result<KeyCode> {
     read_key_event()
 }
 
+pub(crate) fn draw_combat_screen<F>(draw: F) -> io::Result<()>
+where
+    F: FnOnce(&mut ratatui::Frame<'_>, Rect),
+{
+    let mut state = runtime().lock().unwrap();
+    let Some(terminal) = state.terminal.as_mut() else {
+        return Ok(());
+    };
+    terminal.draw(|frame| {
+        let area = frame.area();
+        frame.render_widget(Clear, area);
+        draw(frame, area);
+    })?;
+    terminal.hide_cursor()?;
+    Ok(())
+}
+
 pub fn prompt(message: &str) -> io::Result<String> {
     if !runtime().lock().unwrap().initialized {
         if !message.is_empty() {
