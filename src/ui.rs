@@ -876,7 +876,12 @@ fn render_log(frame: &mut ratatui::Frame<'_>, area: Rect, log: &[String], compac
                 .merge_borders(MergeStrategy::Exact),
         )
         .wrap(Wrap { trim: false })
-        .scroll((content.len().saturating_sub(area.height.saturating_sub(2) as usize) as u16, 0));
+        .scroll((
+            content
+                .len()
+                .saturating_sub(area.height.saturating_sub(2) as usize) as u16,
+            0,
+        ));
     frame.render_widget(paragraph, area);
 }
 
