@@ -784,8 +784,8 @@ fn render_status_panel(
         "HP",
         dashboard.hp,
         dashboard.max_hp,
-        Color::Red,
-        Color::DarkGray,
+        Color::Indexed(124),
+        Color::Gray,
     );
 
     if let (Some(enemy_name), Some(enemy_hp), Some(enemy_max_hp)) = (
@@ -806,8 +806,8 @@ fn render_status_panel(
             &title,
             enemy_hp,
             enemy_max_hp,
-            Color::Red,
-            Color::DarkGray,
+            Color::Indexed(124),
+            Color::Gray,
         );
     }
 }

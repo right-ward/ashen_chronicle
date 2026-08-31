@@ -152,7 +152,7 @@ fn render(
             player_hp,
             player_max_hp,
             player_condition,
-            Color::Red,
+            Color::Indexed(124),
         );
         render_actor(
             frame,
@@ -162,7 +162,7 @@ fn render(
             enemy_hp,
             enemy_max_hp,
             Some(&format!("Power: {enemy_power}")),
-            Color::Magenta,
+            Color::Indexed(90),
         );
 
         let event_title = format!("Events — {location_name} — Turn {turn}");
@@ -270,7 +270,7 @@ fn render_actor(
         .filled_symbol("█")
         .unfilled_symbol("░")
         .filled_style(Style::default().fg(fill).add_modifier(Modifier::BOLD))
-        .unfilled_style(Style::default().fg(Color::DarkGray));
+        .unfilled_style(Style::default().fg(Color::Gray));
     frame.render_widget(gauge, gauge_area);
 
     let text_area = Rect {
