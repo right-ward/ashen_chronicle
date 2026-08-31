@@ -20,7 +20,6 @@ pub(crate) fn dispatch(
         menu::GameAction::Inventory => records::show_inventory(state)?,
         menu::GameAction::Journal => records::write_note(state)?,
         menu::GameAction::CharacterSheet => character::character_sheet(state)?,
-        menu::GameAction::TestDeath => legacy::force_death(state),
         menu::GameAction::Quit => return screens::quit_screen(),
     }
     Ok(false)
