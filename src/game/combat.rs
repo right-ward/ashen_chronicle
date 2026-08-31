@@ -1,8 +1,6 @@
-use super::{character, interactions, legacy, state_effects};
+use super::{character, combat_screen, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
-use crate::ui::{
-    choose_from_list, clear_combat_health, narrate, pause, set_combat_health, set_player_health,
-};
+use crate::ui::pause;
 
 macro_rules! println {
     () => {
@@ -16,6 +14,7 @@ macro_rules! println {
 struct CombatEncounter {
     enemy_name: String,
     enemy_hp: i32,
+    enemy_max_hp: i32,
     enemy_power: i32,
     enemy_id: EntityId,
 }
@@ -39,16 +38,15 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
     let mut encounter = CombatEncounter {
         enemy_name,
         enemy_hp,
+        enemy_max_hp,
         enemy_power,
         enemy_id: state.world.allocate_id(),
     };
-    set_player_health(state.character.hp, state.character.max_hp);
-    set_combat_health(
-        encounter.enemy_name.clone(),
-        encounter.enemy_hp,
-        enemy_max_hp,
-    );
-    println!("\nYou step into the threat.");
+    let character_name = state.character.display_name();
+    let mut events = vec![format!(
+        "{} engages {} at {}.",
+        character_name, encounter.enemy_name, location.name
+    )];
 
     loop {
         if !state.character.alive {
@@ -78,7 +76,7 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 ),
             };
             state.character.inventory.push(trophy.clone());
-            legacy::notify_item_gain(state, &trophy);
+            interactions::grant_reward_reputation(state, &trophy);
             interactions::update_faction_memory_for_location(
                 state,
                 location.id,
@@ -86,36 +84,59 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             );
             crate::game::quests::record_enemy_defeat(state, &enemy_name, location.id);
             character::gain_experience(state, 15);
-            println!("\nCombat result: victory");
-            println!("  Defeated: {}", enemy_name);
-            println!("  Loot: {}", trophy.name);
-            narrate("The threat is broken. The place is quieter now.");
-            clear_combat_health();
+            let result_note = format!(
+                "Loot: {}\n{}\n\nThe threat is broken. The place is quieter now.",
+                trophy.name, trophy.description
+            );
+            events.push("Victory".to_string());
+            events.push(format!("Defeated: {}", enemy_name));
+            events.push(format!("Loot: {}", trophy.name));
+            events.push(format!("Description: {}", trophy.description));
+            events.push("The threat is broken. The place is quieter now.".to_string());
+            trim_combat_events(&mut events);
+            combat_screen::show_result(
+                &character_name,
+                state.character.hp,
+                state.character.max_hp,
+                active_condition(state),
+                &encounter.enemy_name,
+                encounter.enemy_hp,
+                encounter.enemy_max_hp,
+                encounter.enemy_power,
+                &location.name,
+                state.character.turn,
+                &events,
+                "Victory",
+                &result_note,
+            )?;
+            combat_screen::wait_for_key()?;
             break;
         }
 
-        set_combat_health(
-            encounter.enemy_name.clone(),
+        let action = combat_screen::choose_action(
+            &state.character.display_name(),
+            state.character.hp,
+            state.character.max_hp,
+            active_condition(state),
+            &encounter.enemy_name,
             encounter.enemy_hp,
-            enemy_max_hp,
-        );
-        let choices = vec![
-            "Attack".to_string(),
-            "Guard".to_string(),
-            "Flee".to_string(),
-        ];
-        match choose_from_list("Combat action", &choices, None)? {
-            Some(0) => {
+            encounter.enemy_max_hp,
+            encounter.enemy_power,
+            &location.name,
+            state.character.turn,
+            &events,
+        )?;
+
+        match action {
+            0 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let damage = (3 + state.character.effective_might()).max(1);
                 encounter.enemy_hp = (encounter.enemy_hp - damage).max(0);
-                set_combat_health(
-                    encounter.enemy_name.clone(),
-                    encounter.enemy_hp,
-                    enemy_max_hp,
-                );
-                println!("You strike {} for {} damage.", encounter.enemy_name, damage);
+                events.push(format!(
+                    "You strike {} for {} damage.",
+                    encounter.enemy_name, damage
+                ));
                 let character_name = state.character.display_name();
                 state.world.record_history(
                     state.character.turn,
@@ -126,10 +147,15 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 );
                 if encounter.enemy_hp > 0 {
                     let retaliation = encounter.enemy_power;
-                    take_combat_damage(state, retaliation, &encounter.enemy_name, &location.name);
+                    events.push(take_combat_damage(
+                        state,
+                        retaliation,
+                        &encounter.enemy_name,
+                        &location.name,
+                    ));
                 }
             }
-            Some(1) => {
+            1 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let retaliation =
@@ -142,12 +168,22 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                         character_name, encounter.enemy_name
                     ),
                 );
-                println!("You guard. Incoming damage is reduced to {}.", retaliation);
+                events.push(format!(
+                    "You guard. Incoming damage is reduced to {}.",
+                    retaliation
+                ));
                 if retaliation > 0 {
-                    take_combat_damage(state, retaliation, &encounter.enemy_name, &location.name);
+                    events.push(take_combat_damage(
+                        state,
+                        retaliation,
+                        &encounter.enemy_name,
+                        &location.name,
+                    ));
+                } else {
+                    events.push("The blow glances off harmlessly.".to_string());
                 }
             }
-            Some(2) => {
+            2 => {
                 state_effects::advance_time(state, 1);
                 state.character.turn += 1;
                 let character_name = state.character.display_name();
@@ -158,13 +194,32 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                         character_name, encounter.enemy_name, location.name
                     ),
                 );
-                println!("You flee. The threat remains.");
-                pause();
-                clear_combat_health();
+                events.push(format!(
+                    "You flee. {} remains in {}.",
+                    encounter.enemy_name, location.name
+                ));
+                trim_combat_events(&mut events);
+                combat_screen::show_result(
+                    &character_name,
+                    state.character.hp,
+                    state.character.max_hp,
+                    active_condition(state),
+                    &encounter.enemy_name,
+                    encounter.enemy_hp,
+                    encounter.enemy_max_hp,
+                    encounter.enemy_power,
+                    &location.name,
+                    state.character.turn,
+                    &events,
+                    "Fled",
+                    "The threat remains.",
+                )?;
+                combat_screen::wait_for_key()?;
                 break;
             }
-            _ => {}
+            _ => unreachable!(),
         }
+
         if state.character.hp <= 0 {
             let location_name = location.name.clone();
             legacy::mark_character_dead(
@@ -172,13 +227,47 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                 format!("{} overcame them", encounter.enemy_name),
                 &location_name,
             );
-            narrate("You were overwhelmed.");
-            clear_combat_health();
+            events.push("Defeat".to_string());
+            events.push("You were overwhelmed.".to_string());
+            trim_combat_events(&mut events);
+            combat_screen::show_result(
+                &state.character.display_name(),
+                state.character.hp,
+                state.character.max_hp,
+                active_condition(state),
+                &encounter.enemy_name,
+                encounter.enemy_hp,
+                encounter.enemy_max_hp,
+                encounter.enemy_power,
+                &location.name,
+                state.character.turn,
+                &events,
+                "Defeat",
+                "You were overwhelmed.",
+            )?;
+            combat_screen::wait_for_key()?;
             break;
         }
+
+        trim_combat_events(&mut events);
     }
-    clear_combat_health();
     Ok(())
+}
+
+fn active_condition(state: &GameState) -> Option<&str> {
+    state
+        .character
+        .conditions
+        .first()
+        .map(|condition| condition.name.as_str())
+}
+
+fn trim_combat_events(events: &mut Vec<String>) {
+    const MAX_EVENTS: usize = 12;
+    if events.len() > MAX_EVENTS {
+        let excess = events.len() - MAX_EVENTS;
+        events.drain(0..excess);
+    }
 }
 
 fn encounter_profile(state: &GameState, location_name: &str) -> (String, i32, i32, String) {
@@ -203,13 +292,16 @@ fn encounter_profile(state: &GameState, location_name: &str) -> (String, i32, i3
     }
 }
 
-fn take_combat_damage(state: &mut GameState, damage: i32, enemy_name: &str, location_name: &str) {
+fn take_combat_damage(
+    state: &mut GameState,
+    damage: i32,
+    enemy_name: &str,
+    location_name: &str,
+) -> String {
     if damage <= 0 {
-        narrate("The blow glances off harmlessly.");
-        return;
+        return "The blow glances off harmlessly.".to_string();
     }
     state.character.hp -= damage;
-    set_player_health(state.character.hp, state.character.max_hp);
     let character_name = state.character.display_name();
     state.world.record_history(
         state.character.turn,
@@ -218,5 +310,5 @@ fn take_combat_damage(state: &mut GameState, damage: i32, enemy_name: &str, loca
             character_name, damage, enemy_name, location_name
         ),
     );
-    println!("You take {} damage from {}.", damage, enemy_name);
+    format!("You take {} damage from {}.", damage, enemy_name)
 }

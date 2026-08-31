@@ -220,6 +220,23 @@ pub(crate) fn read_key() -> io::Result<KeyCode> {
     read_key_event()
 }
 
+pub(crate) fn draw_combat_screen<F>(draw: F) -> io::Result<()>
+where
+    F: FnOnce(&mut ratatui::Frame<'_>, Rect),
+{
+    let mut state = runtime().lock().unwrap();
+    let Some(terminal) = state.terminal.as_mut() else {
+        return Ok(());
+    };
+    terminal.draw(|frame| {
+        let area = frame.area();
+        frame.render_widget(Clear, area);
+        draw(frame, area);
+    })?;
+    terminal.hide_cursor()?;
+    Ok(())
+}
+
 pub fn prompt(message: &str) -> io::Result<String> {
     if !runtime().lock().unwrap().initialized {
         if !message.is_empty() {
@@ -740,6 +757,9 @@ fn render_status_panel(
     if let Some(line) = &dashboard.danger_line {
         lines.push(line.clone());
     }
+    if let Some(line) = &dashboard.threat_line {
+        lines.push(line.clone());
+    }
 
     let gauge_rows = 1 + usize::from(dashboard.enemy_name.is_some());
     let text_height = inner.height.saturating_sub(gauge_rows as u16);
@@ -748,7 +768,7 @@ fn render_status_panel(
         ..inner
     };
     if text_height > 0 {
-        let paragraph = Paragraph::new(lines.join("\n")).wrap(Wrap { trim: true });
+        let paragraph = Paragraph::new(lines.join("\n")).wrap(Wrap { trim: false });
         frame.render_widget(paragraph, text_area);
     }
 
@@ -764,8 +784,8 @@ fn render_status_panel(
         "HP",
         dashboard.hp,
         dashboard.max_hp,
-        Color::Red,
-        Color::DarkGray,
+        Color::Indexed(124),
+        Color::Gray,
     );
 
     if let (Some(enemy_name), Some(enemy_hp), Some(enemy_max_hp)) = (
@@ -786,8 +806,8 @@ fn render_status_panel(
             &title,
             enemy_hp,
             enemy_max_hp,
-            Color::Red,
-            Color::DarkGray,
+            Color::Indexed(124),
+            Color::Gray,
         );
     }
 }
@@ -842,17 +862,40 @@ fn render_panel(
 }
 
 fn render_log(frame: &mut ratatui::Frame<'_>, area: Rect, log: &[String], compact: bool) {
-    let visible_lines = area.height.saturating_sub(2) as usize;
     let content = if log.is_empty() {
-        vec!["...".to_string()]
+        vec!["".to_string()]
     } else {
-        tail_lines(log, visible_lines.max(1))
+        log.to_vec()
     };
     let paragraph = Paragraph::new(content.join("\n"))
         .block(
             Block::default()
                 .borders(Borders::ALL)
-                .title("Journal")
+                .title("Record")
+                .style(border_style(compact))
+                .merge_borders(MergeStrategy::Exact),
+        )
+        .wrap(Wrap { trim: false })
+        .scroll((
+            content
+                .len()
+                .saturating_sub(area.height.saturating_sub(2) as usize) as u16,
+            0,
+        ));
+    frame.render_widget(paragraph, area);
+}
+
+fn render_prompt_panel(
+    frame: &mut ratatui::Frame<'_>,
+    area: Rect,
+    lines: &[String],
+    compact: bool,
+) {
+    let paragraph = Paragraph::new(lines.join("\n"))
+        .block(
+            Block::default()
+                .borders(Borders::ALL)
+                .title("Choose")
                 .style(border_style(compact))
                 .merge_borders(MergeStrategy::Exact),
         )
@@ -867,74 +910,27 @@ fn render_footer(
     compact: bool,
     notice: Option<&str>,
 ) {
-    let paragraph = if let Some(notice) = notice {
-        Paragraph::new(notice.to_string())
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Actions")
-                    .style(border_style(compact))
-                    .merge_borders(MergeStrategy::Exact),
-            )
-            .wrap(Wrap { trim: true })
-    } else {
-        let hint = dashboard
-            .action_hint
-            .clone()
-            .unwrap_or_else(|| "Use arrows, Enter, and Esc.".to_string());
-        Paragraph::new(hint)
-            .block(
-                Block::default()
-                    .borders(Borders::ALL)
-                    .title("Controls")
-                    .style(border_style(compact))
-                    .merge_borders(MergeStrategy::Exact),
-            )
-            .wrap(Wrap { trim: true })
-    };
-    frame.render_widget(paragraph, area);
-}
-
-fn render_prompt_panel(
-    frame: &mut ratatui::Frame<'_>,
-    area: Rect,
-    prompt_lines: &[String],
-    compact: bool,
-) {
-    let paragraph = Paragraph::new(prompt_lines.join("\n"))
-        .block(
-            Block::default()
-                .borders(Borders::ALL)
-                .title("Actions")
-                .style(border_style(compact))
-                .merge_borders(MergeStrategy::Exact),
-        )
-        .wrap(Wrap { trim: true });
-    frame.render_widget(paragraph, area);
-}
-
-fn location_lines(dashboard: &Dashboard, scene: &[String]) -> Vec<String> {
     let mut lines = Vec::new();
-    if let Some(line) = &dashboard.location_name {
-        lines.push(line.clone());
+    if let Some(notice) = notice {
+        lines.push(notice.to_string());
+    } else if let Some(location) = &dashboard.location_name {
+        lines.push(location.clone());
+        if let Some(description) = &dashboard.location_description {
+            lines.push(description.clone());
+        }
     }
-    if !scene.is_empty() {
-        lines.extend(scene.iter().cloned());
+    if !lines.is_empty() {
+        let paragraph = Paragraph::new(lines.join("\n"))
+            .alignment(Alignment::Center)
+            .block(
+                Block::default()
+                    .borders(Borders::ALL)
+                    .style(border_style(compact))
+                    .merge_borders(MergeStrategy::Exact),
+            )
+            .wrap(Wrap { trim: true });
+        frame.render_widget(paragraph, area);
     }
-    if let Some(line) = &dashboard.location_description {
-        lines.push(line.clone());
-    }
-    if let Some(line) = &dashboard.threat_line {
-        lines.push(line.clone());
-    }
-    lines
-}
-
-fn tail_lines(lines: &[String], max_lines: usize) -> Vec<String> {
-    if lines.len() <= max_lines {
-        return lines.to_vec();
-    }
-    lines[lines.len() - max_lines..].to_vec()
 }
 
 fn border_style(compact: bool) -> Style {
