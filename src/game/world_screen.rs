@@ -1,9 +1,9 @@
-use crate::game::{console, dispatcher, menu};
 use crate::game::time::time_display;
+use crate::game::{console, dispatcher, menu};
 use crate::model::{GameState, HistoryEntryType};
 use crate::ui;
 use crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect, Spacing};
+use ratatui::layout::{Constraint, Direction, Layout, Rect, Spacing};
 use ratatui::prelude::{Alignment, Color, Style};
 use ratatui::widgets::{Block, Borders, LineGauge, Paragraph, Wrap};
 use std::io;
@@ -82,12 +82,13 @@ fn draw_inner(
         height: area.height.saturating_sub(vertical_margin.saturating_mul(2)).max(1),
     };
 
+    let action_height = (actions.len() as u16 + 3).max(6);
     let root = Layout::default()
         .direction(Direction::Vertical)
         .constraints([
             Constraint::Length(if compact { 7 } else { 8 }),
             Constraint::Min(8),
-            Constraint::Length(if compact { 9 } else { 8 }),
+            Constraint::Length(action_height),
         ])
         .spacing(Spacing::Overlap(1))
         .split(outer);
@@ -119,7 +120,11 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, co
 
     let columns = Layout::default()
         .direction(Direction::Horizontal)
-        .constraints([Constraint::Percentage(34), Constraint::Percentage(33), Constraint::Percentage(33)])
+        .constraints([
+            Constraint::Percentage(34),
+            Constraint::Percentage(33),
+            Constraint::Percentage(33),
+        ])
         .split(inner);
 
     let identity = format!(
@@ -140,18 +145,16 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, co
         columns[1],
     );
 
-    let gauge_area = columns[2];
-    let hp = format!("HP: {}/{}", state.character.hp, state.character.max_hp.max(1));
-    let hp_ratio = (state.character.hp.clamp(0, state.character.max_hp.max(1)) as f64)
-        / state.character.max_hp.max(1) as f64;
+    let maximum = state.character.max_hp.max(1);
+    let current = state.character.hp.clamp(0, maximum);
     let gauge = LineGauge::default()
-        .ratio(hp_ratio)
-        .label(hp)
+        .ratio(current as f64 / maximum as f64)
+        .label(format!("HP: {}/{}", state.character.hp, maximum))
         .filled_symbol("█")
         .unfilled_symbol("░")
         .filled_style(Style::default().fg(Color::Indexed(124)))
         .unfilled_style(Style::default().fg(Color::Gray));
-    frame.render_widget(gauge, gauge_area);
+    frame.render_widget(gauge, columns[2]);
 }
 
 fn draw_context(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, compact: bool) {
@@ -176,7 +179,7 @@ fn draw_context(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, c
         .unwrap_or("Unknown region");
 
     let mut lines = vec![
-        format!("{}", location.name),
+        location.name.clone(),
         format!("Region: {region_name}"),
         String::new(),
     ];
@@ -187,20 +190,20 @@ fn draw_context(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, c
         lines.push(String::new());
         lines.push("Danger: this location is unsafe.".to_string());
     }
+    lines.push(String::new());
     if state.threat.active {
-        lines.push(String::new());
         lines.push(format!("Threat: {}", state.threat.label));
         if !state.threat.description.trim().is_empty() {
             lines.extend(state.threat.description.lines().map(str::to_string));
         }
     } else {
-        lines.push(String::new());
         lines.push("Threat: none active.".to_string());
     }
 
-    Paragraph::new(lines.join("\n"))
-        .wrap(Wrap { trim: false })
-        .render(inner, frame.buffer_mut());
+    frame.render_widget(
+        Paragraph::new(lines.join("\n")).wrap(Wrap { trim: false }),
+        inner,
+    );
 }
 
 fn draw_history(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, compact: bool) {
@@ -247,7 +250,7 @@ fn draw_actions(
     let inner = block.inner(area);
     frame.render_widget(block, area);
 
-    let mut lines = Vec::with_capacity(actions.len() + 1);
+    let mut lines = Vec::with_capacity(actions.len() + 2);
     lines.push("↑ ↓ / j k · Enter · 1-9 · / console".to_string());
     lines.push(String::new());
     for (index, entry) in actions.iter().enumerate() {
@@ -269,10 +272,6 @@ fn current_location_name(state: &GameState) -> String {
         .unwrap_or_else(|| "Unknown".to_string())
 }
 
-fn border_style(compact: bool) -> Style {
-    if compact {
-        Style::default()
-    } else {
-        Style::default()
-    }
+fn border_style(_compact: bool) -> Style {
+    Style::default()
 }
