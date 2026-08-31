@@ -258,7 +258,7 @@ fn draw_actions(
     frame.render_widget(block, area);
 
     let mut lines = Vec::with_capacity(actions.len() + 2);
-    lines.push("↑ ↓ / j k · Enter · 1-9 · / console".to_string());
+    lines.push("↑ ↓ / j k · Enter".to_string());
     lines.push(String::new());
     for (index, entry) in actions.iter().enumerate() {
         let marker = if index == selected { '▶' } else { ' ' };
