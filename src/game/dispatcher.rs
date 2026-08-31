@@ -1,5 +1,6 @@
 use crate::game::{
-    actions, character, combat, interactions, legacy, menu, navigation, records, screens,
+    actions, character, combat, history_screen, interactions, legacy, menu, navigation, records,
+    screens,
 };
 use crate::model::GameState;
 use std::io;
@@ -17,6 +18,7 @@ pub(crate) fn dispatch(
         menu::GameAction::Talk => interactions::talk(state)?,
         menu::GameAction::Meditate => actions::meditate_and_save(state, save_path)?,
         menu::GameAction::QuestLog => records::review_quests(state)?,
+        menu::GameAction::History => history_screen::run(state)?,
         menu::GameAction::Inventory => records::show_inventory(state)?,
         menu::GameAction::Journal => records::write_note(state)?,
         menu::GameAction::CharacterSheet => character::character_sheet(state)?,
