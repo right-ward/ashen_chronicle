@@ -113,7 +113,11 @@ fn render(
     result: Option<(&str, &str)>,
 ) -> io::Result<()> {
     crate::ui::draw_combat_screen(|frame, area| {
-        let margin = if area.width <= 112 || area.height <= 36 { 1 } else { 2 };
+        let margin = if area.width <= 112 || area.height <= 36 {
+            1
+        } else {
+            2
+        };
         let outer = Rect {
             x: area.x.saturating_add(margin),
             y: area.y.saturating_add(margin),
@@ -201,7 +205,11 @@ fn render(
                 .iter()
                 .enumerate()
                 .map(|(index, action)| {
-                    let marker = if selected_action == Some(index) { '▶' } else { ' ' };
+                    let marker = if selected_action == Some(index) {
+                        '▶'
+                    } else {
+                        ' '
+                    };
                     format!("{marker} {}. {action}", index + 1)
                 })
                 .chain([String::new(), "↑ ↓ / j k  Enter: choose".to_string()])
@@ -212,7 +220,11 @@ fn render(
                 .block(
                     Block::default()
                         .borders(ratatui::widgets::Borders::ALL)
-                        .title(if result.is_some() { "Result" } else { "Actions" })
+                        .title(if result.is_some() {
+                            "Result"
+                        } else {
+                            "Actions"
+                        })
                         .merge_borders(MergeStrategy::Exact),
                 )
                 .wrap(Wrap { trim: true }),
