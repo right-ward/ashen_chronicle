@@ -74,7 +74,9 @@ src/
 ├── events.rs               # event runtime
 ├── model.rs                # shared game-state and entity models
 ├── persistence.rs          # save/load and migrations
-└── ui.rs                   # shared terminal UI helpers
+├── ui.rs                   # terminal UI facade and state bridge
+├── ui_impl.rs              # ratatui/crossterm implementation
+└── ui_components.rs        # reusable terminal UI rendering primitives
 ```
 
 The exact module list may evolve, but new modules should represent meaningful responsibilities rather than arbitrary slices of large files.
@@ -138,6 +140,8 @@ Campaign content itself is runtime data and should not be redundantly embedded i
 
 Presentation consumes authoritative state and produces frontend-independent view data before any terminal- or GUI-specific rendering occurs. The root `presentation.rs` module contains shared view models expressed only through domain-neutral owned data such as strings, scalars, and collections; it does not depend on ratatui, crossterm, or gameplay actions. Screen modules are responsible for constructing these models from authoritative state, while frontend renderers decide how the models are visually represented.
 
+The terminal UI is split between the `ui.rs` facade, the `ui_impl.rs` ratatui/crossterm implementation, and `ui_components.rs` reusable terminal rendering primitives. Components such as compact-layout detection, bottom-panel sizing, panel construction, scrolling text, message panels, health gauges, frame clearing, and shared layout spacing belong in `ui_components.rs` so screen migrations can reuse consistent behavior without copying renderer details.
+
 The terminal interface uses ratatui and supports responsive layouts for narrow and wide terminals. Screens such as start, load, character creation, quit, and death are separate from the gameplay dashboard so lifecycle flows do not unnecessarily render gameplay underneath them.
 
 Character-sheet presentation is owned by the character module because it is directly tied to character progression state rather than the general action dispatcher.
@@ -161,6 +165,7 @@ In particular:
 - Legacy mechanics should remain independent from screens and own only death, corpse, and previous-life recovery responsibilities.
 - Character progression should remain independent from world/bootstrap and persistence implementation details.
 - Shared models should remain focused on state and domain representation rather than becoming a catch-all service module.
+- Terminal screens should use shared UI primitives rather than duplicate generic panel, gauge, scrolling, and responsive-layout behavior.
 
 ## Compatibility and refactoring
 
