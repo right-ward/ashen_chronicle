@@ -86,7 +86,10 @@ fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<
     } else {
         view.item.description.clone()
     };
-    let details = format!("Item {} of {}\n\n{}", view.position, view.total, description);
+    let details = format!(
+        "Item {} of {}\n\n{}",
+        view.position, view.total, description
+    );
     set_menu_screen(view.item.name, Some(details), view.art);
     let _ = choose_from_list("Item details", &["Back to inventory".to_string()], None)?;
     Ok(())

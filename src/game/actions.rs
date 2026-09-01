@@ -121,11 +121,7 @@ fn build_meditation_view(state: &GameState) -> MeditationView {
 pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std::io::Result<()> {
     let view = build_meditation_view(state);
     if !view.safe_to_meditate {
-        set_menu_screen(
-            "Meditation",
-            view.unavailable_message.clone(),
-            None,
-        );
+        set_menu_screen("Meditation", view.unavailable_message.clone(), None);
         let _ = choose_from_list("Meditation", &["Back".to_string()], None)?;
         return Ok(());
     }
@@ -139,7 +135,11 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         None,
     );
 
-    let options: Vec<String> = view.targets.iter().map(|target| target.label.clone()).collect();
+    let options: Vec<String> = view
+        .targets
+        .iter()
+        .map(|target| target.label.clone())
+        .collect();
     let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
         return Ok(());
     };
@@ -186,11 +186,7 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     if result.well_rested_applied {
         result_lines.push("Well-rested is applied.".to_string());
     }
-    set_menu_screen(
-        "Meditation — Complete",
-        Some(result_lines.join("\n")),
-        None,
-    );
+    set_menu_screen("Meditation — Complete", Some(result_lines.join("\n")), None);
     let _ = choose_from_list("Meditation result", &["Back".to_string()], None)?;
     Ok(())
 }
