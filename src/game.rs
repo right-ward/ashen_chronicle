@@ -10,8 +10,6 @@ mod interactions_core;
 mod legacy;
 mod menu;
 mod navigation;
-#[path = "presentation.rs"]
-pub(crate) mod presentation;
 mod quests;
 mod records;
 mod runtime;

@@ -16,12 +16,13 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ### v0.46.0: presentation foundation
 - Added frontend-independent presentation/view models for character, item, location, threat, history, faction, NPC, quest, and combatant data.
 - Kept presentation models free of ratatui/crossterm dependencies and gameplay rules so later frontends can consume the same data.
+- Added shared terminal UI primitives for compact-layout detection, panel rendering, scrolling text, message panels, health gauges, frame clearing, and common layout behavior.
 
 ## Next
 
 ### v0.45.0 - 0.46.0
 
-- Complete shared UI primitives and migrate existing screens onto the presentation boundary.
+- Migrate existing screens onto the presentation boundary using the shared UI primitives.
 
 ## Longer-term direction
 
