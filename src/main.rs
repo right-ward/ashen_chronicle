@@ -4,7 +4,6 @@ mod game;
 mod model;
 mod persistence;
 mod presentation;
-#[allow(dead_code)]
 pub mod ui;
 mod ui_components;
 
