@@ -17,12 +17,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added frontend-independent presentation/view models for character, item, location, threat, history, faction, NPC, quest, and combatant data.
 - Kept presentation models free of ratatui/crossterm dependencies and gameplay rules so later frontends can consume the same data.
 - Added shared terminal UI primitives for compact-layout detection, panel rendering, scrolling text, message panels, health gauges, frame clearing, and common layout behavior.
+- Migrated the World/Chronicle screen to build a frontend-independent `WorldView` before terminal rendering.
+- Reused shared UI primitives for the World screen's responsive layout, panels, and health gauge while preserving gameplay behavior and menu dispatch.
 
 ## Next
 
 ### v0.45.0 - 0.46.0
 
-- Migrate existing screens onto the presentation boundary using the shared UI primitives.
+- Migrate the remaining existing screens onto the presentation boundary using the shared UI primitives.
 
 ## Longer-term direction
 

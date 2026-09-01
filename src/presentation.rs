@@ -108,9 +108,19 @@ pub(crate) struct CombatantView {
     pub max_hp: i32,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct WorldView {
+    pub world_name: String,
+    pub time: String,
+    pub character: CharacterView,
+    pub location: Option<LocationView>,
+    pub threat: Option<ThreatView>,
+    pub history: Vec<HistoryEntryView>,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CharacterView, NpcView};
+    use super::{CharacterView, NpcView, WorldView};
 
     #[test]
     fn display_name_uses_title_when_present() {
@@ -142,5 +152,16 @@ mod tests {
 
         assert_eq!(character.display_name(), "Ash");
         assert_eq!(npc.display_name(), "Mara");
+    }
+
+    #[test]
+    fn world_view_defaults_to_empty_frontend_data() {
+        let view = WorldView::default();
+
+        assert!(view.world_name.is_empty());
+        assert!(view.time.is_empty());
+        assert!(view.location.is_none());
+        assert!(view.threat.is_none());
+        assert!(view.history.is_empty());
     }
 }

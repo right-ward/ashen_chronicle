@@ -51,7 +51,7 @@ pub(crate) fn render_health_gauge(
     let current = current.clamp(0, maximum);
     let gauge = LineGauge::default()
         .ratio(current as f64 / maximum as f64)
-        .label(format!("{}: ", label))
+        .label(label.to_string())
         .filled_symbol("█")
         .unfilled_symbol("░")
         .filled_style(Style::default().fg(Color::Indexed(124)))
