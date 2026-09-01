@@ -1,5 +1,8 @@
 #[path = "ui_impl.rs"]
 mod ui_impl;
+pub(crate) mod components {
+    pub(crate) use crate::ui_components::*;
+}
 
 use std::sync::{Mutex, OnceLock};
 
