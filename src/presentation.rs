@@ -99,8 +99,10 @@ pub(crate) struct QuestView {
     pub title: String,
     pub description: String,
     pub objectives: Vec<QuestObjectiveView>,
+    pub status: String,
     pub completed: bool,
     pub reward_claimed: bool,
+    pub reward_item_name: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -150,9 +152,52 @@ pub(crate) struct ConversationView {
     pub unavailable_message: Option<String>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct InventoryView {
+    pub character: CharacterView,
+    pub items: Vec<ItemView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct InventoryDetailView {
+    pub item: ItemView,
+    pub position: usize,
+    pub total: usize,
+    pub art: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct QuestLogView {
+    pub character: CharacterView,
+    pub quests: Vec<QuestView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct MeditationTargetView {
+    pub label: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct MeditationView {
+    pub character: CharacterView,
+    pub current_time: String,
+    pub safe_to_meditate: bool,
+    pub unavailable_message: Option<String>,
+    pub targets: Vec<MeditationTargetView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct MeditationResultView {
+    pub ending_time: String,
+    pub portions: u32,
+    pub hp_recovered: i32,
+    pub exhausted_removed: bool,
+    pub well_rested_applied: bool,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CharacterView, HistoryView, NpcView, WorldView};
+    use super::{CharacterView, HistoryView, InventoryView, MeditationView, NpcView, WorldView};
 
     #[test]
     fn display_name_uses_title_when_present() {
@@ -190,6 +235,8 @@ mod tests {
     fn empty_screen_views_are_frontend_safe() {
         let world = WorldView::default();
         let history = HistoryView::default();
+        let inventory = InventoryView::default();
+        let meditation = MeditationView::default();
 
         assert!(world.world_name.is_empty());
         assert!(world.time.is_empty());
@@ -198,5 +245,7 @@ mod tests {
         assert!(world.history.is_empty());
         assert!(history.world_name.is_empty());
         assert!(history.entries.is_empty());
+        assert!(inventory.items.is_empty());
+        assert!(meditation.targets.is_empty());
     }
 }
