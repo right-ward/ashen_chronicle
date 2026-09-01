@@ -1,44 +1,73 @@
 use crate::game::time::time_display;
-use crate::model::{GameState, HistoryEntry, HistoryEntryType};
+use crate::model::{GameState, HistoryEntryType};
+use crate::presentation::{CharacterView, HistoryEntryView, HistoryEntryViewType, HistoryView};
 use crate::ui;
+use crate::ui_components;
 use crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect, Spacing};
-use ratatui::prelude::{Alignment, Style};
-use ratatui::widgets::{Block, Borders, Paragraph, Wrap};
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use std::io;
 
 pub(crate) fn run(state: &GameState) -> io::Result<()> {
+    let view = build_view(state);
     let mut selected = 0usize;
-    let entries: Vec<usize> = (0..state.world.history.len()).rev().collect();
 
-    if entries.is_empty() {
+    if view.entries.is_empty() {
         return draw_empty_history();
     }
 
     loop {
-        selected = selected.min(entries.len().saturating_sub(1));
-        draw_list(state, &entries, selected)?;
+        selected = selected.min(view.entries.len().saturating_sub(1));
+        draw_list(&view, selected)?;
 
         match ui::read_key()? {
             KeyCode::Up | KeyCode::Char('k') => {
-                selected = selected.checked_sub(1).unwrap_or(entries.len() - 1);
+                selected = selected.checked_sub(1).unwrap_or(view.entries.len() - 1);
             }
             KeyCode::Down | KeyCode::Char('j') => {
-                selected = (selected + 1) % entries.len();
+                selected = (selected + 1) % view.entries.len();
             }
             KeyCode::Home => selected = 0,
-            KeyCode::End => selected = entries.len() - 1,
-            KeyCode::Enter => show_detail(state, entries[selected])?,
+            KeyCode::End => selected = view.entries.len() - 1,
+            KeyCode::Enter => show_detail(&view.entries[selected])?,
             KeyCode::Esc => return Ok(()),
             _ => {}
         }
     }
 }
 
-fn draw_list(state: &GameState, entries: &[usize], selected: usize) -> io::Result<()> {
+fn build_view(state: &GameState) -> HistoryView {
+    HistoryView {
+        world_name: state.world.name.clone(),
+        time: time_display(state.world.time_points, state.world.day),
+        character: CharacterView {
+            name: state.character.name.clone(),
+            title: state.character.title.clone(),
+            hp: state.character.hp,
+            max_hp: state.character.max_hp,
+        },
+        entries: state
+            .world
+            .history
+            .iter()
+            .rev()
+            .map(|entry| HistoryEntryView {
+                day: entry.turn,
+                entry_type: match entry.entry_type {
+                    HistoryEntryType::Event => HistoryEntryViewType::Event,
+                    HistoryEntryType::Narrative => HistoryEntryViewType::Narrative,
+                },
+                text: entry.text.clone(),
+                event_id: entry.event_id.clone(),
+                location_name: entry.location_name.clone(),
+                outcome: entry.outcome.clone(),
+            })
+            .collect(),
+    }
+}
+
+fn draw_list(view: &HistoryView, selected: usize) -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| {
-        let compact =
-            area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
+        let compact = ui_components::is_compact(area);
         let margin = if compact { 1 } else { 2 };
         let outer = Rect {
             x: area.x + margin.min(area.width.saturating_sub(1)),
@@ -54,65 +83,48 @@ fn draw_list(state: &GameState, entries: &[usize], selected: usize) -> io::Resul
                 Constraint::Min(6),
                 Constraint::Length(3),
             ])
-            .spacing(Spacing::Overlap(1))
+            .spacing(ui_components::overlap_spacing())
             .split(outer);
 
-        draw_header(frame, root[0], state, compact);
-        draw_entries(frame, root[1], state, entries, selected, compact);
+        draw_header(frame, root[0], view, compact);
+        draw_entries(frame, root[1], view, selected, compact);
         draw_controls(frame, root[2], compact);
     })
 }
 
-fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, state: &GameState, compact: bool) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title("World History")
-        .style(border_style(compact));
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
-
-    let lines = format!(
-        "World: {}\n{}\n{}",
-        state.world.name,
-        state.character.display_name(),
-        time_display(state.world.time_points, state.world.day)
-    );
-    frame.render_widget(
-        Paragraph::new(lines)
-            .alignment(Alignment::Center)
-            .wrap(Wrap { trim: false }),
-        inner,
+fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, view: &HistoryView, compact: bool) {
+    ui_components::render_panel(
+        frame,
+        area,
+        "World History",
+        &[
+            format!("World: {}", view.world_name),
+            view.character.display_name(),
+            view.time.clone(),
+        ],
+        compact,
     );
 }
 
 fn draw_entries(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,
-    state: &GameState,
-    entries: &[usize],
+    view: &HistoryView,
     selected: usize,
     compact: bool,
 ) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title("Chronicle")
-        .style(border_style(compact));
-    let inner = block.inner(area);
-    frame.render_widget(block, area);
-
-    let visible_rows = inner.height.max(1) as usize;
+    let visible_rows = area.height.saturating_sub(2).max(1) as usize;
     let mut start = selected.saturating_sub(visible_rows / 2);
-    let max_start = entries.len().saturating_sub(visible_rows);
+    let max_start = view.entries.len().saturating_sub(visible_rows);
     start = start.min(max_start);
-    let end = (start + visible_rows).min(entries.len());
+    let end = (start + visible_rows).min(view.entries.len());
 
     let mut lines = Vec::new();
     if start > 0 {
         lines.push("⋯ more above ⋯".to_string());
     }
-    for (row, history_index) in entries[start..end].iter().enumerate() {
+    for (row, entry) in view.entries[start..end].iter().enumerate() {
         let absolute_index = start + row;
-        let entry = &state.world.history[*history_index];
         let marker = entry_marker(entry);
         let selector = if absolute_index == selected {
             '▶'
@@ -121,36 +133,27 @@ fn draw_entries(
         };
         lines.push(format!(
             "{selector} Day {} {marker} {}",
-            entry.turn, entry.text
+            entry.day, entry.text
         ));
     }
-    if end < entries.len() {
+    if end < view.entries.len() {
         lines.push("⋯ more below ⋯".to_string());
     }
 
-    frame.render_widget(
-        Paragraph::new(lines.join("\n")).wrap(Wrap { trim: false }),
-        inner,
-    );
+    ui_components::render_panel(frame, area, "Chronicle", &lines, compact);
 }
 
 fn draw_controls(frame: &mut ratatui::Frame<'_>, area: Rect, compact: bool) {
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title("Controls")
-        .style(border_style(compact));
-    let inner = block.inner(area);
-    frame.render_widget(
-        Paragraph::new("↑ ↓ / j k · Enter: details · Esc: back").alignment(Alignment::Center),
-        inner,
+    ui_components::render_panel(
+        frame,
+        area,
+        "Controls",
+        &["↑ ↓ / j k · Enter: details · Esc: back".to_string()],
+        compact,
     );
 }
 
-fn show_detail(state: &GameState, history_index: usize) -> io::Result<()> {
-    let Some(entry) = state.world.history.get(history_index) else {
-        return Ok(());
-    };
-
+fn show_detail(entry: &HistoryEntryView) -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| draw_detail(frame, area, entry))?;
     loop {
         match ui::read_key()? {
@@ -160,9 +163,8 @@ fn show_detail(state: &GameState, history_index: usize) -> io::Result<()> {
     }
 }
 
-fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntry) {
-    let compact =
-        area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2);
+fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntryView) {
+    let compact = ui_components::is_compact(area);
     let margin = if compact { 1 } else { 2 };
     let outer = Rect {
         x: area.x + margin.min(area.width.saturating_sub(1)),
@@ -170,18 +172,13 @@ fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntry)
         width: area.width.saturating_sub(margin.saturating_mul(2)).max(1),
         height: area.height.saturating_sub(margin.saturating_mul(2)).max(1),
     };
-    let block = Block::default()
-        .borders(Borders::ALL)
-        .title(match entry.entry_type {
-            HistoryEntryType::Event => "History Entry · Event",
-            HistoryEntryType::Narrative => "History Entry · Narrative",
-        })
-        .style(border_style(compact));
-    let inner = block.inner(outer);
-    frame.render_widget(block, outer);
 
+    let title = match entry.entry_type {
+        HistoryEntryViewType::Event => "History Entry · Event",
+        HistoryEntryViewType::Narrative => "History Entry · Narrative",
+    };
     let mut lines = vec![
-        format!("Day {}", entry.turn),
+        format!("Day {}", entry.day),
         String::new(),
         entry.text.clone(),
     ];
@@ -199,27 +196,22 @@ fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntry)
     lines.push(String::new());
     lines.push("Enter / Esc: back to history".to_string());
 
-    frame.render_widget(
-        Paragraph::new(lines.join("\n")).wrap(Wrap { trim: false }),
-        inner.inner(Margin {
-            vertical: 1,
-            horizontal: 2,
-        }),
-    );
+    ui_components::render_panel(frame, outer, title, &lines, compact);
 }
 
 fn draw_empty_history() -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| {
-        let block = Block::default()
-            .borders(Borders::ALL)
-            .title("World History");
-        let inner = block.inner(area);
-        frame.render_widget(block, area);
-        frame.render_widget(
-            Paragraph::new("The world has not recorded any history yet.\n\nPress Esc to return.")
-                .alignment(Alignment::Center)
-                .wrap(Wrap { trim: false }),
-            inner,
+        let compact = ui_components::is_compact(area);
+        ui_components::render_panel(
+            frame,
+            area,
+            "World History",
+            &[
+                "The world has not recorded any history yet.".to_string(),
+                String::new(),
+                "Press Esc to return.".to_string(),
+            ],
+            compact,
         );
     })?;
 
@@ -230,13 +222,9 @@ fn draw_empty_history() -> io::Result<()> {
     }
 }
 
-fn entry_marker(entry: &HistoryEntry) -> &'static str {
+fn entry_marker(entry: &HistoryEntryView) -> &'static str {
     match entry.entry_type {
-        HistoryEntryType::Event => "[EVENT]",
-        HistoryEntryType::Narrative => "[NOTE]",
+        HistoryEntryViewType::Event => "[EVENT]",
+        HistoryEntryViewType::Narrative => "[NOTE]",
     }
-}
-
-fn border_style(_compact: bool) -> Style {
-    Style::default()
 }

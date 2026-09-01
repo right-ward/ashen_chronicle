@@ -32,6 +32,7 @@ pub(crate) struct ItemView {
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct LocationView {
+    pub id: u64,
     pub name: String,
     pub description: String,
     pub region_name: String,
@@ -56,6 +57,7 @@ pub(crate) struct HistoryEntryView {
     pub day: u32,
     pub entry_type: HistoryEntryViewType,
     pub text: String,
+    pub event_id: Option<String>,
     pub location_name: Option<String>,
     pub outcome: Option<String>,
 }
@@ -118,9 +120,39 @@ pub(crate) struct WorldView {
     pub history: Vec<HistoryEntryView>,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct HistoryView {
+    pub world_name: String,
+    pub time: String,
+    pub character: CharacterView,
+    pub entries: Vec<HistoryEntryView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct NavigationView {
+    pub current_location: Option<LocationView>,
+    pub destinations: Vec<LocationView>,
+    pub art: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct TalkView {
+    pub npcs: Vec<NpcView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ConversationView {
+    pub npc: NpcView,
+    pub portrait: Option<String>,
+    pub memory: Option<String>,
+    pub options: Vec<String>,
+    pub available: bool,
+    pub unavailable_message: Option<String>,
+}
+
 #[cfg(test)]
 mod tests {
-    use super::{CharacterView, NpcView, WorldView};
+    use super::{CharacterView, HistoryView, NpcView, WorldView};
 
     #[test]
     fn display_name_uses_title_when_present() {
@@ -155,13 +187,16 @@ mod tests {
     }
 
     #[test]
-    fn world_view_defaults_to_empty_frontend_data() {
-        let view = WorldView::default();
+    fn empty_screen_views_are_frontend_safe() {
+        let world = WorldView::default();
+        let history = HistoryView::default();
 
-        assert!(view.world_name.is_empty());
-        assert!(view.time.is_empty());
-        assert!(view.location.is_none());
-        assert!(view.threat.is_none());
-        assert!(view.history.is_empty());
+        assert!(world.world_name.is_empty());
+        assert!(world.time.is_empty());
+        assert!(world.location.is_none());
+        assert!(world.threat.is_none());
+        assert!(world.history.is_empty());
+        assert!(history.world_name.is_empty());
+        assert!(history.entries.is_empty());
     }
 }

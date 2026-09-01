@@ -19,6 +19,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added shared terminal UI primitives for compact-layout detection, panel rendering, scrolling text, message panels, health gauges, frame clearing, and common layout behavior.
 - Migrated the World/Chronicle screen to build a frontend-independent `WorldView` before terminal rendering.
 - Reused shared UI primitives for the World screen's responsive layout, panels, and health gauge while preserving gameplay behavior and menu dispatch.
+- Migrated History, Navigation, and Talk flows to build frontend-independent presentation views before terminal-specific display.
+- Preserved existing history ordering, navigation choices, NPC availability, dialogue options, quest interactions, and time advancement behavior.
 
 ## Next
 
