@@ -2,7 +2,6 @@ mod actions;
 mod character;
 mod combat;
 mod combat_screen;
-#[allow(dead_code)]
 mod console;
 mod dispatcher;
 mod history_screen;
@@ -11,6 +10,8 @@ mod interactions_core;
 mod legacy;
 mod menu;
 mod navigation;
+#[path = "presentation.rs"]
+pub(crate) mod presentation;
 mod quests;
 mod records;
 mod runtime;
@@ -19,8 +20,6 @@ mod state_effects;
 mod time;
 mod world;
 mod world_screen;
-
-pub(crate) mod presentation;
 
 mod interactions {
     pub(crate) use super::interactions_core::*;
