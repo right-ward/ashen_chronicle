@@ -20,6 +20,8 @@ mod time;
 mod world;
 mod world_screen;
 
+pub(crate) mod presentation;
+
 mod interactions {
     pub(crate) use super::interactions_core::*;
 
