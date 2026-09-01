@@ -23,13 +23,28 @@ pub(crate) fn bottom_panel_height(area: Rect, compact: bool, content_lines: usiz
 }
 
 pub(crate) fn vertical_or_horizontal(compact: bool) -> Direction {
-    if compact { Direction::Vertical } else { Direction::Horizontal }
+    if compact {
+        Direction::Vertical
+    } else {
+        Direction::Horizontal
+    }
 }
 
-pub(crate) fn overlap_spacing() -> Spacing { Spacing::Overlap(1) }
+pub(crate) fn overlap_spacing() -> Spacing {
+    Spacing::Overlap(1)
+}
 
-pub(crate) fn render_health_gauge(frame: &mut ratatui::Frame<'_>, area: Rect, label: &str, current: i32, maximum: i32) {
-    if area.height == 0 || area.width == 0 { return; }
+pub(crate) fn render_health_gauge(
+    frame: &mut ratatui::Frame<'_>,
+    area: Rect,
+    label: &str,
+    current: i32,
+    maximum: i32,
+) {
+    if area.height == 0 || area.width == 0 {
+        return;
+    }
+
     let maximum = maximum.max(1);
     let current = current.clamp(0, maximum);
     let gauge = LineGauge::default()
@@ -42,17 +57,39 @@ pub(crate) fn render_health_gauge(frame: &mut ratatui::Frame<'_>, area: Rect, la
     frame.render_widget(gauge, area);
 }
 
-pub(crate) fn render_panel(frame: &mut ratatui::Frame<'_>, area: Rect, title: &str, lines: &[String], compact: bool) {
-    let content = if lines.is_empty() { vec![String::new()] } else { lines.to_vec() };
+pub(crate) fn render_panel(
+    frame: &mut ratatui::Frame<'_>,
+    area: Rect,
+    title: &str,
+    lines: &[String],
+    compact: bool,
+) {
+    let content = if lines.is_empty() {
+        vec![String::new()]
+    } else {
+        lines.to_vec()
+    };
     let paragraph = Paragraph::new(content.join("\n"))
         .block(panel_block(title, compact))
         .wrap(Wrap { trim: false });
     frame.render_widget(paragraph, area);
 }
 
-pub(crate) fn render_scrolling_text(frame: &mut ratatui::Frame<'_>, area: Rect, title: &str, lines: &[String], compact: bool) {
-    let content = if lines.is_empty() { vec![String::new()] } else { lines.to_vec() };
-    let scroll = content.len().saturating_sub(area.height.saturating_sub(2) as usize) as u16;
+pub(crate) fn render_scrolling_text(
+    frame: &mut ratatui::Frame<'_>,
+    area: Rect,
+    title: &str,
+    lines: &[String],
+    compact: bool,
+) {
+    let content = if lines.is_empty() {
+        vec![String::new()]
+    } else {
+        lines.to_vec()
+    };
+    let scroll = content
+        .len()
+        .saturating_sub(area.height.saturating_sub(2) as usize) as u16;
     let paragraph = Paragraph::new(content.join("\n"))
         .block(panel_block(title, compact))
         .wrap(Wrap { trim: false })
@@ -60,7 +97,13 @@ pub(crate) fn render_scrolling_text(frame: &mut ratatui::Frame<'_>, area: Rect, 
     frame.render_widget(paragraph, area);
 }
 
-pub(crate) fn render_message_panel(frame: &mut ratatui::Frame<'_>, area: Rect, title: &str, lines: &[String], compact: bool) {
+pub(crate) fn render_message_panel(
+    frame: &mut ratatui::Frame<'_>,
+    area: Rect,
+    title: &str,
+    lines: &[String],
+    compact: bool,
+) {
     let paragraph = Paragraph::new(lines.join("\n"))
         .block(panel_block(title, compact))
         .wrap(Wrap { trim: false });
@@ -76,13 +119,19 @@ pub(crate) fn panel_block(title: &str, compact: bool) -> Block<'static> {
 }
 
 pub(crate) fn border_style(compact: bool) -> Style {
-    if compact { Style::default().fg(Color::Gray) }
-    else { Style::default().fg(Color::White).add_modifier(Modifier::BOLD) }
+    if compact {
+        Style::default().fg(Color::Gray)
+    } else {
+        Style::default()
+            .fg(Color::White)
+            .add_modifier(Modifier::BOLD)
+    }
 }
 
 #[cfg(test)]
 mod tests {
     use ratatui::layout::Rect;
+
     use super::{bottom_panel_height, is_compact};
 
     #[test]
