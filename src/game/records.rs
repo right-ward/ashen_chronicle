@@ -92,7 +92,7 @@ fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<
     Ok(())
 }
 
-fn build_quest_view(state: &GameState, quest: &Quest) -> QuestView {
+fn build_quest_view(quest: &Quest) -> QuestView {
     let status = if quest.completed {
         "COMPLETED"
     } else if quest_is_ready(quest) {
@@ -129,7 +129,7 @@ fn build_quest_log_view(state: &GameState) -> QuestLogView {
             .quests
             .iter()
             .filter(|quest| quest.offered || quest.completed)
-            .map(|quest| build_quest_view(state, quest))
+            .map(build_quest_view)
             .collect(),
     }
 }
@@ -184,7 +184,7 @@ fn show_quest_detail(state: &GameState, quest_index: usize) -> std::io::Result<(
     let Some(quest) = state.quests.get(quest_index) else {
         return Ok(());
     };
-    let view = build_quest_view(state, quest);
+    let view = build_quest_view(quest);
 
     let mut detail_lines = vec![format!("Status: {}", view.status), String::new()];
     if !view.description.trim().is_empty() {
