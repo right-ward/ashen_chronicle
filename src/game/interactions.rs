@@ -1,5 +1,6 @@
 use crate::game::{quests, state_effects};
 use crate::model::{EntityId, Faction, GameState, Quest};
+use crate::presentation::{ConversationView, NpcView, TalkView};
 use crate::ui::{choose_from_list, pause, set_menu_screen};
 
 macro_rules! println {
@@ -48,6 +49,7 @@ fn faction_by_id_mut(state: &mut GameState, faction_id: EntityId) -> Option<&mut
 }
 
 pub(crate) fn talk(state: &mut GameState) -> std::io::Result<()> {
+    let view = build_talk_view(state);
     set_menu_screen(
         "Talk",
         Some("Choose someone to speak with.".to_string()),
@@ -56,14 +58,15 @@ pub(crate) fn talk(state: &mut GameState) -> std::io::Result<()> {
 
     let location_id = state.character.location_id;
     let npc_ids = npc_ids_at_location(state, location_id);
-    if npc_ids.is_empty() {
+    if view.npcs.is_empty() || npc_ids.is_empty() {
         println!("There is no one here to talk to.");
         pause();
         return Ok(());
     }
-    let options: Vec<String> = npc_ids
+    let options: Vec<String> = view
+        .npcs
         .iter()
-        .filter_map(|id| npc_index_by_id(state, *id).map(|index| state.npcs[index].display_name()))
+        .map(NpcView::display_name)
         .collect();
     if let Some(choice) = choose_from_list("Talk to whom?", &options, Some("Back"))? {
         talk_to_npc(state, npc_ids[choice])?;
@@ -71,32 +74,51 @@ pub(crate) fn talk(state: &mut GameState) -> std::io::Result<()> {
     Ok(())
 }
 
+fn build_talk_view(state: &GameState) -> TalkView {
+    let location_id = state.character.location_id;
+    TalkView {
+        npcs: npc_ids_at_location(state, location_id)
+            .into_iter()
+            .filter_map(|npc_id| {
+                let npc = state.npcs.get(npc_index_by_id(state, npc_id)?)?;
+                let faction_name = npc.faction_id.and_then(|faction_id| {
+                    state
+                        .factions
+                        .iter()
+                        .find(|faction| faction.id == faction_id)
+                        .map(|faction| faction.name.clone())
+                });
+                Some(NpcView {
+                    name: npc.name.clone(),
+                    title: npc.title.clone(),
+                    faction_name,
+                })
+            })
+            .collect(),
+    }
+}
+
 fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
     let Some(npc_index) = npc_index_by_id(state, npc_id) else {
         return Ok(());
     };
-    let npc_name = state.npcs[npc_index].display_name();
-    let portrait = state
-        .campaign_content
-        .as_ref()
-        .and_then(|content| content.portrait_for(&state.npcs[npc_index].name))
-        .map(str::to_string);
+    let view = build_conversation_view(state, npc_index);
+    let npc_name = view.npc.display_name();
 
     set_menu_screen(
         format!("Talk — {}", npc_name),
         Some("Choose how to speak with them.".to_string()),
-        portrait,
+        view.portrait.clone(),
     );
 
-    if !npc_is_available_now(state.world.time_points) {
-        println!(
-            "{}",
-            npc_unavailable_message(&npc_name, state.world.time_points)
-        );
+    if !view.available {
+        if let Some(message) = &view.unavailable_message {
+            println!("{}", message);
+        }
         pause();
         return Ok(());
     }
-    if let Some(memory) = state.npcs[npc_index].memory.last() {
+    if let Some(memory) = &view.memory {
         println!("{} remembers: {}", npc_name, memory);
     }
     let quest_indices: Vec<usize> = state
@@ -106,22 +128,13 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
         .filter(|(_, quest)| quest.giver_npc_id == npc_id)
         .map(|(index, _)| index)
         .collect();
-    let mut options = vec![
-        "Ask if they need help".to_string(),
-        "Tell them it's done".to_string(),
-    ];
-    let can_probe_memory =
-        state.character.effective_insight() >= 2 && !state.npcs[npc_index].memory.is_empty();
-    if can_probe_memory {
-        options.push("Ask what they remember".to_string());
-    }
-    if quest_indices.is_empty() && !can_probe_memory {
+    if quest_indices.is_empty() && view.options.len() <= 2 {
         println!("{} has little to say.", npc_name);
         pause();
         return Ok(());
     }
     if let Some(choice) =
-        choose_from_list(&format!("Talk to {}", npc_name), &options, Some("Back"))?
+        choose_from_list(&format!("Talk to {}", npc_name), &view.options, Some("Back"))?
     {
         match choice {
             0 => {
@@ -221,8 +234,8 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
                 }
                 pause();
             }
-            2 if can_probe_memory => {
-                if let Some(memory) = state.npcs[npc_index].memory.last() {
+            2 if view.options.len() > 2 => {
+                if let Some(memory) = &view.memory {
                     println!("{} searches your face, then recalls: {}", npc_name, memory);
                 }
                 pause();
@@ -232,6 +245,47 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
     }
     state_effects::advance_time(state, 1);
     Ok(())
+}
+
+fn build_conversation_view(state: &GameState, npc_index: usize) -> ConversationView {
+    let npc = &state.npcs[npc_index];
+    let npc_view = NpcView {
+        name: npc.name.clone(),
+        title: npc.title.clone(),
+        faction_name: npc.faction_id.and_then(|faction_id| {
+            state
+                .factions
+                .iter()
+                .find(|faction| faction.id == faction_id)
+                .map(|faction| faction.name.clone())
+        }),
+    };
+    let npc_name = npc_view.display_name();
+    let portrait = state
+        .campaign_content
+        .as_ref()
+        .and_then(|content| content.portrait_for(&npc.name))
+        .map(str::to_string);
+    let memory = npc.memory.last().cloned();
+    let available = npc_is_available_now(state.world.time_points);
+    let unavailable_message = (!available)
+        .then(|| npc_unavailable_message(&npc_name, state.world.time_points));
+    let mut options = vec![
+        "Ask if they need help".to_string(),
+        "Tell them it's done".to_string(),
+    ];
+    if state.character.effective_insight() >= 2 && memory.is_some() {
+        options.push("Ask what they remember".to_string());
+    }
+
+    ConversationView {
+        npc: npc_view,
+        portrait,
+        memory,
+        options,
+        available,
+        unavailable_message,
+    }
 }
 
 fn remember_npc(state: &mut GameState, npc_id: EntityId, memory: String) {
