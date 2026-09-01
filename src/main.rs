@@ -3,6 +3,8 @@ mod events;
 mod game;
 mod model;
 mod persistence;
+mod presentation;
+mod ui_components;
 #[allow(dead_code)]
 pub mod ui;
 
