@@ -35,7 +35,11 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
         "Choose a route to travel.".to_string()
     });
 
-    set_menu_screen("World Navigation", Some(details.join("\n")), view.art.clone());
+    set_menu_screen(
+        "World Navigation",
+        Some(details.join("\n")),
+        view.art.clone(),
+    );
 
     if view.destinations.is_empty() {
         let _ = choose_from_list("Routes", &["Back".to_string()], None)?;

@@ -92,12 +92,7 @@ fn draw_list(view: &HistoryView, selected: usize) -> io::Result<()> {
     })
 }
 
-fn draw_header(
-    frame: &mut ratatui::Frame<'_>,
-    area: Rect,
-    view: &HistoryView,
-    compact: bool,
-) {
+fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, view: &HistoryView, compact: bool) {
     ui_components::render_panel(
         frame,
         area,
@@ -131,7 +126,11 @@ fn draw_entries(
     for (row, entry) in view.entries[start..end].iter().enumerate() {
         let absolute_index = start + row;
         let marker = entry_marker(entry);
-        let selector = if absolute_index == selected { '▶' } else { ' ' };
+        let selector = if absolute_index == selected {
+            '▶'
+        } else {
+            ' '
+        };
         lines.push(format!(
             "{selector} Day {} {marker} {}",
             entry.day, entry.text
@@ -178,7 +177,11 @@ fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntryV
         HistoryEntryViewType::Event => "History Entry · Event",
         HistoryEntryViewType::Narrative => "History Entry · Narrative",
     };
-    let mut lines = vec![format!("Day {}", entry.day), String::new(), entry.text.clone()];
+    let mut lines = vec![
+        format!("Day {}", entry.day),
+        String::new(),
+        entry.text.clone(),
+    ];
     if let Some(event_id) = &entry.event_id {
         lines.push(String::new());
         lines.push(format!("Event: {event_id}"));

@@ -63,11 +63,7 @@ pub(crate) fn talk(state: &mut GameState) -> std::io::Result<()> {
         pause();
         return Ok(());
     }
-    let options: Vec<String> = view
-        .npcs
-        .iter()
-        .map(NpcView::display_name)
-        .collect();
+    let options: Vec<String> = view.npcs.iter().map(NpcView::display_name).collect();
     if let Some(choice) = choose_from_list("Talk to whom?", &options, Some("Back"))? {
         talk_to_npc(state, npc_ids[choice])?;
     }
@@ -133,9 +129,11 @@ fn talk_to_npc(state: &mut GameState, npc_id: EntityId) -> std::io::Result<()> {
         pause();
         return Ok(());
     }
-    if let Some(choice) =
-        choose_from_list(&format!("Talk to {}", npc_name), &view.options, Some("Back"))?
-    {
+    if let Some(choice) = choose_from_list(
+        &format!("Talk to {}", npc_name),
+        &view.options,
+        Some("Back"),
+    )? {
         match choice {
             0 => {
                 let mut found_offer = false;
@@ -268,8 +266,8 @@ fn build_conversation_view(state: &GameState, npc_index: usize) -> ConversationV
         .map(str::to_string);
     let memory = npc.memory.last().cloned();
     let available = npc_is_available_now(state.world.time_points);
-    let unavailable_message = (!available)
-        .then(|| npc_unavailable_message(&npc_name, state.world.time_points));
+    let unavailable_message =
+        (!available).then(|| npc_unavailable_message(&npc_name, state.world.time_points));
     let mut options = vec![
         "Ask if they need help".to_string(),
         "Tell them it's done".to_string(),
