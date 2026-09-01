@@ -71,6 +71,7 @@ fn build_view(state: &GameState) -> WorldView {
                 .map(|region| region.name.clone())
                 .unwrap_or_else(|| "Unknown region".to_string());
             LocationView {
+                id: location.id,
                 name: location.name.clone(),
                 description: location.description.clone(),
                 region_name,
@@ -99,6 +100,7 @@ fn build_view(state: &GameState) -> WorldView {
                 crate::model::HistoryEntryType::Narrative => HistoryEntryViewType::Narrative,
             },
             text: entry.text.clone(),
+            event_id: entry.event_id.clone(),
             location_name: entry.location_name.clone(),
             outcome: entry.outcome.clone(),
         })
