@@ -171,10 +171,6 @@ pub fn clear_log() {
     }
 }
 
-pub fn diagnostic(text: &str) {
-    line(&format!("[diagnostic] {text}"));
-}
-
 pub(crate) fn set_key_logging(enabled: bool) {
     let mut state = runtime().lock().unwrap();
     if enabled && !state.key_logging_enabled {
@@ -194,26 +190,6 @@ pub(crate) fn set_console_input_active(active: bool) {
 pub(crate) fn take_key_log() -> Vec<String> {
     let mut state = runtime().lock().unwrap();
     std::mem::take(&mut state.key_log)
-}
-
-pub(crate) fn render_main_menu(title: &str, options: &[String], selected: usize) -> io::Result<()> {
-    let mut prompt_lines = vec![
-        title.to_string(),
-        String::new(),
-        "↑ ↓ / j k  Enter: choose  Esc: back".to_string(),
-        String::new(),
-    ];
-    for (index, option) in options.iter().enumerate() {
-        let marker = if index == selected { '▶' } else { ' ' };
-        prompt_lines.push(format!("{marker} {}. {}", index + 1, option));
-    }
-
-    let mut state = runtime().lock().unwrap();
-    if state.initialized {
-        render_locked(&mut state, Some(&prompt_lines), None)
-    } else {
-        Ok(())
-    }
 }
 
 pub(crate) fn read_key() -> io::Result<KeyCode> {
@@ -279,11 +255,6 @@ pub fn prompt(message: &str) -> io::Result<String> {
 
 pub fn pause() {
     let _ = wait_for_key("Press any key to continue...");
-}
-
-pub fn narrate(message: &str) {
-    line(message);
-    pause();
 }
 
 pub fn choose_from_list(
