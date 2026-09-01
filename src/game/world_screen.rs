@@ -1,6 +1,6 @@
 use crate::game::time::time_display;
 use crate::game::{console, dispatcher, menu};
-use crate::model::{GameState, HistoryEntryType};
+use crate::model::GameState;
 use crate::presentation::{
     CharacterView, HistoryEntryView, HistoryEntryViewType, LocationView, ThreatView, WorldView,
 };
@@ -8,7 +8,7 @@ use crate::ui;
 use crate::ui_components;
 use crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Layout, Rect};
-use ratatui::prelude::{Alignment, Color};
+use ratatui::prelude::Alignment;
 use ratatui::widgets::{Paragraph, Wrap};
 use std::io;
 use std::path::Path;
@@ -95,8 +95,8 @@ fn build_view(state: &GameState) -> WorldView {
         .map(|entry| HistoryEntryView {
             day: entry.turn,
             entry_type: match entry.entry_type {
-                HistoryEntryType::Event => HistoryEntryViewType::Event,
-                HistoryEntryType::Narrative => HistoryEntryViewType::Narrative,
+                crate::model::HistoryEntryType::Event => HistoryEntryViewType::Event,
+                crate::model::HistoryEntryType::Narrative => HistoryEntryViewType::Narrative,
             },
             text: entry.text.clone(),
             location_name: entry.location_name.clone(),
