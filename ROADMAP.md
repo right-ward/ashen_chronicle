@@ -13,11 +13,15 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Combat results for victory, defeat, and fleeing are presented on the encounter screen before returning to normal gameplay or the death flow.
 - Preserved existing combat rules, history recording, rewards, quest updates, and threat cleanup behavior.
 
+### v0.46.0: presentation foundation
+- Added frontend-independent presentation/view models for character, item, location, threat, history, faction, NPC, quest, and combatant data.
+- Kept presentation models free of ratatui/crossterm dependencies and gameplay rules so later frontends can consume the same data.
+
 ## Next
 
 ### v0.45.0 - 0.46.0
 
-- Continue modularizing and improving the existing TUI presentation before the longer-term GUI transition.
+- Complete shared UI primitives and migrate existing screens onto the presentation boundary.
 
 ## Longer-term direction
 

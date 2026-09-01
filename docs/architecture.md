@@ -63,8 +63,9 @@ src/
 │   ├── legacy.rs           # death, corpses, previous-life recovery, legacy item presentation
 │   ├── combat.rs           # combat encounter processing
 │   ├── screens.rs          # start/load/creation/quit/death screens
-│   ├── presentation.rs     # dashboard and location presentation
+│   ├── presentation.rs     # screen-specific presentation coordination
 │   └── world.rs            # world bootstrap and loaded-state validation
+├── presentation.rs         # frontend-independent presentation/view models
 ├── content.rs              # content module facade
 ├── content/
 │   ├── definitions.rs      # schemas and validation definitions
@@ -133,11 +134,9 @@ Persistence serializes the authoritative world/character state and restores it i
 
 Campaign content itself is runtime data and should not be redundantly embedded in save files when it can be safely reloaded from the current content definitions.
 
-See [`systems/persistence.md`](systems/persistence.md) for details.
-
 ## Presentation architecture
 
-Presentation consumes state and produces text/UI output. It should not own gameplay rules or silently mutate simulation state.
+Presentation consumes authoritative state and produces frontend-independent view data before any terminal- or GUI-specific rendering occurs. The root `presentation.rs` module contains shared view models expressed only through domain-neutral owned data such as strings, scalars, and collections; it does not depend on ratatui, crossterm, or gameplay actions. Screen modules are responsible for constructing these models from authoritative state, while frontend renderers decide how the models are visually represented.
 
 The terminal interface uses ratatui and supports responsive layouts for narrow and wide terminals. Screens such as start, load, character creation, quit, and death are separate from the gameplay dashboard so lifecycle flows do not unnecessarily render gameplay underneath them.
 

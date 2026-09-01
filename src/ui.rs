@@ -4,8 +4,8 @@ mod ui_impl;
 use std::sync::{Mutex, OnceLock};
 
 pub(crate) use ui_impl::{
-    draw_combat_screen, key_logging_enabled, read_key, render_main_menu, set_console_input_active,
-    set_key_logging, take_key_log,
+    draw_combat_screen, key_logging_enabled, read_key, set_console_input_active, set_key_logging,
+    take_key_log,
 };
 pub use ui_impl::{Dashboard, UiGuard};
 

@@ -1,5 +1,4 @@
 use crate::model::{EntityId, GameState};
-use crate::ui;
 use crossterm::event::KeyCode;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
@@ -7,7 +6,6 @@ use ratatui::prelude::*;
 use ratatui::widgets::{Block, Borders, Clear, Paragraph, Wrap};
 use ratatui::Terminal;
 use std::io;
-use std::path::Path;
 
 #[derive(Clone)]
 pub(super) struct Candidate {
@@ -330,67 +328,6 @@ pub(super) fn accept_completion(console: &mut ConsoleState) {
     }
     console.input = tokens.join(" ");
     cancel_completion(console);
-}
-
-pub(super) fn choose_main_menu(
-    state: &mut GameState,
-    save_path: &Path,
-    title: &str,
-    options: &[String],
-) -> io::Result<Option<usize>> {
-    if options.is_empty() {
-        return Ok(None);
-    }
-    let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-    let mut selected = 0usize;
-
-    loop {
-        terminal.draw(|frame| {
-            frame.render_widget(Clear, frame.area());
-            let popup = centered_rect(64, 70, frame.area());
-            frame.render_widget(Clear, popup);
-            let block = Block::default().title(title).borders(Borders::ALL);
-            let inner = block.inner(popup);
-            frame.render_widget(block, popup);
-
-            let visible_rows = inner.height.saturating_sub(2) as usize;
-            let visible_rows = visible_rows.max(1);
-            let mut start = selected.saturating_sub(visible_rows / 2);
-            start = start.min(options.len().saturating_sub(visible_rows));
-            let end = (start + visible_rows).min(options.len());
-
-            let mut lines = vec![
-                Line::from("↑↓ / jk  Enter: choose  Esc: back"),
-                Line::from(""),
-            ];
-            if start > 0 {
-                lines.push(Line::from("⋯ more above ⋯"));
-            }
-            for (index, option) in options.iter().enumerate().take(end).skip(start) {
-                let marker = if index == selected { '▶' } else { ' ' };
-                lines.push(Line::from(format!("{marker} {}. {option}", index + 1)));
-            }
-            if end < options.len() {
-                lines.push(Line::from("⋯ more below ⋯"));
-            }
-            frame.render_widget(Paragraph::new(lines).wrap(Wrap { trim: false }), inner);
-        })?;
-
-        match ui::read_key()? {
-            KeyCode::Up | KeyCode::Char('k') => {
-                selected = selected
-                    .checked_sub(1)
-                    .unwrap_or(options.len().saturating_sub(1));
-            }
-            KeyCode::Down | KeyCode::Char('j') => selected = (selected + 1) % options.len(),
-            KeyCode::Home => selected = 0,
-            KeyCode::End => selected = options.len().saturating_sub(1),
-            KeyCode::Enter => return Ok(Some(selected)),
-            KeyCode::Esc => return Ok(None),
-            KeyCode::Char('/') => super::run_console_session(state, save_path)?,
-            _ => {}
-        }
-    }
 }
 
 pub(super) fn draw_console(
