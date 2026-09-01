@@ -1,3 +1,5 @@
+#![allow(unused)] // Temporary work-around until their used
+
 use ratatui::layout::{Direction, Rect, Spacing};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;

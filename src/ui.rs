@@ -1,6 +1,7 @@
 #[path = "ui_impl.rs"]
 mod ui_impl;
 pub(crate) mod components {
+    #![allow(unused_imports)]
     pub(crate) use crate::ui_components::*;
 }
 
