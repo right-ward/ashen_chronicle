@@ -299,12 +299,7 @@ fn draw_actions(
     if start > 0 {
         lines.push("⋯ more above ⋯".to_string());
     }
-    for (index, label) in action_labels
-        .iter()
-        .enumerate()
-        .take(end)
-        .skip(start)
-    {
+    for (index, label) in action_labels.iter().enumerate().take(end).skip(start) {
         let marker = if index == selected { '▶' } else { ' ' };
         lines.push(format!("{marker} {}. {}", index + 1, label));
     }
