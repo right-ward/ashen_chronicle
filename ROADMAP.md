@@ -21,6 +21,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Reused shared UI primitives for the World screen's responsive layout, panels, and health gauge while preserving gameplay behavior and menu dispatch.
 - Migrated History, Navigation, and Talk flows to build frontend-independent presentation views before terminal-specific display.
 - Preserved existing history ordering, navigation choices, NPC availability, dialogue options, quest interactions, and time advancement behavior.
+- Migrated Quest Log, Inventory, and Meditation flows to build frontend-independent presentation views before terminal-specific display.
+- Preserved existing quest filtering/details, inventory selection/details and item art, meditation safety checks, target selection, recovery, save behavior, and result presentation.
 
 ## Next
 
