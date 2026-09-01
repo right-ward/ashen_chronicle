@@ -1,12 +1,10 @@
 use crate::game::time::time_display;
-use crate::model::{GameState, HistoryEntry, HistoryEntryType};
+use crate::model::{GameState, HistoryEntryType};
 use crate::presentation::{CharacterView, HistoryEntryView, HistoryEntryViewType, HistoryView};
 use crate::ui;
 use crate::ui_components;
 use crossterm::event::KeyCode;
-use ratatui::layout::{Constraint, Direction, Layout, Margin, Rect};
-use ratatui::prelude::Alignment;
-use ratatui::widgets::Paragraph;
+use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use std::io;
 
 pub(crate) fn run(state: &GameState) -> io::Result<()> {
@@ -196,12 +194,6 @@ fn draw_detail(frame: &mut ratatui::Frame<'_>, area: Rect, entry: &HistoryEntryV
     lines.push("Enter / Esc: back to history".to_string());
 
     ui_components::render_panel(frame, outer, title, &lines, compact);
-
-    let _ = frame; // keep the renderer contract explicit while using the shared panel primitive
-    let _ = Margin {
-        vertical: 1,
-        horizontal: 2,
-    };
 }
 
 fn draw_empty_history() -> io::Result<()> {
