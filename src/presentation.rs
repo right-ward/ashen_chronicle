@@ -3,6 +3,7 @@
 //! These types intentionally contain no ratatui/crossterm types and no gameplay
 //! behavior. Gameplay and screen modules can translate authoritative game state
 //! into these models, while a frontend is responsible for rendering them.
+#![allow(dead_code)] // temporary to avoid CI warnings
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct CharacterView {
