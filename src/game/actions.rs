@@ -1,6 +1,9 @@
 use crate::game::state_effects::{self, add_or_refresh_condition};
 use crate::model::{Condition, GameState};
 use crate::persistence::save_game;
+use crate::presentation::{
+    CharacterView, MeditationResultView, MeditationTargetView, MeditationView,
+};
 use crate::ui::{choose_from_list, narrate, set_menu_screen};
 use std::path::Path;
 
@@ -86,14 +89,41 @@ pub(crate) fn travel_to(
     Ok(())
 }
 
+fn character_view(state: &GameState) -> CharacterView {
+    CharacterView {
+        name: state.character.name.clone(),
+        title: state.character.title.clone(),
+        hp: state.character.hp,
+        max_hp: state.character.max_hp,
+    }
+}
+
+fn build_meditation_view(state: &GameState) -> MeditationView {
+    let safe_to_meditate = !state.threat.active
+        && !state
+            .world
+            .location_is_dangerous(state.character.location_id);
+    MeditationView {
+        character: character_view(state),
+        current_time: crate::game::time::time_display(state.world.time_points, state.world.day),
+        safe_to_meditate,
+        unavailable_message: (!safe_to_meditate)
+            .then(|| "The place is not safe enough to meditate here.".to_string()),
+        targets: MEDITATION_TARGETS
+            .iter()
+            .map(|(_, label)| MeditationTargetView {
+                label: (*label).to_string(),
+            })
+            .collect(),
+    }
+}
+
 pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std::io::Result<()> {
-    let location_is_dangerous = state
-        .world
-        .location_is_dangerous(state.character.location_id);
-    if state.threat.active || location_is_dangerous {
+    let view = build_meditation_view(state);
+    if !view.safe_to_meditate {
         set_menu_screen(
             "Meditation",
-            Some("The place is not safe enough to meditate here.".to_string()),
+            view.unavailable_message.clone(),
             None,
         );
         let _ = choose_from_list("Meditation", &["Back".to_string()], None)?;
@@ -104,15 +134,12 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
         "Meditation",
         Some(format!(
             "You settle into stillness.\nCurrent time:\n{}\n\nChoose when to end your meditation.",
-            crate::game::time::time_display(state.world.time_points, state.world.day)
+            view.current_time
         )),
         None,
     );
 
-    let options: Vec<String> = MEDITATION_TARGETS
-        .iter()
-        .map(|(_, label)| (*label).to_string())
-        .collect();
+    let options: Vec<String> = view.targets.iter().map(|target| target.label.clone()).collect();
     let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
         return Ok(());
     };
@@ -129,22 +156,41 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     rested.bonus = 1;
     add_or_refresh_condition(&mut state.character.conditions, rested);
     let character_name = state.character.display_name();
+    let target_label = view.targets[selection].label.clone();
     state.world.record_history(
         state.character.turn,
         format!(
             "{} meditated until {} and recovered.",
-            character_name, MEDITATION_TARGETS[selection].1
+            character_name, target_label
         ),
     );
     save_game(save_path, state)?;
 
-    let result_lines = format!(
-        "Your breathing steadies as you meditate.\n\n{}\nTime meditated: {} portion(s)\nHP recovered: {}\n\nExhausted is removed.\nWell-rested is applied.",
-        crate::game::time::time_display(state.world.time_points, state.world.day),
+    let result = MeditationResultView {
+        ending_time: crate::game::time::time_display(state.world.time_points, state.world.day),
         portions,
-        healing
+        hp_recovered: healing,
+        exhausted_removed: true,
+        well_rested_applied: true,
+    };
+    let mut result_lines = vec![
+        "Your breathing steadies as you meditate.".to_string(),
+        String::new(),
+        result.ending_time.clone(),
+        format!("Time meditated: {} portion(s)", result.portions),
+        format!("HP recovered: {}", result.hp_recovered),
+    ];
+    if result.exhausted_removed {
+        result_lines.extend([String::new(), "Exhausted is removed.".to_string()]);
+    }
+    if result.well_rested_applied {
+        result_lines.push("Well-rested is applied.".to_string());
+    }
+    set_menu_screen(
+        "Meditation — Complete",
+        Some(result_lines.join("\n")),
+        None,
     );
-    set_menu_screen("Meditation — Complete", Some(result_lines), None);
     let _ = choose_from_list("Meditation result", &["Back".to_string()], None)?;
     Ok(())
 }
