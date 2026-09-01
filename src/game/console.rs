@@ -14,39 +14,6 @@ use ratatui::Terminal;
 use std::io;
 use std::path::Path;
 
-pub(crate) fn choose_main_menu(
-    state: &mut GameState,
-    save_path: &Path,
-    title: &str,
-    options: &[String],
-) -> io::Result<Option<usize>> {
-    if options.is_empty() {
-        return console_ui::choose_main_menu(state, save_path, title, options);
-    }
-
-    let mut selected = 0usize;
-    loop {
-        crate::ui::render_main_menu(title, options, selected)?;
-
-        match crate::ui::read_key()? {
-            KeyCode::Up | KeyCode::Char('k') => {
-                selected = selected
-                    .checked_sub(1)
-                    .unwrap_or(options.len().saturating_sub(1));
-            }
-            KeyCode::Down | KeyCode::Char('j') => {
-                selected = (selected + 1) % options.len();
-            }
-            KeyCode::Home => selected = 0,
-            KeyCode::End => selected = options.len().saturating_sub(1),
-            KeyCode::Enter => return Ok(Some(selected)),
-            KeyCode::Esc => return Ok(None),
-            KeyCode::Char('/') => open_console(state, save_path)?,
-            _ => {}
-        }
-    }
-}
-
 pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
     enter_console_screen()?;
     let result = run_console_session(state, save_path);
