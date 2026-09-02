@@ -1,5 +1,6 @@
 use super::{character, combat_screen, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
+use crate::presentation::{CharacterView, CombatResultView, CombatView, CombatantView};
 use crate::ui::pause;
 
 macro_rules! println {
@@ -94,38 +95,21 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             events.push(format!("Description: {}", trophy.description));
             events.push("The threat is broken. The place is quieter now.".to_string());
             trim_combat_events(&mut events);
-            combat_screen::show_result(
-                &character_name,
-                state.character.hp,
-                state.character.max_hp,
-                active_condition(state),
-                &encounter.enemy_name,
-                encounter.enemy_hp,
-                encounter.enemy_max_hp,
-                encounter.enemy_power,
+            let result_view = build_result_view(
+                state,
+                &encounter,
                 &location.name,
-                state.character.turn,
                 &events,
                 "Victory",
                 &result_note,
-            )?;
+            );
+            combat_screen::show_result(&result_view)?;
             combat_screen::wait_for_key()?;
             break;
         }
 
-        let action = combat_screen::choose_action(
-            &state.character.display_name(),
-            state.character.hp,
-            state.character.max_hp,
-            active_condition(state),
-            &encounter.enemy_name,
-            encounter.enemy_hp,
-            encounter.enemy_max_hp,
-            encounter.enemy_power,
-            &location.name,
-            state.character.turn,
-            &events,
-        )?;
+        let view = build_combat_view(state, &encounter, &location.name, &events);
+        let action = combat_screen::choose_action(&view)?;
 
         match action {
             0 => {
@@ -199,21 +183,15 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
                     encounter.enemy_name, location.name
                 ));
                 trim_combat_events(&mut events);
-                combat_screen::show_result(
-                    &character_name,
-                    state.character.hp,
-                    state.character.max_hp,
-                    active_condition(state),
-                    &encounter.enemy_name,
-                    encounter.enemy_hp,
-                    encounter.enemy_max_hp,
-                    encounter.enemy_power,
+                let result_view = build_result_view(
+                    state,
+                    &encounter,
                     &location.name,
-                    state.character.turn,
                     &events,
                     "Fled",
                     "The threat remains.",
-                )?;
+                );
+                combat_screen::show_result(&result_view)?;
                 combat_screen::wait_for_key()?;
                 break;
             }
@@ -230,21 +208,15 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
             events.push("Defeat".to_string());
             events.push("You were overwhelmed.".to_string());
             trim_combat_events(&mut events);
-            combat_screen::show_result(
-                &state.character.display_name(),
-                state.character.hp,
-                state.character.max_hp,
-                active_condition(state),
-                &encounter.enemy_name,
-                encounter.enemy_hp,
-                encounter.enemy_max_hp,
-                encounter.enemy_power,
+            let result_view = build_result_view(
+                state,
+                &encounter,
                 &location.name,
-                state.character.turn,
                 &events,
                 "Defeat",
                 "You were overwhelmed.",
-            )?;
+            );
+            combat_screen::show_result(&result_view)?;
             combat_screen::wait_for_key()?;
             break;
         }
@@ -252,6 +224,52 @@ pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
         trim_combat_events(&mut events);
     }
     Ok(())
+}
+
+fn character_view(state: &GameState) -> CharacterView {
+    CharacterView {
+        name: state.character.name.clone(),
+        title: state.character.title.clone(),
+        hp: state.character.hp,
+        max_hp: state.character.max_hp,
+    }
+}
+
+fn build_combat_view(
+    state: &GameState,
+    encounter: &CombatEncounter,
+    location_name: &str,
+    events: &[String],
+) -> CombatView {
+    CombatView {
+        character: character_view(state),
+        player_condition: active_condition(state).map(str::to_string),
+        enemy: CombatantView {
+            name: encounter.enemy_name.clone(),
+            current_hp: encounter.enemy_hp,
+            max_hp: encounter.enemy_max_hp,
+        },
+        enemy_power: encounter.enemy_power,
+        location_name: location_name.to_string(),
+        turn: state.character.turn,
+        events: events.to_vec(),
+        actions: vec!["Attack".to_string(), "Guard".to_string(), "Flee".to_string()],
+    }
+}
+
+fn build_result_view(
+    state: &GameState,
+    encounter: &CombatEncounter,
+    location_name: &str,
+    events: &[String],
+    result_title: &str,
+    result_note: &str,
+) -> CombatResultView {
+    CombatResultView {
+        combat: build_combat_view(state, encounter, location_name, events),
+        result_title: result_title.to_string(),
+        result_note: result_note.to_string(),
+    }
 }
 
 fn active_condition(state: &GameState) -> Option<&str> {
