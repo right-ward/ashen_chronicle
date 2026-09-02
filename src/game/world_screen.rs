@@ -1,12 +1,12 @@
 use crate::game::time::time_display;
 use crate::game::{console, dispatcher, menu};
+use crate::input::{self, InputEvent};
 use crate::model::GameState;
 use crate::presentation::{
     CharacterView, HistoryEntryView, HistoryEntryViewType, LocationView, ThreatView, WorldView,
 };
 use crate::ui;
 use crate::ui_components;
-use crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Layout, Rect};
 use ratatui::prelude::Alignment;
 use ratatui::widgets::{Paragraph, Wrap};
@@ -30,21 +30,21 @@ pub(crate) fn run(state: &mut GameState, save_path: &Path) -> io::Result<bool> {
             .map(|entry| entry.label.clone())
             .collect::<Vec<_>>();
         draw(&view, &action_labels, selected)?;
-        match ui::read_key()? {
-            KeyCode::Up | KeyCode::Char('k') => {
+        match input::read()? {
+            InputEvent::Up => {
                 selected = selected.checked_sub(1).unwrap_or(actions.len() - 1)
             }
-            KeyCode::Down | KeyCode::Char('j') => selected = (selected + 1) % actions.len(),
-            KeyCode::Home => selected = 0,
-            KeyCode::End => selected = actions.len() - 1,
-            KeyCode::Enter => {
+            InputEvent::Down => selected = (selected + 1) % actions.len(),
+            InputEvent::Home => selected = 0,
+            InputEvent::End => selected = actions.len() - 1,
+            InputEvent::Confirm => {
                 if dispatcher::dispatch(state, actions[selected].action, save_path)? {
                     return Ok(true);
                 }
             }
-            KeyCode::Char('/') => console::open_console(state, save_path)?,
-            KeyCode::Esc => {}
-            KeyCode::Char(ch) if ch.is_ascii_digit() => {
+            InputEvent::Character('/') => console::open_console(state, save_path)?,
+            InputEvent::Cancel => {}
+            InputEvent::Character(ch) if ch.is_ascii_digit() => {
                 let index = ch.to_digit(10).unwrap_or(0) as usize;
                 if index >= 1 && index <= actions.len() {
                     if dispatcher::dispatch(state, actions[index - 1].action, save_path)? {
