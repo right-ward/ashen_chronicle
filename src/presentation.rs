@@ -243,14 +243,94 @@ pub(crate) struct MeditationResultView {
     pub well_rested_applied: bool,
 }
 
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ScreenView {
+    pub title: String,
+    pub subtitle: Option<String>,
+    pub art: Option<String>,
+    pub body: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ChoiceView {
+    pub screen: ScreenView,
+    pub prompt: String,
+    pub options: Vec<String>,
+    pub back_label: Option<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct DeathView {
+    pub screen: ScreenView,
+    pub character: CharacterView,
+    pub location_name: String,
+    pub turn: u32,
+    pub deeds: Vec<String>,
+    pub faction_standing: Vec<FactionView>,
+    pub dropped_items: Vec<ItemView>,
+    pub memory_note: String,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct RemainsEntryView {
+    pub id: u64,
+    pub label: String,
+    pub former_name: String,
+    pub former_title: String,
+    pub scavenged: bool,
+    pub items: Vec<ItemView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct RemainsView {
+    pub location_name: String,
+    pub remains: Vec<RemainsEntryView>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct RemainsResultView {
+    pub location_name: String,
+    pub former_name: String,
+    pub former_title: String,
+    pub items: Vec<ItemView>,
+    pub hidden_item: Option<ItemView>,
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ConsoleCandidateView {
+    pub value: String,
+    pub hint: String,
+}
+
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
+pub(crate) enum ConsoleScrollView {
+    #[default]
+    Follow,
+    Offset(usize),
+    Home,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ConsoleView {
+    pub output: Vec<String>,
+    pub input: String,
+    pub scroll: ConsoleScrollView,
+    pub completion_scroll: usize,
+    pub candidates: Vec<ConsoleCandidateView>,
+    pub selected: usize,
+    pub autocomplete: bool,
+}
+
 #[cfg(test)]
 mod tests {
     use super::{
-        CharacterSheetView, CharacterView, CombatResultView, CombatView, CombatantView,
-        ConditionView, ConversationView, FactionView, HistoryEntryView, HistoryEntryViewType,
-        HistoryView, InventoryDetailView, InventoryView, ItemView, LocationView,
-        MeditationResultView, MeditationTargetView, MeditationView, NavigationView, NpcView,
-        QuestLogView, QuestObjectiveView, QuestView, TalkView, ThreatView, WorldView,
+        CharacterSheetView, CharacterView, ChoiceView, CombatResultView, CombatView, CombatantView,
+        ConditionView, ConsoleScrollView, ConsoleView, ConversationView, DeathView, FactionView,
+        HistoryEntryView, HistoryEntryViewType, HistoryView, InventoryDetailView, InventoryView,
+        ItemView, LocationView, MeditationResultView, MeditationTargetView, MeditationView,
+        NavigationView, NpcView, QuestLogView, QuestObjectiveView, QuestView, RemainsResultView,
+        RemainsView, ScreenView, TalkView, ThreatView, WorldView,
     };
 
     #[test]
@@ -301,6 +381,59 @@ mod tests {
         assert!(history.entries.is_empty());
         assert!(inventory.items.is_empty());
         assert!(meditation.targets.is_empty());
+    }
+
+    #[test]
+    fn lifecycle_and_console_views_hold_only_owned_frontend_data() {
+        let screen = ScreenView {
+            title: "TITLE".to_string(),
+            subtitle: Some("Subtitle".to_string()),
+            art: Some("art".to_string()),
+            body: vec!["line".to_string()],
+        };
+        let choice = ChoiceView {
+            screen: screen.clone(),
+            prompt: "Choose".to_string(),
+            options: vec!["One".to_string()],
+            back_label: Some("Back".to_string()),
+        };
+        let _death = DeathView {
+            screen: screen.clone(),
+            character: CharacterView {
+                name: "Ash".to_string(),
+                ..Default::default()
+            },
+            location_name: "Gate".to_string(),
+            turn: 4,
+            deeds: vec!["Completed a quest.".to_string()],
+            faction_standing: vec![],
+            dropped_items: vec![],
+            memory_note: "The next life will not remember.".to_string(),
+        };
+        let _remains = RemainsView {
+            location_name: "Gate".to_string(),
+            remains: vec![],
+        };
+        let _result = RemainsResultView {
+            location_name: "Gate".to_string(),
+            former_name: "Ash".to_string(),
+            former_title: "Walker".to_string(),
+            items: vec![],
+            hidden_item: None,
+            notes: vec![],
+        };
+        let console = ConsoleView {
+            output: vec!["output".to_string()],
+            input: "help".to_string(),
+            scroll: ConsoleScrollView::Follow,
+            completion_scroll: 0,
+            candidates: vec![],
+            selected: 0,
+            autocomplete: false,
+        };
+
+        assert_eq!(choice.options, vec!["One".to_string()]);
+        assert_eq!(console.input, "help");
     }
 
     #[test]

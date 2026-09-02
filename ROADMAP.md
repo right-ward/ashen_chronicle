@@ -28,12 +28,17 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added a frontend-neutral `InputEvent` boundary and routed gameplay-facing keyboard interactions through semantic events instead of direct `crossterm::KeyCode` handling.
 - Preserved existing keyboard controls, menu navigation, combat selection, history navigation, and developer-console editing/completion behavior.
 - Added focused presentation-boundary tests covering renderer-neutral view composition and representative Character Sheet view-model generation.
+- Migrated lifecycle/start/load/character-creation/quit/death flows to frontend-independent screen and choice views.
+- Migrated corpse/legacy recovery flow to frontend-independent remains and recovery result views while preserving recovery rules and item behavior.
+- Migrated developer-console rendering to consume a renderer-neutral `ConsoleView` while retaining semantic `InputEvent` handling.
+- Completed issue #146, removing the remaining lifecycle, legacy/recovery, and developer-console presentation coupling from gameplay-facing flow modules.
 
 ## Next
 
-### v0.45.0 - 0.46.0
+### v0.46.0 final architecture review
 
-- Migrate the remaining existing screens onto the presentation boundary using the shared UI primitives.
+- Audit the completed presentation and input boundaries for remaining terminal-specific dependencies in gameplay-facing modules.
+- Confirm module/documentation consistency and identify any follow-up architecture work needed before the next milestone.
 
 ## Longer-term direction
 
