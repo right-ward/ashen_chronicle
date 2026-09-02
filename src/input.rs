@@ -25,7 +25,11 @@ pub(crate) enum InputEvent {
 }
 
 pub(crate) fn read() -> io::Result<InputEvent> {
-    Ok(match crate::ui::read_key()? {
+    Ok(from_key(crate::ui::read_key()?))
+}
+
+fn from_key(key: KeyCode) -> InputEvent {
+    match key {
         KeyCode::Up | KeyCode::Char('k') => InputEvent::Up,
         KeyCode::Down | KeyCode::Char('j') => InputEvent::Down,
         KeyCode::Home => InputEvent::Home,
@@ -39,27 +43,23 @@ pub(crate) fn read() -> io::Result<InputEvent> {
         KeyCode::Delete => InputEvent::Delete,
         KeyCode::Char(c) => InputEvent::Character(c),
         _ => InputEvent::Other,
-    })
+    }
 }
 
 #[cfg(test)]
 mod tests {
-    use super::InputEvent;
+    use super::{from_key, InputEvent};
+    use crossterm::event::KeyCode;
 
     #[test]
-    fn semantic_events_are_frontend_neutral() {
-        let events = [
-            InputEvent::Up,
-            InputEvent::Down,
-            InputEvent::Confirm,
-            InputEvent::Cancel,
-            InputEvent::Character('x'),
-        ];
-
-        assert_eq!(events[0], InputEvent::Up);
-        assert_eq!(events[1], InputEvent::Down);
-        assert_eq!(events[2], InputEvent::Confirm);
-        assert_eq!(events[3], InputEvent::Cancel);
-        assert_eq!(events[4], InputEvent::Character('x'));
+    fn terminal_keys_map_to_semantic_events() {
+        assert_eq!(from_key(KeyCode::Up), InputEvent::Up);
+        assert_eq!(from_key(KeyCode::Char('k')), InputEvent::Up);
+        assert_eq!(from_key(KeyCode::Down), InputEvent::Down);
+        assert_eq!(from_key(KeyCode::Char('j')), InputEvent::Down);
+        assert_eq!(from_key(KeyCode::Enter), InputEvent::Confirm);
+        assert_eq!(from_key(KeyCode::Esc), InputEvent::Cancel);
+        assert_eq!(from_key(KeyCode::Char('x')), InputEvent::Character('x'));
+        assert_eq!(from_key(KeyCode::Backspace), InputEvent::Backspace);
     }
 }
