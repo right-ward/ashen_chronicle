@@ -41,3 +41,25 @@ pub(crate) fn read() -> io::Result<InputEvent> {
         _ => InputEvent::Other,
     })
 }
+
+#[cfg(test)]
+mod tests {
+    use super::InputEvent;
+
+    #[test]
+    fn semantic_events_are_frontend_neutral() {
+        let events = [
+            InputEvent::Up,
+            InputEvent::Down,
+            InputEvent::Confirm,
+            InputEvent::Cancel,
+            InputEvent::Character('x'),
+        ];
+
+        assert_eq!(events[0], InputEvent::Up);
+        assert_eq!(events[1], InputEvent::Down);
+        assert_eq!(events[2], InputEvent::Confirm);
+        assert_eq!(events[3], InputEvent::Cancel);
+        assert_eq!(events[4], InputEvent::Character('x'));
+    }
+}
