@@ -126,7 +126,11 @@ fn draw_entries(
     for (row, entry) in view.entries[start..end].iter().enumerate() {
         let absolute_index = start + row;
         let marker = entry_marker(entry);
-        let selector = if absolute_index == selected { '▶' } else { ' ' };
+        let selector = if absolute_index == selected {
+            '▶'
+        } else {
+            ' '
+        };
         lines.push(format!(
             "{selector} Day {} {marker} {}",
             entry.day, entry.text
