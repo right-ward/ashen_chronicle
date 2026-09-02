@@ -73,7 +73,10 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
     let choice_view = ChoiceView {
         screen: ScreenView {
             title: "REMAINS".to_string(),
-            subtitle: Some(format!("Search the remains at {}.", remains_view.location_name)),
+            subtitle: Some(format!(
+                "Search the remains at {}.",
+                remains_view.location_name
+            )),
             ..Default::default()
         },
         prompt: "Search which remains?".to_string(),

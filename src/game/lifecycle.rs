@@ -320,7 +320,9 @@ fn build_death_view(state: &GameState) -> DeathView {
     let mut body = Vec::new();
     body.push(format!(
         "{} died at {} on turn {}.",
-        character.display_name(), location_name, state.character.turn
+        character.display_name(),
+        location_name,
+        state.character.turn
     ));
     body.push(String::new());
     body.push("Deeds remembered:".to_string());
@@ -368,7 +370,8 @@ fn build_death_view(state: &GameState) -> DeathView {
         deeds,
         faction_standing,
         dropped_items,
-        memory_note: "The next life will know none of this as memory. It can only be discovered.".to_string(),
+        memory_note: "The next life will know none of this as memory. It can only be discovered."
+            .to_string(),
     }
 }
 
@@ -388,7 +391,11 @@ mod tests {
         let view = build_death_view(&state);
         assert_eq!(view.character.display_name(), "Ash the Wanderer");
         assert!(view.screen.body.iter().any(|line| line.contains("died at")));
-        assert!(view.screen.body.iter().any(|line| line == "Deeds remembered:"));
+        assert!(view
+            .screen
+            .body
+            .iter()
+            .any(|line| line == "Deeds remembered:"));
         assert_eq!(
             view.memory_note,
             "The next life will know none of this as memory. It can only be discovered."
