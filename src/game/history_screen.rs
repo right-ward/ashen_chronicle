@@ -1,9 +1,9 @@
 use crate::game::time::time_display;
+use crate::input::{self, InputEvent};
 use crate::model::{GameState, HistoryEntryType};
 use crate::presentation::{CharacterView, HistoryEntryView, HistoryEntryViewType, HistoryView};
 use crate::ui;
 use crate::ui_components;
-use crossterm::event::KeyCode;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use std::io;
 
@@ -19,17 +19,17 @@ pub(crate) fn run(state: &GameState) -> io::Result<()> {
         selected = selected.min(view.entries.len().saturating_sub(1));
         draw_list(&view, selected)?;
 
-        match ui::read_key()? {
-            KeyCode::Up | KeyCode::Char('k') => {
+        match input::read()? {
+            InputEvent::Up => {
                 selected = selected.checked_sub(1).unwrap_or(view.entries.len() - 1);
             }
-            KeyCode::Down | KeyCode::Char('j') => {
+            InputEvent::Down => {
                 selected = (selected + 1) % view.entries.len();
             }
-            KeyCode::Home => selected = 0,
-            KeyCode::End => selected = view.entries.len() - 1,
-            KeyCode::Enter => show_detail(&view.entries[selected])?,
-            KeyCode::Esc => return Ok(()),
+            InputEvent::Home => selected = 0,
+            InputEvent::End => selected = view.entries.len() - 1,
+            InputEvent::Confirm => show_detail(&view.entries[selected])?,
+            InputEvent::Cancel => return Ok(()),
             _ => {}
         }
     }
@@ -126,11 +126,7 @@ fn draw_entries(
     for (row, entry) in view.entries[start..end].iter().enumerate() {
         let absolute_index = start + row;
         let marker = entry_marker(entry);
-        let selector = if absolute_index == selected {
-            '▶'
-        } else {
-            ' '
-        };
+        let selector = if absolute_index == selected { '▶' } else { ' ' };
         lines.push(format!(
             "{selector} Day {} {marker} {}",
             entry.day, entry.text
@@ -156,8 +152,8 @@ fn draw_controls(frame: &mut ratatui::Frame<'_>, area: Rect, compact: bool) {
 fn show_detail(entry: &HistoryEntryView) -> io::Result<()> {
     ui::draw_combat_screen(|frame, area| draw_detail(frame, area, entry))?;
     loop {
-        match ui::read_key()? {
-            KeyCode::Enter | KeyCode::Esc => return Ok(()),
+        match input::read()? {
+            InputEvent::Confirm | InputEvent::Cancel => return Ok(()),
             _ => {}
         }
     }
@@ -216,7 +212,7 @@ fn draw_empty_history() -> io::Result<()> {
     })?;
 
     loop {
-        if matches!(ui::read_key()?, KeyCode::Esc | KeyCode::Enter) {
+        if matches!(input::read()?, InputEvent::Cancel | InputEvent::Confirm) {
             return Ok(());
         }
     }
