@@ -496,7 +496,14 @@ src/
 - Combat results for victory, defeat, and fleeing are presented on the encounter screen before returning to normal gameplay or the death flow.
 - Preserved existing combat rules, history recording, rewards, quest updates, and threat cleanup behavior.
 
-### v0.46.0: presentation foundation
+## v0.45.0: World presentation
+- add Dedicated World / Ashen Chronicle screen
+- add dedicated History screen
+- preserve World screen parent navigation
+- give Talk flow a dedicated screen state
+- keep action cursor visible on compact screens
+
+## v0.46.0: presentation foundation
 - Added frontend-independent presentation/view models for character, item, location, threat, history, faction, NPC, quest, and combatant data.
 - Kept presentation models free of ratatui/crossterm dependencies and gameplay rules so later frontends can consume the same data.
 - Added shared terminal UI primitives for compact-layout detection, panel rendering, scrolling text, message panels, health gauges, frame clearing, and common layout behavior.
@@ -515,4 +522,3 @@ src/
 - Migrated corpse/legacy recovery flow to frontend-independent remains and recovery result views while preserving recovery rules and item behavior.
 - Migrated developer-console rendering to consume a renderer-neutral `ConsoleView` while retaining semantic `InputEvent` handling.
 - Completed issue #146, removing the remaining lifecycle, legacy/recovery, and developer-console presentation coupling from gameplay-facing flow modules.
-
