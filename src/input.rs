@@ -30,8 +30,8 @@ pub(crate) fn read() -> io::Result<InputEvent> {
 
 fn from_key(key: KeyCode) -> InputEvent {
     match key {
-        KeyCode::Up | KeyCode::Char('k') => InputEvent::Up,
-        KeyCode::Down | KeyCode::Char('j') => InputEvent::Down,
+        KeyCode::Up => InputEvent::Up,
+        KeyCode::Down => InputEvent::Down,
         KeyCode::Home => InputEvent::Home,
         KeyCode::End => InputEvent::End,
         KeyCode::PageUp => InputEvent::PageUp,
@@ -54,9 +54,9 @@ mod tests {
     #[test]
     fn terminal_keys_map_to_semantic_events() {
         assert_eq!(from_key(KeyCode::Up), InputEvent::Up);
-        assert_eq!(from_key(KeyCode::Char('k')), InputEvent::Up);
         assert_eq!(from_key(KeyCode::Down), InputEvent::Down);
-        assert_eq!(from_key(KeyCode::Char('j')), InputEvent::Down);
+        assert_eq!(from_key(KeyCode::Char('k')), InputEvent::Character('k'));
+        assert_eq!(from_key(KeyCode::Char('j')), InputEvent::Character('j'));
         assert_eq!(from_key(KeyCode::Enter), InputEvent::Confirm);
         assert_eq!(from_key(KeyCode::Esc), InputEvent::Cancel);
         assert_eq!(from_key(KeyCode::Char('x')), InputEvent::Character('x'));
