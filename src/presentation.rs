@@ -145,6 +145,7 @@ pub(crate) struct CombatantView {
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct CombatView {
     pub character: CharacterView,
+    pub player_condition: Option<String>,
     pub enemy: CombatantView,
     pub enemy_power: i32,
     pub location_name: String,
