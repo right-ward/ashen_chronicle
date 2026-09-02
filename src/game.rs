@@ -8,12 +8,12 @@ mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
+mod lifecycle;
 mod menu;
 mod navigation;
 mod quests;
 mod records;
 mod runtime;
-mod screens;
 mod state_effects;
 mod time;
 mod world;
@@ -57,7 +57,7 @@ mod interactions {
 
 pub fn run() -> std::io::Result<()> {
     let _ui = crate::ui::init()?;
-    let Some((mut state, mut save_path)) = screens::start_screen()? else {
+    let Some((mut state, mut save_path)) = lifecycle::start_screen()? else {
         return Ok(());
     };
     world::bootstrap_campaign_content(&mut state);
