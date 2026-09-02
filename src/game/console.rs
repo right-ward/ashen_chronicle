@@ -4,9 +4,9 @@ mod commands;
 mod console_ui;
 
 use crate::game::world;
+use crate::input::{self, InputEvent};
 use crate::model::GameState;
 use crossterm::cursor;
-use crossterm::event::KeyCode;
 use crossterm::execute;
 use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
 use ratatui::backend::CrosstermBackend;
@@ -47,15 +47,15 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
         loop {
             console_ui::refresh_completion(&mut console, state);
             console_ui::draw_console(&mut terminal, &console)?;
-            let key = crate::ui::read_key()?;
+            let key = input::read()?;
 
             if console.autocomplete {
                 match key {
-                    KeyCode::Up => console_ui::select_previous(&mut console),
-                    KeyCode::Down => console_ui::select_next(&mut console),
-                    KeyCode::Enter => console_ui::accept_completion(&mut console),
-                    KeyCode::Esc => console_ui::cancel_completion(&mut console),
-                    KeyCode::Tab => {}
+                    InputEvent::Up => console_ui::select_previous(&mut console),
+                    InputEvent::Down => console_ui::select_next(&mut console),
+                    InputEvent::Confirm => console_ui::accept_completion(&mut console),
+                    InputEvent::Cancel => console_ui::cancel_completion(&mut console),
+                    InputEvent::Tab => {}
                     _ => {
                         console_ui::cancel_completion(&mut console);
                         console_ui::edit_input(&mut console, key);
@@ -65,14 +65,14 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
             }
 
             match key {
-                KeyCode::Esc => return Ok(()),
-                KeyCode::Enter => {
+                InputEvent::Cancel => return Ok(()),
+                InputEvent::Confirm => {
                     commands::execute_line(state, save_path, &mut console)?;
                     if console.exit {
                         return Ok(());
                     }
                 }
-                KeyCode::Tab => {
+                InputEvent::Tab => {
                     console_ui::refresh_completion(&mut console, state);
                     if !console.candidates.is_empty() {
                         console.autocomplete = true;
@@ -81,12 +81,12 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
                         console_ui::keep_completion_selection_visible(&mut console, 8);
                     }
                 }
-                KeyCode::Up => console_ui::history_previous(&mut console),
-                KeyCode::Down => console_ui::history_next(&mut console),
-                KeyCode::Home => console_ui::jump_home(&mut console),
-                KeyCode::End => console_ui::jump_end(&mut console),
-                KeyCode::PageUp => console_ui::scroll_up(&mut console, 6),
-                KeyCode::PageDown => console_ui::scroll_down(&mut console, 6),
+                InputEvent::Up => console_ui::history_previous(&mut console),
+                InputEvent::Down => console_ui::history_next(&mut console),
+                InputEvent::Home => console_ui::jump_home(&mut console),
+                InputEvent::End => console_ui::jump_end(&mut console),
+                InputEvent::PageUp => console_ui::scroll_up(&mut console, 6),
+                InputEvent::PageDown => console_ui::scroll_down(&mut console, 6),
                 _ => console_ui::edit_input(&mut console, key),
             }
         }
