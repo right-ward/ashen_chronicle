@@ -20,10 +20,10 @@ pub(crate) fn run(state: &GameState) -> io::Result<()> {
         draw_list(&view, selected)?;
 
         match input::read()? {
-            InputEvent::Up => {
+            InputEvent::Up | InputEvent::Character('k') => {
                 selected = selected.checked_sub(1).unwrap_or(view.entries.len() - 1);
             }
-            InputEvent::Down => {
+            InputEvent::Down | InputEvent::Character('j') => {
                 selected = (selected + 1) % view.entries.len();
             }
             InputEvent::Home => selected = 0,
