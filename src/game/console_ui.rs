@@ -1,5 +1,6 @@
 use crate::input::InputEvent;
 use crate::model::{EntityId, GameState};
+use crate::presentation::{ConsoleCandidateView, ConsoleScrollView, ConsoleView};
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::*;
@@ -33,6 +34,29 @@ pub(super) enum ScrollPosition {
     Follow,
     Offset(usize),
     Home,
+}
+
+pub(super) fn build_view(console: &ConsoleState) -> ConsoleView {
+    ConsoleView {
+        output: console.output.clone(),
+        input: console.input.clone(),
+        scroll: match console.scroll {
+            ScrollPosition::Follow => ConsoleScrollView::Follow,
+            ScrollPosition::Offset(offset) => ConsoleScrollView::Offset(offset),
+            ScrollPosition::Home => ConsoleScrollView::Home,
+        },
+        completion_scroll: console.completion_scroll,
+        candidates: console
+            .candidates
+            .iter()
+            .map(|candidate| ConsoleCandidateView {
+                value: candidate.value.clone(),
+                hint: candidate.hint.clone(),
+            })
+            .collect(),
+        selected: console.selected,
+        autocomplete: console.autocomplete,
+    }
 }
 
 pub(super) fn edit_input(console: &mut ConsoleState, key: InputEvent) {
@@ -332,7 +356,7 @@ pub(super) fn accept_completion(console: &mut ConsoleState) {
 
 pub(super) fn draw_console(
     terminal: &mut Terminal<CrosstermBackend<io::Stdout>>,
-    console: &ConsoleState,
+    view: &ConsoleView,
 ) -> io::Result<()> {
     terminal.draw(|frame| {
         frame.render_widget(Clear, frame.area());
@@ -349,17 +373,17 @@ pub(super) fn draw_console(
             .constraints([Constraint::Min(4), Constraint::Length(3)].as_ref())
             .split(inner);
 
-        let lines = console
+        let lines = view
             .output
             .iter()
             .map(|line| Line::from(line.as_str()))
             .collect::<Vec<_>>();
         let max_scroll = wrapped_line_count(&lines, chunks[0].width as usize)
             .saturating_sub(chunks[0].height as usize);
-        let scroll = match console.scroll {
-            ScrollPosition::Follow => 0,
-            ScrollPosition::Offset(offset) => offset.min(max_scroll),
-            ScrollPosition::Home => max_scroll,
+        let scroll = match view.scroll {
+            ConsoleScrollView::Follow => 0,
+            ConsoleScrollView::Offset(offset) => offset.min(max_scroll),
+            ConsoleScrollView::Home => max_scroll,
         };
         frame.render_widget(
             Paragraph::new(lines)
@@ -368,12 +392,12 @@ pub(super) fn draw_console(
             chunks[0],
         );
 
-        let input = Paragraph::new(Line::from(format!("> {}", console.input)))
+        let input = Paragraph::new(Line::from(format!("> {}", view.input)))
             .block(Block::default().borders(Borders::ALL).title("Input"));
         frame.render_widget(input, chunks[1]);
 
-        if console.autocomplete && !console.candidates.is_empty() {
-            let visible = console.candidates.len().min(8);
+        if view.autocomplete && !view.candidates.is_empty() {
+            let visible = view.candidates.len().min(8);
             let popup_height = visible as u16 + 2;
             let popup = Rect {
                 x: chunks[1].x,
@@ -382,21 +406,17 @@ pub(super) fn draw_console(
                 height: popup_height,
             };
             frame.render_widget(Clear, popup);
-            let start = console
+            let start = view
                 .completion_scroll
-                .min(console.candidates.len().saturating_sub(visible));
-            let lines = console
+                .min(view.candidates.len().saturating_sub(visible));
+            let lines = view
                 .candidates
                 .iter()
                 .enumerate()
                 .skip(start)
                 .take(visible)
                 .map(|(index, candidate)| {
-                    let marker = if index == console.selected {
-                        '▶'
-                    } else {
-                        ' '
-                    };
+                    let marker = if index == view.selected { '▶' } else { ' ' };
                     Line::from(format!(
                         "{marker} {}  — {}",
                         candidate.value, candidate.hint
