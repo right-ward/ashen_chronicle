@@ -1,6 +1,7 @@
 mod content;
 mod events;
 mod game;
+mod input;
 mod model;
 mod persistence;
 mod presentation;
