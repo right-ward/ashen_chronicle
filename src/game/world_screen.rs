@@ -25,16 +25,15 @@ pub(crate) fn run(state: &mut GameState, save_path: &Path) -> io::Result<bool> {
         }
         selected = selected.min(actions.len().saturating_sub(1));
         let view = build_view(state);
-        let action_labels = actions
-            .iter()
-            .map(|entry| entry.label.clone())
-            .collect::<Vec<_>>();
+        let action_labels = actions.iter().map(|entry| entry.label.clone()).collect::<Vec<_>>();
         draw(&view, &action_labels, selected)?;
         match input::read()? {
-            InputEvent::Up => {
+            InputEvent::Up | InputEvent::Character('k') => {
                 selected = selected.checked_sub(1).unwrap_or(actions.len() - 1)
             }
-            InputEvent::Down => selected = (selected + 1) % actions.len(),
+            InputEvent::Down | InputEvent::Character('j') => {
+                selected = (selected + 1) % actions.len()
+            }
             InputEvent::Home => selected = 0,
             InputEvent::End => selected = actions.len() - 1,
             InputEvent::Confirm => {
@@ -59,25 +58,22 @@ pub(crate) fn run(state: &mut GameState, save_path: &Path) -> io::Result<bool> {
 }
 
 fn build_view(state: &GameState) -> WorldView {
-    let location = state
-        .world
-        .location_by_id(state.character.location_id)
-        .map(|location| {
-            let region_name = state
-                .world
-                .regions
-                .iter()
-                .find(|region| region.id == location.region_id)
-                .map(|region| region.name.clone())
-                .unwrap_or_else(|| "Unknown region".to_string());
-            LocationView {
-                id: location.id,
-                name: location.name.clone(),
-                description: location.description.clone(),
-                region_name,
-                dangerous: location.dangerous,
-            }
-        });
+    let location = state.world.location_by_id(state.character.location_id).map(|location| {
+        let region_name = state
+            .world
+            .regions
+            .iter()
+            .find(|region| region.id == location.region_id)
+            .map(|region| region.name.clone())
+            .unwrap_or_else(|| "Unknown region".to_string());
+        LocationView {
+            id: location.id,
+            name: location.name.clone(),
+            description: location.description.clone(),
+            region_name,
+            dangerous: location.dangerous,
+        }
+    });
     let threat = if state.threat.active {
         Some(ThreatView {
             label: state.threat.label.clone(),
@@ -138,21 +134,12 @@ fn draw_inner(
     let outer = Rect {
         x: area.x + horizontal_margin.min(area.width.saturating_sub(1)),
         y: area.y + vertical_margin.min(area.height.saturating_sub(1)),
-        width: area
-            .width
-            .saturating_sub(horizontal_margin.saturating_mul(2))
-            .max(1),
-        height: area
-            .height
-            .saturating_sub(vertical_margin.saturating_mul(2))
-            .max(1),
+        width: area.width.saturating_sub(horizontal_margin.saturating_mul(2)).max(1),
+        height: area.height.saturating_sub(vertical_margin.saturating_mul(2)).max(1),
     };
     let header_height = if compact { 7 } else { 8 };
     let body_min_height = 8u16;
-    let available_action_height = outer
-        .height
-        .saturating_sub(header_height)
-        .saturating_sub(body_min_height);
+    let available_action_height = outer.height.saturating_sub(header_height).saturating_sub(body_min_height);
     let action_height = (action_labels.len() as u16 + 3)
         .min(available_action_height.max(6))
         .max(1);
@@ -203,10 +190,7 @@ fn draw_header(frame: &mut ratatui::Frame<'_>, area: Rect, view: &WorldView, com
         view.character.display_name(),
         location_name
     );
-    frame.render_widget(
-        Paragraph::new(identity).wrap(Wrap { trim: false }),
-        columns[0],
-    );
+    frame.render_widget(Paragraph::new(identity).wrap(Wrap { trim: false }), columns[0]);
     frame.render_widget(
         Paragraph::new(view.time.clone())
             .alignment(Alignment::Center)
