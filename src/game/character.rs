@@ -142,7 +142,10 @@ fn set_character_screen(view: &CharacterSheetView) {
         format!("Endurance: {}", view.attributes.endurance),
         format!("Effective might: {}", view.attributes.effective_might),
         format!("Effective insight: {}", view.attributes.effective_insight),
-        format!("Effective endurance: {}", view.attributes.effective_endurance),
+        format!(
+            "Effective endurance: {}",
+            view.attributes.effective_endurance
+        ),
         String::new(),
     ];
     general.extend(condition_lines);

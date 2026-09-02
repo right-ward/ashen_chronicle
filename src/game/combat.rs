@@ -253,7 +253,11 @@ fn build_combat_view(
         location_name: location_name.to_string(),
         turn: state.character.turn,
         events: events.to_vec(),
-        actions: vec!["Attack".to_string(), "Guard".to_string(), "Flee".to_string()],
+        actions: vec![
+            "Attack".to_string(),
+            "Guard".to_string(),
+            "Flee".to_string(),
+        ],
     }
 }
 
