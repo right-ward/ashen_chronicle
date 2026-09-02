@@ -1,6 +1,6 @@
 use crate::game::{
-    actions, character, combat, history_screen, interactions, legacy, menu, navigation, records,
-    screens,
+    actions, character, combat, history_screen, interactions, legacy, lifecycle, menu, navigation,
+    records,
 };
 use crate::model::GameState;
 use std::io;
@@ -22,7 +22,7 @@ pub(crate) fn dispatch(
         menu::GameAction::Inventory => records::show_inventory(state)?,
         menu::GameAction::Journal => records::write_note(state)?,
         menu::GameAction::CharacterSheet => character::character_sheet(state)?,
-        menu::GameAction::Quit => return screens::quit_screen(),
+        menu::GameAction::Quit => return lifecycle::quit_screen(),
     }
     Ok(false)
 }
