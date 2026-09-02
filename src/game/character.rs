@@ -1,4 +1,7 @@
 use crate::model::GameState;
+use crate::presentation::{
+    AttributesView, CharacterSheetView, CharacterView, ConditionView, FactionView,
+};
 use crate::ui::{choose_from_list, set_menu_screen};
 
 macro_rules! println {
@@ -39,32 +42,75 @@ pub(crate) fn gain_experience(state: &mut GameState, amount: u32) {
 }
 
 pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
+    let view = build_character_sheet_view(state);
     let tabs = vec!["Reputation".to_string(), "Journal".to_string()];
 
     loop {
-        set_character_screen(state, 0);
+        set_character_screen(&view);
         let Some(selection) = choose_from_list("General", &tabs, Some("Back"))? else {
             return Ok(());
         };
-        show_character_tab(state, selection)?;
+        show_character_tab(&view, selection)?;
     }
 }
 
-fn show_character_tab(state: &GameState, tab: usize) -> std::io::Result<()> {
+fn build_character_sheet_view(state: &GameState) -> CharacterSheetView {
+    let character = &state.character;
+    CharacterSheetView {
+        character: CharacterView {
+            name: character.name.clone(),
+            title: character.title.clone(),
+            hp: character.hp,
+            max_hp: character.max_hp,
+        },
+        level: character.level,
+        experience: character.experience,
+        next_level_experience: character.level * 50,
+        attributes: AttributesView {
+            might: character.attributes.might,
+            insight: character.attributes.insight,
+            endurance: character.attributes.endurance,
+            effective_might: character.effective_might(),
+            effective_insight: character.effective_insight(),
+            effective_endurance: character.effective_endurance(),
+        },
+        conditions: character
+            .conditions
+            .iter()
+            .map(|condition| ConditionView {
+                name: condition.name.clone(),
+                remaining: condition.remaining,
+                penalty: condition.penalty,
+                bonus: condition.bonus,
+            })
+            .collect(),
+        factions: state
+            .factions
+            .iter()
+            .map(|faction| FactionView {
+                name: faction.name.clone(),
+                reputation: faction.reputation,
+                memories: faction.memory.clone(),
+            })
+            .collect(),
+        notes: character.notes.clone(),
+    }
+}
+
+fn show_character_tab(view: &CharacterSheetView, tab: usize) -> std::io::Result<()> {
     match tab {
-        0 => show_reputation_tab(state),
-        1 => show_journal_tab(state),
+        0 => show_reputation_tab(view),
+        1 => show_journal_tab(view),
         _ => Ok(()),
     }
 }
 
-fn set_character_screen(state: &GameState, _tab: usize) {
-    let character = &state.character;
-    let condition_lines = if character.conditions.is_empty() {
+fn set_character_screen(view: &CharacterSheetView) {
+    let condition_lines = if view.conditions.is_empty() {
         vec!["Conditions: none".to_string()]
     } else {
         let mut lines = vec!["Conditions:".to_string()];
-        lines.extend(character.conditions.iter().map(|condition| {
+        lines.extend(view.conditions.iter().map(|condition| {
             let effect = match (condition.penalty, condition.bonus) {
                 (penalty, bonus) if penalty < 0 && bonus > 0 => {
                     format!(" {:+} penalty, {:+} bonus", penalty, bonus)
@@ -82,22 +128,21 @@ fn set_character_screen(state: &GameState, _tab: usize) {
     };
 
     let mut general = vec![
-        character.display_name(),
+        view.character.display_name(),
         String::new(),
-        format!("Level {}", character.level),
+        format!("Level {}", view.level),
         format!(
             "Experience: {}/{}",
-            character.experience,
-            character.level * 50
+            view.experience, view.next_level_experience
         ),
-        format!("Health: {}/{}", character.hp, character.max_hp),
+        format!("Health: {}/{}", view.character.hp, view.character.max_hp),
         String::new(),
-        format!("Might: {}", character.attributes.might),
-        format!("Insight: {}", character.attributes.insight),
-        format!("Endurance: {}", character.attributes.endurance),
-        format!("Effective might: {}", character.effective_might()),
-        format!("Effective insight: {}", character.effective_insight()),
-        format!("Effective endurance: {}", character.effective_endurance()),
+        format!("Might: {}", view.attributes.might),
+        format!("Insight: {}", view.attributes.insight),
+        format!("Endurance: {}", view.attributes.endurance),
+        format!("Effective might: {}", view.attributes.effective_might),
+        format!("Effective insight: {}", view.attributes.effective_insight),
+        format!("Effective endurance: {}", view.attributes.effective_endurance),
         String::new(),
     ];
     general.extend(condition_lines);
@@ -105,19 +150,19 @@ fn set_character_screen(state: &GameState, _tab: usize) {
     set_menu_screen("Character — General", Some(general.join("\n")), None);
 }
 
-fn show_reputation_tab(state: &GameState) -> std::io::Result<()> {
+fn show_reputation_tab(view: &CharacterSheetView) -> std::io::Result<()> {
     let mut lines = Vec::new();
-    if state.factions.is_empty() {
+    if view.factions.is_empty() {
         lines.push("No faction reputations have been recorded.".to_string());
     } else {
-        for faction in &state.factions {
+        for faction in &view.factions {
             lines.push(format!("{} {:+}", faction.name, faction.reputation));
-            if faction.memory.is_empty() {
+            if faction.memories.is_empty() {
                 lines.push("  No remembered dealings.".to_string());
             } else {
                 lines.extend(
                     faction
-                        .memory
+                        .memories
                         .iter()
                         .rev()
                         .map(|memory| format!("  - {}", memory)),
@@ -132,12 +177,12 @@ fn show_reputation_tab(state: &GameState) -> std::io::Result<()> {
     Ok(())
 }
 
-fn show_journal_tab(state: &GameState) -> std::io::Result<()> {
+fn show_journal_tab(view: &CharacterSheetView) -> std::io::Result<()> {
     let mut lines = Vec::new();
-    if state.character.notes.is_empty() {
+    if view.notes.is_empty() {
         lines.push("The journal is empty.".to_string());
     } else {
-        for (index, note) in state.character.notes.iter().enumerate() {
+        for (index, note) in view.notes.iter().enumerate() {
             lines.push(format!("{}. {}", index + 1, note));
         }
     }
