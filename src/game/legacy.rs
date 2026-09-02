@@ -3,7 +3,7 @@ use crate::model::{Corpse, GameState, Item};
 use crate::presentation::{
     ChoiceView, ItemView, RemainsEntryView, RemainsResultView, RemainsView, ScreenView,
 };
-use crate::ui::{choose_from_list, narrate, pause};
+use crate::ui::{narrate, pause};
 use std::mem;
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -113,6 +113,7 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
         }
 
         let item_names: Vec<String> = items.iter().map(|item| item.name.clone()).collect();
+        let recovered_items = items.iter().map(item_view).collect::<Vec<_>>();
         for item in &items {
             notify_item_gain(state, item);
             interactions::grant_reward_reputation(state, item);
@@ -154,13 +155,7 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
             location_name: location_name.clone(),
             former_name: former_name.clone(),
             former_title: former_title.clone(),
-            items: state
-                .character
-                .inventory
-                .iter()
-                .filter(|item| item_names.contains(&item.name))
-                .map(item_view)
-                .collect(),
+            items: recovered_items,
             hidden_item: hidden_item.as_ref().map(item_view),
             notes: vec![
                 "Feel like a deja-vu.".to_string(),
