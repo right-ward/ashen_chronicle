@@ -6,51 +6,27 @@ use ratatui::symbols::merge::MergeStrategy;
 use ratatui::widgets::{Block, LineGauge, Paragraph, Wrap};
 use std::io;
 
-const ACTIONS: [&str; 3] = ["Attack", "Guard", "Flee"];
+use crate::presentation::{CombatResultView, CombatView};
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn choose_action(
-    player_name: &str,
-    player_hp: i32,
-    player_max_hp: i32,
-    player_condition: Option<&str>,
-    enemy_name: &str,
-    enemy_hp: i32,
-    enemy_max_hp: i32,
-    enemy_power: i32,
-    location_name: &str,
-    turn: u32,
-    events: &[String],
-) -> io::Result<usize> {
+pub(crate) fn choose_action(view: &CombatView) -> io::Result<usize> {
     let mut selected = 0usize;
     loop {
-        render(
-            player_name,
-            player_hp,
-            player_max_hp,
-            player_condition,
-            enemy_name,
-            enemy_hp,
-            enemy_max_hp,
-            enemy_power,
-            location_name,
-            turn,
-            events,
-            Some(selected),
-            None,
-        )?;
+        render(view, Some(selected), None)?;
 
         match crate::ui::read_key()? {
             crossterm::event::KeyCode::Up | crossterm::event::KeyCode::Char('k') => {
-                selected = selected.checked_sub(1).unwrap_or(ACTIONS.len() - 1);
+                selected = selected.checked_sub(1).unwrap_or(view.actions.len() - 1);
             }
             crossterm::event::KeyCode::Down | crossterm::event::KeyCode::Char('j') => {
-                selected = (selected + 1) % ACTIONS.len();
+                selected = (selected + 1) % view.actions.len();
             }
             crossterm::event::KeyCode::Home => selected = 0,
-            crossterm::event::KeyCode::End => selected = ACTIONS.len() - 1,
-            crossterm::event::KeyCode::Char(c) if ('1'..='3').contains(&c) => {
-                return Ok(c.to_digit(10).unwrap() as usize - 1);
+            crossterm::event::KeyCode::End => selected = view.actions.len() - 1,
+            crossterm::event::KeyCode::Char(c) if c.is_ascii_digit() => {
+                let action = c.to_digit(10).unwrap() as usize;
+                if action > 0 && action <= view.actions.len() {
+                    return Ok(action - 1);
+                }
             }
             crossterm::event::KeyCode::Enter => return Ok(selected),
             _ => {}
@@ -58,37 +34,8 @@ pub(crate) fn choose_action(
     }
 }
 
-#[allow(clippy::too_many_arguments)]
-pub(crate) fn show_result(
-    player_name: &str,
-    player_hp: i32,
-    player_max_hp: i32,
-    player_condition: Option<&str>,
-    enemy_name: &str,
-    enemy_hp: i32,
-    enemy_max_hp: i32,
-    enemy_power: i32,
-    location_name: &str,
-    turn: u32,
-    events: &[String],
-    result_title: &str,
-    result_note: &str,
-) -> io::Result<()> {
-    render(
-        player_name,
-        player_hp,
-        player_max_hp,
-        player_condition,
-        enemy_name,
-        enemy_hp,
-        enemy_max_hp,
-        enemy_power,
-        location_name,
-        turn,
-        events,
-        None,
-        Some((result_title, result_note)),
-    )
+pub(crate) fn show_result(view: &CombatResultView) -> io::Result<()> {
+    render(&view.combat, None, Some(view))
 }
 
 pub(crate) fn wait_for_key() -> io::Result<()> {
@@ -96,21 +43,10 @@ pub(crate) fn wait_for_key() -> io::Result<()> {
     Ok(())
 }
 
-#[allow(clippy::too_many_arguments)]
 fn render(
-    player_name: &str,
-    player_hp: i32,
-    player_max_hp: i32,
-    player_condition: Option<&str>,
-    enemy_name: &str,
-    enemy_hp: i32,
-    enemy_max_hp: i32,
-    enemy_power: i32,
-    location_name: &str,
-    turn: u32,
-    events: &[String],
+    view: &CombatView,
     selected_action: Option<usize>,
-    result: Option<(&str, &str)>,
+    result: Option<&CombatResultView>,
 ) -> io::Result<()> {
     crate::ui::draw_combat_screen(|frame, area| {
         let margin = if area.width <= 112 || area.height <= 36 {
@@ -148,29 +84,30 @@ fn render(
             frame,
             actors[0],
             "Player",
-            player_name,
-            player_hp,
-            player_max_hp,
-            player_condition,
+            &view.character.display_name(),
+            view.character.hp,
+            view.character.max_hp,
+            view.player_condition.as_deref(),
             Color::Indexed(124),
         );
+        let enemy_detail = format!("Power: {}", view.enemy_power);
         render_actor(
             frame,
             actors[1],
             "Enemy",
-            enemy_name,
-            enemy_hp,
-            enemy_max_hp,
-            Some(&format!("Power: {enemy_power}")),
+            &view.enemy.name,
+            view.enemy.current_hp,
+            view.enemy.max_hp,
+            Some(&enemy_detail),
             Color::Indexed(90),
         );
 
-        let event_title = format!("Events — {location_name} — Turn {turn}");
+        let event_title = format!("Events — {} — Turn {}", view.location_name, view.turn);
         let visible = root[1].height.saturating_sub(2) as usize;
-        let lines = if events.is_empty() {
+        let lines = if view.events.is_empty() {
             vec!["The encounter begins.".to_string()]
         } else {
-            events
+            view.events
                 .iter()
                 .rev()
                 .take(visible.max(1))
@@ -192,16 +129,16 @@ fn render(
             root[1],
         );
 
-        let action_lines = if let Some((title, note)) = result {
+        let action_lines = if let Some(result) = result {
             vec![
-                title.to_string(),
+                result.result_title.clone(),
                 String::new(),
-                note.to_string(),
+                result.result_note.clone(),
                 String::new(),
                 "Press any key to continue...".to_string(),
             ]
         } else {
-            ACTIONS
+            view.actions
                 .iter()
                 .enumerate()
                 .map(|(index, action)| {

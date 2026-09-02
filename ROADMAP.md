@@ -23,6 +23,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Preserved existing history ordering, navigation choices, NPC availability, dialogue options, quest interactions, and time advancement behavior.
 - Migrated Quest Log, Inventory, and Meditation flows to build frontend-independent presentation views before terminal-specific display.
 - Preserved existing quest filtering/details, inventory selection/details and item art, meditation safety checks, target selection, recovery, save behavior, and result presentation.
+- Migrated the Character Sheet and Combat flows to build frontend-independent presentation views before terminal rendering.
+- Preserved character progression, condition/reputation/journal presentation, combat actions, events, result states, rewards, history recording, and threat cleanup behavior.
 
 ## Next
 

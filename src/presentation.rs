@@ -24,6 +24,36 @@ impl CharacterView {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct AttributesView {
+    pub might: i32,
+    pub insight: i32,
+    pub endurance: i32,
+    pub effective_might: i32,
+    pub effective_insight: i32,
+    pub effective_endurance: i32,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct ConditionView {
+    pub name: String,
+    pub remaining: u32,
+    pub penalty: i32,
+    pub bonus: i32,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct CharacterSheetView {
+    pub character: CharacterView,
+    pub level: u32,
+    pub experience: u32,
+    pub next_level_experience: u32,
+    pub attributes: AttributesView,
+    pub conditions: Vec<ConditionView>,
+    pub factions: Vec<FactionView>,
+    pub notes: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct ItemView {
     pub id: u64,
     pub name: String,
@@ -110,6 +140,25 @@ pub(crate) struct CombatantView {
     pub name: String,
     pub current_hp: i32,
     pub max_hp: i32,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct CombatView {
+    pub character: CharacterView,
+    pub player_condition: Option<String>,
+    pub enemy: CombatantView,
+    pub enemy_power: i32,
+    pub location_name: String,
+    pub turn: u32,
+    pub events: Vec<String>,
+    pub actions: Vec<String>,
+}
+
+#[derive(Debug, Clone, Default, PartialEq, Eq)]
+pub(crate) struct CombatResultView {
+    pub combat: CombatView,
+    pub result_title: String,
+    pub result_note: String,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
