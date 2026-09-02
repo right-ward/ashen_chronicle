@@ -15,10 +15,10 @@ pub(crate) fn choose_action(view: &CombatView) -> io::Result<usize> {
         render(view, Some(selected), None)?;
 
         match input::read()? {
-            InputEvent::Up => {
+            InputEvent::Up | InputEvent::Character('k') => {
                 selected = selected.checked_sub(1).unwrap_or(view.actions.len() - 1);
             }
-            InputEvent::Down => {
+            InputEvent::Down | InputEvent::Character('j') => {
                 selected = (selected + 1) % view.actions.len();
             }
             InputEvent::Home => selected = 0,
