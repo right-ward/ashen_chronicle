@@ -323,6 +323,7 @@ mod tests {
             region_name: "North".to_string(),
             dangerous: true,
         };
+        #[allow(unused_variables)]
         let threat = ThreatView {
             label: "Marauders stir".to_string(),
             description: "Someone is watching the road.".to_string(),
