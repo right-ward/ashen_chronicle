@@ -5,6 +5,7 @@ pub(crate) mod components {
     pub(crate) use crate::ui_components::*;
 }
 
+use crate::presentation::{ChoiceView, ScreenView};
 use std::sync::{Mutex, OnceLock};
 
 pub(crate) use ui_impl::{
@@ -38,6 +39,31 @@ pub fn set_menu_screen(title: impl Into<String>, subtitle: Option<String>, art: 
     state.output.clear();
     drop(state);
     ui_impl::set_menu_screen(title, subtitle, art);
+}
+
+pub(crate) fn show_screen_view(view: &ScreenView) {
+    let mut lines = Vec::new();
+    if !view.body.is_empty() {
+        lines.extend(view.body.iter().cloned());
+    }
+    let subtitle = match &view.subtitle {
+        Some(subtitle) if !subtitle.is_empty() && !lines.is_empty() => {
+            let mut combined = String::with_capacity(subtitle.len() + 1 + lines.len() * 16);
+            combined.push_str(subtitle);
+            combined.push('\n');
+            combined.push_str(&lines.join("\n"));
+            Some(combined)
+        }
+        Some(subtitle) => Some(subtitle.clone()),
+        None if !lines.is_empty() => Some(lines.join("\n")),
+        None => None,
+    };
+    set_menu_screen(view.title.clone(), subtitle, view.art.clone());
+}
+
+pub(crate) fn choose_screen_view(view: &ChoiceView) -> std::io::Result<Option<usize>> {
+    show_screen_view(&view.screen);
+    choose_from_list(&view.prompt, &view.options, view.back_label.as_deref())
 }
 
 pub fn set_dashboard(dashboard: Dashboard) {
