@@ -25,13 +25,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Migrated corpse/legacy recovery flow to frontend-independent remains and recovery result views while preserving recovery rules and item behavior.
 - Migrated developer-console rendering to consume a renderer-neutral `ConsoleView` while retaining semantic `InputEvent` handling.
 - Completed issue #146, removing the remaining lifecycle, legacy/recovery, and developer-console presentation coupling from gameplay-facing flow modules.
+- Completed the final architecture audit: direct ratatui/crossterm usage remains confined to renderer and input-adapter layers, presentation models remain renderer-neutral, and no additional v0.46.0 migration blocker was found.
 
 ## Next
 
-### v0.46.0 final architecture review
+### v0.47.0 planning
 
-- Audit the completed presentation and input boundaries for remaining terminal-specific dependencies in gameplay-facing modules.
-- Confirm module/documentation consistency and identify any follow-up architecture work needed before the next milestone.
+- Define the next gameplay/content milestone before implementation begins.
+- Track the future interaction-intent layer separately if GUI work requires inputs more abstract than the current semantic `InputEvent` controls.
 
 ## Longer-term direction
 
