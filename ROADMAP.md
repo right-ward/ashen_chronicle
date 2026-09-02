@@ -6,13 +6,6 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-### v0.44.0: dedicated combat encounter presentation
-- Replaced combat's generic action/log presentation with a dedicated combat encounter screen.
-- Combat now presents the player and enemy together with current turn, encounter location, enemy power, available actions, and recent combat events.
-- Player and enemy health remain displayed through the existing LineGauge presentation while combat is active.
-- Combat results for victory, defeat, and fleeing are presented on the encounter screen before returning to normal gameplay or the death flow.
-- Preserved existing combat rules, history recording, rewards, quest updates, and threat cleanup behavior.
-
 ### v0.46.0: presentation foundation
 - Added frontend-independent presentation/view models for character, item, location, threat, history, faction, NPC, quest, and combatant data.
 - Kept presentation models free of ratatui/crossterm dependencies and gameplay rules so later frontends can consume the same data.
