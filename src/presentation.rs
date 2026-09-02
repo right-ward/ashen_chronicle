@@ -247,8 +247,8 @@ pub(crate) struct MeditationResultView {
 mod tests {
     use super::{
         CharacterSheetView, CharacterView, CombatResultView, CombatView, CombatantView,
-        ConditionView, ConversationView, FactionView, HistoryEntryView, HistoryView,
-        HistoryEntryViewType, InventoryDetailView, InventoryView, ItemView, LocationView,
+        ConditionView, ConversationView, FactionView, HistoryEntryView, HistoryEntryViewType,
+        HistoryView, InventoryDetailView, InventoryView, ItemView, LocationView,
         MeditationResultView, MeditationTargetView, MeditationView, NavigationView, NpcView,
         QuestLogView, QuestObjectiveView, QuestView, TalkView, ThreatView, WorldView,
     };
@@ -372,7 +372,11 @@ mod tests {
             location_name: location.name.clone(),
             turn: 6,
             events: vec!["A clash begins.".to_string()],
-            actions: vec!["Attack".to_string(), "Guard".to_string(), "Flee".to_string()],
+            actions: vec![
+                "Attack".to_string(),
+                "Guard".to_string(),
+                "Flee".to_string(),
+            ],
         };
         let result = CombatResultView {
             combat: combat.clone(),
