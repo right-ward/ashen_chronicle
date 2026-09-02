@@ -27,6 +27,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Preserved character progression, condition/reputation/journal presentation, combat actions, events, result states, rewards, history recording, and threat cleanup behavior.
 - Added a frontend-neutral `InputEvent` boundary and routed gameplay-facing keyboard interactions through semantic events instead of direct `crossterm::KeyCode` handling.
 - Preserved existing keyboard controls, menu navigation, combat selection, history navigation, and developer-console editing/completion behavior.
+- Added focused presentation-boundary tests covering renderer-neutral view composition and representative Character Sheet view-model generation.
 
 ## Next
 

@@ -245,7 +245,13 @@ pub(crate) struct MeditationResultView {
 
 #[cfg(test)]
 mod tests {
-    use super::{CharacterView, HistoryView, InventoryView, MeditationView, NpcView, WorldView};
+    use super::{
+        CharacterSheetView, CharacterView, CombatResultView, CombatView, CombatantView,
+        ConditionView, ConversationView, FactionView, HistoryEntryView, HistoryEntryViewType,
+        HistoryView, InventoryDetailView, InventoryView, ItemView, LocationView,
+        MeditationResultView, MeditationTargetView, MeditationView, NavigationView, NpcView,
+        QuestLogView, QuestObjectiveView, QuestView, TalkView, ThreatView, WorldView,
+    };
 
     #[test]
     fn display_name_uses_title_when_present() {
@@ -295,5 +301,158 @@ mod tests {
         assert!(history.entries.is_empty());
         assert!(inventory.items.is_empty());
         assert!(meditation.targets.is_empty());
+    }
+
+    #[test]
+    fn view_models_are_renderer_neutral_and_owned() {
+        let character = CharacterView {
+            name: "Ash".to_string(),
+            title: "Wanderer".to_string(),
+            hp: 8,
+            max_hp: 10,
+        };
+        let item = ItemView {
+            id: 7,
+            name: "Relic".to_string(),
+            description: "A weathered relic.".to_string(),
+        };
+        let location = LocationView {
+            id: 2,
+            name: "Ruined Gate".to_string(),
+            description: "A broken road marker.".to_string(),
+            region_name: "North".to_string(),
+            dangerous: true,
+        };
+        #[allow(unused_variables)]
+        let threat = ThreatView {
+            label: "Marauders stir".to_string(),
+            description: "Someone is watching the road.".to_string(),
+        };
+        let history_entry = HistoryEntryView {
+            day: 4,
+            entry_type: HistoryEntryViewType::Event,
+            text: "The road remembers.".to_string(),
+            event_id: Some("road_event".to_string()),
+            location_name: Some(location.name.clone()),
+            outcome: Some("Danger remains.".to_string()),
+        };
+        let faction = FactionView {
+            name: "Wardens".to_string(),
+            reputation: 3,
+            memories: vec!["A debt remembered.".to_string()],
+        };
+        let npc = NpcView {
+            name: "Mara".to_string(),
+            title: "Keeper".to_string(),
+            faction_name: Some("Wardens".to_string()),
+        };
+        let quest_objective = QuestObjectiveView {
+            label: "Visit Ruined Gate".to_string(),
+            progress: 1,
+            required: 1,
+            completed: true,
+        };
+        let quest = QuestView {
+            title: "A remembered road".to_string(),
+            description: "Find the gate.".to_string(),
+            objectives: vec![quest_objective],
+            status: "READY".to_string(),
+            completed: false,
+            reward_claimed: false,
+            reward_item_name: Some(item.name.clone()),
+        };
+        let combat = CombatView {
+            character: character.clone(),
+            player_condition: Some("Wounded".to_string()),
+            enemy: CombatantView {
+                name: "Marauder".to_string(),
+                current_hp: 4,
+                max_hp: 7,
+            },
+            enemy_power: 3,
+            location_name: location.name.clone(),
+            turn: 6,
+            events: vec!["A clash begins.".to_string()],
+            actions: vec![
+                "Attack".to_string(),
+                "Guard".to_string(),
+                "Flee".to_string(),
+            ],
+        };
+        let result = CombatResultView {
+            combat: combat.clone(),
+            result_title: "Fled".to_string(),
+            result_note: "The threat remains.".to_string(),
+        };
+        let _character_sheet = CharacterSheetView {
+            character: character.clone(),
+            level: 2,
+            experience: 12,
+            next_level_experience: 100,
+            attributes: super::AttributesView {
+                might: 2,
+                insight: 1,
+                endurance: 3,
+                effective_might: 1,
+                effective_insight: 1,
+                effective_endurance: 4,
+            },
+            conditions: vec![ConditionView {
+                name: "Wounded".to_string(),
+                remaining: 2,
+                penalty: -1,
+                bonus: 0,
+            }],
+            factions: vec![faction.clone()],
+            notes: vec!["The gate was quiet.".to_string()],
+        };
+        let _conversation = ConversationView {
+            npc,
+            portrait: Some("portrait".to_string()),
+            memory: Some("A remembered meeting.".to_string()),
+            options: vec!["Ask about the road.".to_string()],
+            available: true,
+            unavailable_message: None,
+        };
+        let _inventory_detail = InventoryDetailView {
+            item,
+            position: 1,
+            total: 1,
+            art: Some("relic".to_string()),
+        };
+        let _quest_log = QuestLogView {
+            character: character.clone(),
+            quests: vec![quest],
+        };
+        let _navigation = NavigationView {
+            current_location: Some(location.clone()),
+            destinations: vec![location],
+            art: Some("gate".to_string()),
+        };
+        let _talk = TalkView { npcs: vec![] };
+        let _meditation_target = MeditationTargetView {
+            label: "Dawn".to_string(),
+        };
+        let _meditation = MeditationView {
+            character: character.clone(),
+            current_time: "Day 1 · Dawn".to_string(),
+            safe_to_meditate: true,
+            unavailable_message: None,
+            targets: vec![],
+        };
+        let _meditation_result = MeditationResultView {
+            ending_time: "Day 1 · Morning".to_string(),
+            portions: 1,
+            hp_recovered: 3,
+            exhausted_removed: true,
+            well_rested_applied: true,
+        };
+        let _history = HistoryView {
+            world_name: "Test World".to_string(),
+            time: "Day 1 · Dawn".to_string(),
+            character,
+            entries: vec![history_entry],
+        };
+        assert_eq!(combat, result.combat);
     }
 }
