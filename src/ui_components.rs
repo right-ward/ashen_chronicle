@@ -1,10 +1,9 @@
-#![allow(unused)] // Temporary work-around until their used
-
 use ratatui::layout::{Direction, Rect, Spacing};
 use ratatui::prelude::{Color, Modifier, Style};
 use ratatui::symbols::merge::MergeStrategy;
 use ratatui::widgets::{Block, Borders, Clear, LineGauge, Paragraph, Wrap};
 
+#[allow(dead_code)] // TODO: Temporary ignore until they're used
 pub(crate) fn clear_frame(frame: &mut ratatui::Frame<'_>, area: Rect) {
     frame.render_widget(Clear, area);
 }
@@ -13,6 +12,7 @@ pub(crate) fn is_compact(area: Rect) -> bool {
     area.width <= 112 || area.height <= 36 || area.width <= area.height.saturating_mul(2)
 }
 
+#[allow(dead_code)] // TODO: Temporary ignore until they're used
 pub(crate) fn bottom_panel_height(area: Rect, compact: bool, content_lines: usize) -> u16 {
     let base_height = if compact { 7 } else { 6 };
     let max_height = if compact {
@@ -77,6 +77,7 @@ pub(crate) fn render_panel(
     frame.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)] // TODO: Temporary ignore until they're used
 pub(crate) fn render_scrolling_text(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,
@@ -99,6 +100,7 @@ pub(crate) fn render_scrolling_text(
     frame.render_widget(paragraph, area);
 }
 
+#[allow(dead_code)] // TODO: Temporary ignore until they're used
 pub(crate) fn render_message_panel(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,

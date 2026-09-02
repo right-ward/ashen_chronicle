@@ -6,6 +6,7 @@ use ratatui::symbols::merge::MergeStrategy;
 use ratatui::widgets::{Block, LineGauge, Paragraph, Wrap};
 use std::io;
 
+use crate::input::{self, InputEvent};
 use crate::presentation::{CombatResultView, CombatView};
 
 pub(crate) fn choose_action(view: &CombatView) -> io::Result<usize> {
@@ -13,22 +14,22 @@ pub(crate) fn choose_action(view: &CombatView) -> io::Result<usize> {
     loop {
         render(view, Some(selected), None)?;
 
-        match crate::ui::read_key()? {
-            crossterm::event::KeyCode::Up | crossterm::event::KeyCode::Char('k') => {
+        match input::read()? {
+            InputEvent::Up | InputEvent::Character('k') => {
                 selected = selected.checked_sub(1).unwrap_or(view.actions.len() - 1);
             }
-            crossterm::event::KeyCode::Down | crossterm::event::KeyCode::Char('j') => {
+            InputEvent::Down | InputEvent::Character('j') => {
                 selected = (selected + 1) % view.actions.len();
             }
-            crossterm::event::KeyCode::Home => selected = 0,
-            crossterm::event::KeyCode::End => selected = view.actions.len() - 1,
-            crossterm::event::KeyCode::Char(c) if c.is_ascii_digit() => {
+            InputEvent::Home => selected = 0,
+            InputEvent::End => selected = view.actions.len() - 1,
+            InputEvent::Character(c) if c.is_ascii_digit() => {
                 let action = c.to_digit(10).unwrap() as usize;
                 if action > 0 && action <= view.actions.len() {
                     return Ok(action - 1);
                 }
             }
-            crossterm::event::KeyCode::Enter => return Ok(selected),
+            InputEvent::Confirm => return Ok(selected),
             _ => {}
         }
     }
@@ -39,7 +40,7 @@ pub(crate) fn show_result(view: &CombatResultView) -> io::Result<()> {
 }
 
 pub(crate) fn wait_for_key() -> io::Result<()> {
-    let _ = crate::ui::read_key()?;
+    let _ = input::read()?;
     Ok(())
 }
 

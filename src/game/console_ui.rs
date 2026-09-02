@@ -1,5 +1,5 @@
+use crate::input::InputEvent;
 use crate::model::{EntityId, GameState};
-use crossterm::event::KeyCode;
 use ratatui::backend::CrosstermBackend;
 use ratatui::layout::{Constraint, Direction, Layout, Rect};
 use ratatui::prelude::*;
@@ -35,13 +35,13 @@ pub(super) enum ScrollPosition {
     Home,
 }
 
-pub(super) fn edit_input(console: &mut ConsoleState, key: KeyCode) {
+pub(super) fn edit_input(console: &mut ConsoleState, key: InputEvent) {
     match key {
-        KeyCode::Char(c) if !c.is_control() => {
+        InputEvent::Character(c) if !c.is_control() => {
             console.input.push(c);
             console.history_index = None;
         }
-        KeyCode::Backspace => {
+        InputEvent::Backspace => {
             console.input.pop();
             console.history_index = None;
         }
