@@ -172,6 +172,7 @@ fn render(
     Ok(())
 }
 
+#[allow(clippy::too_many_arguments)]
 fn render_actor(
     frame: &mut ratatui::Frame<'_>,
     area: Rect,
