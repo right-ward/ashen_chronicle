@@ -25,6 +25,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Preserved existing quest filtering/details, inventory selection/details and item art, meditation safety checks, target selection, recovery, save behavior, and result presentation.
 - Migrated the Character Sheet and Combat flows to build frontend-independent presentation views before terminal rendering.
 - Preserved character progression, condition/reputation/journal presentation, combat actions, events, result states, rewards, history recording, and threat cleanup behavior.
+- Added a frontend-neutral `InputEvent` boundary and routed gameplay-facing keyboard interactions through semantic events instead of direct `crossterm::KeyCode` handling.
+- Preserved existing keyboard controls, menu navigation, combat selection, history navigation, and developer-console editing/completion behavior.
 
 ## Next
 
