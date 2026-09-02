@@ -46,7 +46,8 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
 
         loop {
             console_ui::refresh_completion(&mut console, state);
-            console_ui::draw_console(&mut terminal, &console)?;
+            let view = console_ui::build_view(&console);
+            console_ui::draw_console(&mut terminal, &view)?;
             let key = input::read()?;
 
             if console.autocomplete {
