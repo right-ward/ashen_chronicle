@@ -1,5 +1,8 @@
 use crate::game::{character, interactions, state_effects};
 use crate::model::{Corpse, GameState, Item};
+use crate::presentation::{
+    ChoiceView, ItemView, RemainsEntryView, RemainsResultView, RemainsView, ScreenView,
+};
 use crate::ui::{choose_from_list, narrate, pause};
 use std::mem;
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -13,6 +16,14 @@ macro_rules! println {
     };
 }
 
+fn item_view(item: &Item) -> ItemView {
+    ItemView {
+        id: item.id,
+        name: item.name.clone(),
+        description: item.description.clone(),
+    }
+}
+
 pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
     let location_id = state.character.location_id;
     let indices: Vec<usize> = state
@@ -23,21 +34,55 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
         .map(|(index, _)| index)
         .collect();
     if indices.is_empty() {
-        println!("There are no remains worth searching here.");
+        crate::ui::show_screen_view(&ScreenView {
+            title: "REMAINS".to_string(),
+            subtitle: Some("There are no remains worth searching here.".to_string()),
+            ..Default::default()
+        });
         pause();
         return Ok(());
     }
-    let options: Vec<String> = indices
+
+    let location_name = state
+        .world
+        .location_by_id(location_id)
+        .map(|location| location.name.clone())
+        .unwrap_or_else(|| "this place".to_string());
+    let remains_view = RemainsView {
+        location_name: location_name.clone(),
+        remains: indices
+            .iter()
+            .map(|index| {
+                let corpse = &state.corpses[*index];
+                RemainsEntryView {
+                    id: corpse.id,
+                    label: corpse_label(corpse),
+                    former_name: corpse.former_name.clone(),
+                    former_title: corpse.former_title.clone(),
+                    scavenged: corpse.scavenged,
+                    items: corpse.inventory.iter().map(item_view).collect(),
+                }
+            })
+            .collect(),
+    };
+    let options = remains_view
+        .remains
         .iter()
-        .map(|index| corpse_label(&state.corpses[*index]))
-        .collect();
-    if let Some(choice) = choose_from_list("Search which remains?", &options, Some("Back"))? {
+        .map(|remains| remains.label.clone())
+        .collect::<Vec<_>>();
+    let choice_view = ChoiceView {
+        screen: ScreenView {
+            title: "REMAINS".to_string(),
+            subtitle: Some(format!("Search the remains at {}.", remains_view.location_name)),
+            ..Default::default()
+        },
+        prompt: "Search which remains?".to_string(),
+        options,
+        back_label: Some("Back".to_string()),
+    };
+
+    if let Some(choice) = crate::ui::choose_screen_view(&choice_view)? {
         let corpse_index = indices[choice];
-        let location_name = state
-            .world
-            .location_by_id(location_id)
-            .map(|location| location.name.clone())
-            .unwrap_or_else(|| "this place".to_string());
         let (former_name, former_title, items, corpse_id) = {
             let corpse = &mut state.corpses[corpse_index];
             let items = mem::take(&mut corpse.inventory);
@@ -66,13 +111,15 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
             pause();
             return Ok(());
         }
+
         let item_names: Vec<String> = items.iter().map(|item| item.name.clone()).collect();
-        for item in items {
-            notify_item_gain(state, &item);
-            interactions::grant_reward_reputation(state, &item);
-            state.character.inventory.push(item);
+        for item in &items {
+            notify_item_gain(state, item);
+            interactions::grant_reward_reputation(state, item);
         }
-        if state.character.effective_insight() >= 2 && item_names.len() < 3 {
+        state.character.inventory.extend(items);
+
+        let hidden_item = if state.character.effective_insight() >= 2 && item_names.len() < 3 {
             let tick = SystemTime::now()
                 .duration_since(UNIX_EPOCH)
                 .map(|d| d.subsec_nanos())
@@ -84,18 +131,44 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
                     description: "A scrap of writing that might reveal something about the life that ended here.".to_string(),
                 };
                 notify_item_gain(state, &hidden);
-                state.character.inventory.push(hidden);
-                println!("Your insight uncovers something the hurried would have missed.");
+                state.character.inventory.push(hidden.clone());
+                Some(hidden)
+            } else {
+                None
             }
+        } else {
+            None
+        };
+        if hidden_item.is_some() {
+            println!("Your insight uncovers something the hurried would have missed.");
         }
+
         character::gain_experience(
             state,
             (5 + state.character.effective_insight())
                 .try_into()
                 .unwrap(),
         );
-        println!("Feel like a deja-vu.");
-        println!("You feel as if they were once yours. Though, These items can be inherited, Their memories cannot.");
+
+        let result_view = RemainsResultView {
+            location_name: location_name.clone(),
+            former_name: former_name.clone(),
+            former_title: former_title.clone(),
+            items: state
+                .character
+                .inventory
+                .iter()
+                .filter(|item| item_names.contains(&item.name))
+                .map(item_view)
+                .collect(),
+            hidden_item: hidden_item.as_ref().map(item_view),
+            notes: vec![
+                "Feel like a deja-vu.".to_string(),
+                "You feel as if they were once yours. Though, These items can be inherited, Their memories cannot.".to_string(),
+            ],
+        };
+        println!("{}", result_view.notes[0]);
+        println!("{}", result_view.notes[1]);
         println!("Recovered {}", item_names.join(", "));
         state.character.turn += 1;
         state.world.record_history(
