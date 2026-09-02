@@ -2,7 +2,7 @@ use crate::game::validate_loaded_state;
 use crate::model::{create_inherited_state, create_new_state, GameState, WorldMode};
 use crate::persistence::{character_save_path, find_save_files, legacy_save_path, load_game};
 use crate::presentation::{ChoiceView, DeathView, FactionView, ItemView, ScreenView};
-use crate::ui::{choose_from_list, pause, prompt};
+use crate::ui::{pause, prompt};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -225,12 +225,13 @@ pub(crate) fn quit_screen() -> std::io::Result<bool> {
 pub(crate) fn death_screen(state: &mut GameState) -> std::io::Result<bool> {
     let death_view = build_death_view(state);
     show_screen(&death_view.screen);
+    pause();
 
     let choice_view = ChoiceView {
         screen: ScreenView {
             title: "WHAT REMAINS?".to_string(),
             subtitle: Some(death_view.memory_note.clone()),
-            body: Vec::new(),
+            body: death_view.screen.body.clone(),
             art: death_view.screen.art.clone(),
         },
         prompt: "What remains?".to_string(),
@@ -286,7 +287,9 @@ fn build_death_view(state: &GameState) -> DeathView {
         .world
         .history
         .iter()
-        .filter(|entry| entry.text.contains(&character.display_name()) && entry.text.contains("completed "))
+        .filter(|entry| {
+            entry.text.contains(&character.display_name()) && entry.text.contains("completed ")
+        })
         .map(|entry| entry.text.clone())
         .take(5)
         .collect::<Vec<_>>();
@@ -372,15 +375,23 @@ fn build_death_view(state: &GameState) -> DeathView {
 #[cfg(test)]
 mod tests {
     use super::build_death_view;
-    use crate::model::GameState;
+    use crate::model::{create_new_state, WorldMode};
 
     #[test]
     fn death_view_contains_life_summary() {
-        let state = GameState::new("Test World", "Ash", "Wanderer");
+        let state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "Ash".to_string(),
+            "Wanderer".to_string(),
+        );
         let view = build_death_view(&state);
         assert_eq!(view.character.display_name(), "Ash the Wanderer");
         assert!(view.screen.body.iter().any(|line| line.contains("died at")));
         assert!(view.screen.body.iter().any(|line| line == "Deeds remembered:"));
-        assert_eq!(view.memory_note, "The next life will know none of this as memory. It can only be discovered.");
+        assert_eq!(
+            view.memory_note,
+            "The next life will know none of this as memory. It can only be discovered."
+        );
     }
 }
