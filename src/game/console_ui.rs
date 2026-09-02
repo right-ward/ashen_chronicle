@@ -28,7 +28,7 @@ pub(super) struct ConsoleState {
     pub(super) exit: bool,
 }
 
-#[derive(Default)]
+#[derive(Clone, Copy, Default)]
 pub(super) enum ScrollPosition {
     #[default]
     Follow,
