@@ -1,4 +1,5 @@
 use serde::{Deserialize, Serialize};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::content::{load_campaign_content, CampaignContent};
 
@@ -8,6 +9,14 @@ pub type EntityId = u64;
 pub enum WorldMode {
     New,
     Inherited,
+}
+
+#[derive(Debug, Clone, Copy, Serialize, Deserialize, PartialEq, Eq)]
+pub struct WorldGenerationMetadata {
+    pub seed: u64,
+    pub region_count: usize,
+    pub location_count: usize,
+    pub extra_edges: usize,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -42,6 +51,8 @@ pub struct World {
     pub name: String,
     pub mode: WorldMode,
     pub next_id: EntityId,
+    #[serde(default)]
+    pub generation: Option<WorldGenerationMetadata>,
     pub regions: Vec<Region>,
     pub locations: Vec<Location>,
     pub history: Vec<HistoryEntry>,
@@ -304,6 +315,7 @@ impl World {
             name: name.to_string(),
             mode,
             next_id: 2,
+            generation: None,
             regions: Vec::new(),
             locations: Vec::new(),
             history: Vec::new(),
@@ -514,15 +526,31 @@ fn condition_penalty(conditions: &[Condition], name: &str) -> i32 {
         .sum()
 }
 
+fn new_world_seed() -> u64 {
+    SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.as_nanos() as u64)
+        .unwrap_or(0)
+}
+
 pub fn create_new_state(
     world_name: &str,
     mode: WorldMode,
     character_name: String,
     title: String,
 ) -> GameState {
-    let mut world = World::new(world_name, mode);
     let content = load_campaign_content();
-    content.seed_world(&mut world);
+    let config = crate::procedural::WorldGenerationConfig::default();
+    let seed = new_world_seed();
+    let mut world = crate::procedural::generate_world(world_name, seed, config);
+    world.mode = mode;
+    world.generation = Some(WorldGenerationMetadata {
+        seed,
+        region_count: config.region_count,
+        location_count: config.location_count,
+        extra_edges: config.extra_edges,
+    });
+    crate::procedural::place_authored_content(&mut world, &content);
     world.record_history(0, "A new world stirs beneath ash and ruin.");
     let character = world.spawn_character(character_name, title);
     world.record_history(
@@ -582,6 +610,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn new_worlds_record_generation_metadata() {
+        let state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "First Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+
+        let generation = state
+            .world
+            .generation
+            .expect("new worlds should record generation metadata");
+        assert_eq!(generation.region_count, 3);
+        assert_eq!(generation.location_count, 12);
+        assert_eq!(generation.extra_edges, 8);
+        let expected_location_count = generation.location_count.max(state.world.locations.len());
+        assert_eq!(state.world.locations.len(), expected_location_count);
+        assert_eq!(
+            state
+                .world
+                .location_by_name("Ashen Gate")
+                .map(|location| location.id),
+            Some(state.character.location_id)
+        );
+    }
+
+    #[test]
     fn inherited_world_preserves_event_cooldowns() {
         let mut state = create_new_state(
             "Test World",
@@ -607,6 +662,7 @@ mod tests {
         assert!(matches!(inherited.world.mode, WorldMode::Inherited));
         assert_eq!(inherited.world.event_cooldowns, state.world.event_cooldowns);
         assert_eq!(inherited.world.event_cooldowns[0].ready_at_turn, 14);
+        assert_eq!(inherited.world.generation, state.world.generation);
     }
 
     #[test]
