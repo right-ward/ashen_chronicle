@@ -101,7 +101,10 @@ fn character_view(state: &GameState) -> CharacterView {
 fn build_meditation_view(state: &GameState) -> MeditationView {
     let location_id = state.character.location_id;
     let active_threat_here = state.threat.active
-        && state.threat.source_location_id.is_none_or(|source| source == location_id);
+        && state
+            .threat
+            .source_location_id
+            .is_none_or(|source| source == location_id);
     let safe_to_meditate = !active_threat_here && !state.world.location_is_dangerous(location_id);
     MeditationView {
         character: character_view(state),
