@@ -1,3 +1,5 @@
+#![allow(dead_code)]
+// Temporary dead_code allow for the whole file till it's integrated
 use crate::model::{Location, Region, World, WorldMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
