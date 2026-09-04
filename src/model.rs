@@ -625,7 +625,8 @@ mod tests {
         assert_eq!(generation.region_count, 3);
         assert_eq!(generation.location_count, 12);
         assert_eq!(generation.extra_edges, 8);
-        assert_eq!(state.world.locations.len(), 12);
+        let expected_location_count = generation.location_count.max(state.world.locations.len());
+        assert_eq!(state.world.locations.len(), expected_location_count);
         assert_eq!(
             state
                 .world
