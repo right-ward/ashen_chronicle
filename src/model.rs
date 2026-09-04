@@ -627,7 +627,10 @@ mod tests {
         assert_eq!(generation.extra_edges, 8);
         assert_eq!(state.world.locations.len(), 12);
         assert_eq!(
-            state.world.location_by_name("Ashen Gate").map(|location| location.id),
+            state
+                .world
+                .location_by_name("Ashen Gate")
+                .map(|location| location.id),
             Some(state.character.location_id)
         );
     }

@@ -170,7 +170,9 @@ mod tests {
         let original_exits = state.world.locations[0].exits.clone();
         state.world.locations[0].description = "A scar left by the first warden.".to_string();
         state.world.locations[0].dangerous = !state.world.locations[0].dangerous;
-        state.world.record_history(7, "The world has changed.".to_string());
+        state
+            .world
+            .record_history(7, "The world has changed.".to_string());
         let mutated_description = state.world.locations[0].description.clone();
         let history_len = state.world.history.len();
 
