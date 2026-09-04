@@ -522,3 +522,10 @@ src/
 - Migrated corpse/legacy recovery flow to frontend-independent remains and recovery result views while preserving recovery rules and item behavior.
 - Migrated developer-console rendering to consume a renderer-neutral `ConsoleView` while retaining semantic `InputEvent` handling.
 - Completed issue #146, removing the remaining lifecycle, legacy/recovery, and developer-console presentation coupling from gameplay-facing flow modules.
+
+## v0.47.0: procedural world foundation
+- Added deterministic procedural world generation with explicit region/location/extra-edge configuration and a connected generated world graph.
+- Added deterministic authored-content placement on generated worlds while preserving authored location identities, metadata, exits, and gameplay relationships.
+- Persisted the generated world's seed and generation configuration as world-level metadata with backward-compatible defaults for older saves.
+- Switched new-game initialization to generated worlds and preserved generated structure plus runtime mutations across save/load without re-seeding generated locations.
+- Added focused generation, content-placement, save/load, and initialization coverage for the new world lifecycle.
