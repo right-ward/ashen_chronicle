@@ -90,7 +90,11 @@ pub fn generate_world(
     }
 
     for location in &world.locations {
-        if let Some(region) = world.regions.iter_mut().find(|region| region.id == location.region_id) {
+        if let Some(region) = world
+            .regions
+            .iter_mut()
+            .find(|region| region.id == location.region_id)
+        {
             region.location_ids.push(location.id);
         }
     }
@@ -179,11 +183,21 @@ mod tests {
         assert_eq!(
             a.locations
                 .iter()
-                .map(|location| (&location.name, location.region_id, location.dangerous, &location.exits))
+                .map(|location| (
+                    &location.name,
+                    location.region_id,
+                    location.dangerous,
+                    &location.exits
+                ))
                 .collect::<Vec<_>>(),
             b.locations
                 .iter()
-                .map(|location| (&location.name, location.region_id, location.dangerous, &location.exits))
+                .map(|location| (
+                    &location.name,
+                    location.region_id,
+                    location.dangerous,
+                    &location.exits
+                ))
                 .collect::<Vec<_>>()
         );
     }
@@ -191,7 +205,11 @@ mod tests {
     #[test]
     fn generated_world_is_connected_from_the_starting_location() {
         let world = generate_world("Ashen", 7, WorldGenerationConfig::default());
-        let start = world.locations.first().expect("generator creates a location").id;
+        let start = world
+            .locations
+            .first()
+            .expect("generator creates a location")
+            .id;
         let mut visited = HashSet::new();
         let mut stack = vec![start];
 
@@ -218,7 +236,11 @@ mod tests {
                 extra_edges: 12,
             },
         );
-        let region_ids = world.regions.iter().map(|region| region.id).collect::<HashSet<_>>();
+        let region_ids = world
+            .regions
+            .iter()
+            .map(|region| region.id)
+            .collect::<HashSet<_>>();
         let location_ids = world
             .locations
             .iter()
@@ -227,11 +249,14 @@ mod tests {
 
         assert!(!world.regions.is_empty());
         assert!(!world.locations.is_empty());
-        assert!(world.locations.iter().all(|location| region_ids.contains(&location.region_id)));
         assert!(world
-            .regions
+            .locations
             .iter()
-            .all(|region| region.location_ids.iter().all(|id| location_ids.contains(id))));
+            .all(|location| region_ids.contains(&location.region_id)));
+        assert!(world.regions.iter().all(|region| region
+            .location_ids
+            .iter()
+            .all(|id| location_ids.contains(id))));
         assert!(world.locations.iter().all(|location| {
             location.exits.iter().all(|target_id| {
                 world
