@@ -165,6 +165,15 @@ mod tests {
             ready_at_turn: 11,
         });
 
+        let generation = state.world.generation;
+        let original_description = state.world.locations[0].description.clone();
+        let original_exits = state.world.locations[0].exits.clone();
+        state.world.locations[0].description = "A scar left by the first warden.".to_string();
+        state.world.locations[0].dangerous = !state.world.locations[0].dangerous;
+        state.world.record_history(7, "The world has changed.".to_string());
+        let mutated_description = state.world.locations[0].description.clone();
+        let history_len = state.world.history.len();
+
         save_game(&path, &state).expect("save should succeed");
         let bytes = fs::read(&path).expect("save should exist");
         assert!(is_gzip(&bytes));
@@ -173,6 +182,11 @@ mod tests {
         assert_eq!(loaded.character.turn, 7);
         assert_eq!(loaded.character.name, "Tester");
         assert_eq!(loaded.world.event_cooldowns, state.world.event_cooldowns);
+        assert_eq!(loaded.world.generation, generation);
+        assert_eq!(loaded.world.locations[0].description, mutated_description);
+        assert_ne!(loaded.world.locations[0].description, original_description);
+        assert_eq!(loaded.world.locations[0].exits, original_exits);
+        assert_eq!(loaded.world.history.len(), history_len);
         fs::remove_dir_all(&dir).expect("temporary directory should be removed");
     }
 
