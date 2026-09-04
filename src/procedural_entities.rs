@@ -3,18 +3,20 @@ use std::collections::HashSet;
 use crate::content::CampaignContent;
 use crate::model::{EntityId, Faction, GameState, Npc, World};
 use crate::procedural_characteristics::{
-    generate_world_characteristics, Climate, LocationCharacteristics, LocationKind, RegionCharacteristics,
-    RegionTheme,
+    generate_world_characteristics, Climate, LocationCharacteristics, LocationKind,
+    RegionCharacteristics, RegionTheme,
 };
 
 const GIVEN_NAMES: &[&str] = &[
     "Aren", "Bryn", "Cala", "Dain", "Eira", "Fenn", "Garr", "Hale", "Iven", "Jora", "Kest", "Lysa",
-    "Maren", "Neris", "Orin", "Pella", "Quin", "Rhea", "Soren", "Talia", "Ulric", "Vera", "Wren", "Ysolde",
+    "Maren", "Neris", "Orin", "Pella", "Quin", "Rhea", "Soren", "Talia", "Ulric", "Vera", "Wren",
+    "Ysolde",
 ];
 
 const FAMILY_NAMES: &[&str] = &[
-    "Vale", "Ash", "Morrow", "Fen", "Stone", "Rook", "Vane", "Harrow", "Thorne", "Wick", "Grim", "Hearth",
-    "Briar", "Cairn", "Dusk", "Flint", "Gale", "Marsh", "Pike", "Reeve", "Sable", "Ward", "Wren", "Yew",
+    "Vale", "Ash", "Morrow", "Fen", "Stone", "Rook", "Vane", "Harrow", "Thorne", "Wick", "Grim",
+    "Hearth", "Briar", "Cairn", "Dusk", "Flint", "Gale", "Marsh", "Pike", "Reeve", "Sable", "Ward",
+    "Wren", "Yew",
 ];
 
 const SETTLEMENT_TERMS: &[&str] = &["Haven", "Watch", "Crossing", "Hold", "Rest", "Market"];
@@ -36,10 +38,16 @@ pub fn populate_generated_entities(
     }
 
     let characteristics = generate_world_characteristics(&state.world);
-    let generated_location_names = rename_generated_locations(&mut state.world, &characteristics, content);
+    let generated_location_names =
+        rename_generated_locations(&mut state.world, &characteristics, content);
 
     let faction_start = state.factions.len();
-    let generated_factions = generate_factions(&mut state.world, &mut state.factions, &characteristics, content);
+    let generated_factions = generate_factions(
+        &mut state.world,
+        &mut state.factions,
+        &characteristics,
+        content,
+    );
     let generated_npcs = generate_npcs(
         &mut state.world,
         &state.factions,
@@ -78,7 +86,9 @@ fn rename_generated_locations(
     let mut generated_ids = HashSet::new();
     let mut reserved = used_names;
     for (index, location) in world.locations.iter_mut().enumerate() {
-        if !location.name.starts_with("Generated Site ") || authored_names.contains(location.name.as_str()) {
+        if !location.name.starts_with("Generated Site ")
+            || authored_names.contains(location.name.as_str())
+        {
             continue;
         }
         let Some(characteristics) = characteristics
@@ -88,13 +98,14 @@ fn rename_generated_locations(
         else {
             continue;
         };
-        let Some(region) = characteristics
-            .region_characteristics(characteristics.region_id)
-        else {
+        let Some(region) = characteristics.region_characteristics(characteristics.region_id) else {
             continue;
         };
         let base = location_base_name(characteristics.kind, region.theme, region.climate);
-        let term = term_for(characteristics.kind, (seed as usize + index) % term_pool_len(characteristics.kind));
+        let term = term_for(
+            characteristics.kind,
+            (seed as usize + index) % term_pool_len(characteristics.kind),
+        );
         let mut candidate = format!("{base} {term}");
         let mut suffix = 2;
         while reserved.contains(&candidate) || authored_names.contains(candidate.as_str()) {
@@ -103,7 +114,8 @@ fn rename_generated_locations(
         }
         location.name = candidate.clone();
         if location.description == "An unexplored place shaped by the world seed." {
-            location.description = generated_location_description(characteristics, region, &candidate);
+            location.description =
+                generated_location_description(characteristics, region, &candidate);
         }
         reserved.insert(candidate);
         generated_ids.insert(location.id);
@@ -130,10 +142,18 @@ fn generate_factions(
         if !should_generate {
             continue;
         }
-        let Some(world_region) = world.regions.iter().find(|candidate| candidate.id == region.region_id) else {
+        let Some(world_region) = world
+            .regions
+            .iter()
+            .find(|candidate| candidate.id == region.region_id)
+        else {
             continue;
         };
-        let base = faction_base_name(region.theme, region.climate, region.resources.first().map(String::as_str));
+        let base = faction_base_name(
+            region.theme,
+            region.climate,
+            region.resources.first().map(String::as_str),
+        );
         let mut name = format!("{} of {}", base, world_region.name);
         let mut suffix = 2;
         while reserved.contains(&name) {
@@ -207,7 +227,13 @@ fn generate_npcs(
             }
             let title = npc_title(location.kind, slot);
             let id = world.allocate_id();
-            let mut npc = Npc::new(id, name.clone(), title, location.location_id, Some(faction_id));
+            let mut npc = Npc::new(
+                id,
+                name.clone(),
+                title,
+                location.location_id,
+                Some(faction_id),
+            );
             npc.memory.push(format!(
                 "Lives in a {} shaped by {} conditions and local resources.",
                 location_kind_label(location.kind),
@@ -221,11 +247,7 @@ fn generate_npcs(
     generated
 }
 
-fn faction_location_context(
-    faction: &Faction,
-    world: &World,
-    region_id: EntityId,
-) -> bool {
+fn faction_location_context(faction: &Faction, world: &World, region_id: EntityId) -> bool {
     world
         .regions
         .iter()
@@ -237,7 +259,11 @@ fn faction_location_context(
 fn npc_count_for(location: &LocationCharacteristics) -> usize {
     match location.kind {
         LocationKind::Settlement => {
-            if location.population >= 120 { 3 } else { 2 }
+            if location.population >= 120 {
+                3
+            } else {
+                2
+            }
         }
         LocationKind::Crossroads | LocationKind::Mine => 1,
         LocationKind::Shrine => usize::from(location.population >= 5),
@@ -425,7 +451,9 @@ trait WorldCharacteristicsExt {
 
 impl WorldCharacteristicsExt for crate::procedural_characteristics::WorldCharacteristics {
     fn region_characteristics(&self, region_id: EntityId) -> Option<&RegionCharacteristics> {
-        self.regions.iter().find(|region| region.region_id == region_id)
+        self.regions
+            .iter()
+            .find(|region| region.region_id == region_id)
     }
 }
 
@@ -471,9 +499,32 @@ mod tests {
         let first = populate_generated_entities(&mut a, &content);
         let second = populate_generated_entities(&mut b, &content);
         assert_eq!(first, second);
-        assert_eq!(a.world.locations.iter().map(|l| &l.name).collect::<Vec<_>>(), b.world.locations.iter().map(|l| &l.name).collect::<Vec<_>>());
-        assert_eq!(a.factions.iter().map(|f| &f.name).collect::<Vec<_>>(), b.factions.iter().map(|f| &f.name).collect::<Vec<_>>());
-        assert_eq!(a.npcs.iter().map(|n| (&n.name, n.location_id, n.faction_id)).collect::<Vec<_>>(), b.npcs.iter().map(|n| (&n.name, n.location_id, n.faction_id)).collect::<Vec<_>>());
+        assert_eq!(
+            a.world
+                .locations
+                .iter()
+                .map(|l| &l.name)
+                .collect::<Vec<_>>(),
+            b.world
+                .locations
+                .iter()
+                .map(|l| &l.name)
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            a.factions.iter().map(|f| &f.name).collect::<Vec<_>>(),
+            b.factions.iter().map(|f| &f.name).collect::<Vec<_>>()
+        );
+        assert_eq!(
+            a.npcs
+                .iter()
+                .map(|n| (&n.name, n.location_id, n.faction_id))
+                .collect::<Vec<_>>(),
+            b.npcs
+                .iter()
+                .map(|n| (&n.name, n.location_id, n.faction_id))
+                .collect::<Vec<_>>()
+        );
     }
 
     #[test]
@@ -483,12 +534,21 @@ mod tests {
         let (factions_added, npcs_added) = populate_generated_entities(&mut state, &content);
         assert!(factions_added > 0);
         assert!(npcs_added > 0);
-        assert!(state.factions.iter().all(|faction| !faction.name.trim().is_empty()));
+        assert!(state
+            .factions
+            .iter()
+            .all(|faction| !faction.name.trim().is_empty()));
         assert!(state.npcs.iter().all(|npc| {
             state.world.location_by_id(npc.location_id).is_some()
-                && npc.faction_id.map(|id| state.factions.iter().any(|faction| faction.id == id)).unwrap_or(true)
+                && npc
+                    .faction_id
+                    .map(|id| state.factions.iter().any(|faction| faction.id == id))
+                    .unwrap_or(true)
         }));
-        assert!(state.npcs.iter().any(|npc| npc.memory.iter().any(|memory| memory.contains("local resources"))));
+        assert!(state.npcs.iter().any(|npc| npc
+            .memory
+            .iter()
+            .any(|memory| memory.contains("local resources"))));
     }
 
     #[test]
