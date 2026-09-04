@@ -1,5 +1,4 @@
-#![allow(dead_code)]
-// Temporary dead_code allow for the whole file till it's integrated
+use crate::content::CampaignContent;
 use crate::model::{Location, Region, World, WorldMode};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -32,8 +31,9 @@ impl WorldGenerationConfig {
 
 /// Generate a deterministic, connected world graph from `seed`.
 ///
-/// The generator only establishes the structural world graph at this stage.
-/// Authored content placement and persistence belong to later milestones.
+/// The generator only establishes structural world data. Authored campaign
+/// content can be anchored into the generated structure with
+/// [`place_authored_content`] without changing the generation rules.
 pub fn generate_world(
     world_name: impl Into<String>,
     seed: u64,
@@ -91,6 +91,94 @@ pub fn generate_world(
         added_edges += 1;
     }
 
+    rebuild_region_location_ids(&mut world);
+    world
+}
+
+/// Place authored campaign locations into deterministic generated slots.
+///
+/// The first generated region is the anchor for the authored campaign region.
+/// Authored locations are ordered by stable content ID and mapped onto the
+/// first generated location slots. Their names, descriptions, danger state,
+/// and authored exit relationships are preserved. Existing generated exits
+/// remain, so the procedural graph continues to provide connectivity and
+/// additional routes around authored locations.
+pub fn place_authored_content(world: &mut World, content: &CampaignContent) -> usize {
+    if world.regions.is_empty() || content.world.locations.is_empty() {
+        return 0;
+    }
+
+    while world.locations.len() < content.world.locations.len() {
+        add_generated_location(world);
+    }
+
+    let anchor_region_id = world.regions[0].id;
+    world.regions[0].name = content.world.region.name.clone();
+    world.regions[0].description = content.world.region.description.clone();
+
+    let mut authored_locations = content.world.locations.iter().collect::<Vec<_>>();
+    authored_locations.sort_by(|left, right| left.id.cmp(&right.id));
+
+    let authored_runtime_ids = authored_locations
+        .iter()
+        .enumerate()
+        .map(|(index, location)| (location.id.as_str(), world.locations[index].id))
+        .collect::<std::collections::HashMap<_, _>>();
+
+    for (index, authored) in authored_locations.iter().enumerate() {
+        let generated_id = world.locations[index].id;
+        let generated_exits = world.locations[index].exits.clone();
+        let authored_exits = authored
+            .exits
+            .iter()
+            .filter_map(|exit_id| authored_runtime_ids.get(exit_id.as_str()).copied())
+            .collect::<Vec<_>>();
+
+        let mut exits = generated_exits;
+        for exit_id in authored_exits {
+            if exit_id != generated_id && !exits.contains(&exit_id) {
+                exits.push(exit_id);
+            }
+        }
+
+        world.locations[index].name = authored.name.clone();
+        world.locations[index].description = authored.description.clone();
+        world.locations[index].dangerous = authored.dangerous;
+        world.locations[index].region_id = anchor_region_id;
+        world.locations[index].exits = exits;
+    }
+
+    rebuild_region_location_ids(world);
+    authored_locations.len()
+}
+
+fn add_generated_location(world: &mut World) {
+    let id = world.allocate_id();
+    let region_id = world
+        .regions
+        .last()
+        .map(|region| region.id)
+        .or_else(|| world.regions.first().map(|region| region.id))
+        .expect("generated world has at least one region");
+    let index = world.locations.len() + 1;
+    world.locations.push(Location {
+        id,
+        name: format!("Generated Site {index:02}"),
+        description: "An unexplored place shaped by the world seed.".to_string(),
+        region_id,
+        dangerous: false,
+        corpse_ids: Vec::new(),
+        exits: Vec::new(),
+    });
+    if index > 1 {
+        add_bidirectional_exit(world, index - 2, index - 1);
+    }
+}
+
+fn rebuild_region_location_ids(world: &mut World) {
+    for region in &mut world.regions {
+        region.location_ids.clear();
+    }
     for location in &world.locations {
         if let Some(region) = world
             .regions
@@ -100,8 +188,6 @@ pub fn generate_world(
             region.location_ids.push(location.id);
         }
     }
-
-    world
 }
 
 fn possible_extra_edges(location_count: usize) -> usize {
@@ -158,6 +244,7 @@ impl DeterministicRng {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::load_campaign_content;
     use std::collections::HashSet;
 
     #[test]
@@ -284,5 +371,92 @@ mod tests {
         assert_eq!(world.regions.len(), 1);
         assert_eq!(world.locations.len(), 1);
         assert!(world.locations[0].exits.is_empty());
+    }
+
+    #[test]
+    fn authored_content_is_placed_deterministically_and_preserves_authored_relationships() {
+        let content = load_campaign_content();
+        let config = WorldGenerationConfig {
+            region_count: 3,
+            location_count: 12,
+            extra_edges: 6,
+        };
+        let mut a = generate_world("Ashen", 2026, config);
+        let mut b = generate_world("Ashen", 2026, config);
+
+        let placed_a = place_authored_content(&mut a, &content);
+        let placed_b = place_authored_content(&mut b, &content);
+
+        assert_eq!(placed_a, content.world.locations.len());
+        assert_eq!(placed_a, placed_b);
+        assert_eq!(
+            a.locations
+                .iter()
+                .map(|location| (
+                    &location.name,
+                    &location.description,
+                    location.region_id,
+                    location.dangerous,
+                    &location.exits
+                ))
+                .collect::<Vec<_>>(),
+            b.locations
+                .iter()
+                .map(|location| (
+                    &location.name,
+                    &location.description,
+                    location.region_id,
+                    location.dangerous,
+                    &location.exits
+                ))
+                .collect::<Vec<_>>()
+        );
+        assert_eq!(
+            a.regions
+                .iter()
+                .map(|region| (&region.name, &region.description, &region.location_ids))
+                .collect::<Vec<_>>(),
+            b.regions
+                .iter()
+                .map(|region| (&region.name, &region.description, &region.location_ids))
+                .collect::<Vec<_>>()
+        );
+
+        assert_eq!(a.regions[0].name, content.world.region.name);
+
+        let runtime_by_name = a
+            .locations
+            .iter()
+            .map(|location| (location.name.as_str(), location.id))
+            .collect::<std::collections::HashMap<_, _>>();
+        for authored in &content.world.locations {
+            let runtime_id = runtime_by_name[authored.name.as_str()];
+            let runtime = a
+                .location_by_id(runtime_id)
+                .expect("authored location exists");
+            for authored_exit in &authored.exits {
+                let target_runtime_id = content
+                    .world
+                    .locations
+                    .iter()
+                    .find(|location| location.id == *authored_exit)
+                    .and_then(|location| runtime_by_name.get(location.name.as_str()))
+                    .copied()
+                    .expect("authored exit resolves to an authored location");
+                assert!(runtime.exits.contains(&target_runtime_id));
+            }
+        }
+
+        let authored_names = content
+            .world
+            .locations
+            .iter()
+            .map(|location| location.name.as_str())
+            .collect::<HashSet<_>>();
+        assert!(a
+            .locations
+            .iter()
+            .take(content.world.locations.len())
+            .all(|location| authored_names.contains(location.name.as_str())));
     }
 }
