@@ -13,12 +13,21 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Switched new-game initialization to generated worlds and preserved generated structure plus runtime mutations across save/load without re-seeding generated locations.
 - Added focused generation, content-placement, save/load, and initialization coverage for the new world lifecycle.
 
+### v0.48.0: procedural content and emerging world
+- Added deterministic procedural generation primitives for regional themes, climates, prosperity, danger, population, resources, and tags.
+- Added deterministic location characteristics derived from surrounding regional context, including location kinds, population, resources, danger, and tags.
+- Kept characteristics renderer-independent and reproducible from the persisted world generation seed and generated entity identities.
+
 ## Next
 
-### v0.48.0 planning
+### v0.48.0 in progress
 
-- Define the next gameplay/content milestone before implementation begins.
-- Track the future interaction-intent layer separately if GUI work requires inputs more abstract than the current semantic `InputEvent` controls.
+- Generate settlements, factions, NPCs, and other world entities from generated characteristics.
+- Generate relationships, influence, and conflicts between generated entities.
+- Integrate authored content as stable anchors within the generated ecosystem.
+- Generate emergent quests and initial world events from generated world state.
+- Establish ongoing world evolution from generated state.
+- Strengthen end-to-end procedural generation, integration, persistence, and evolution coverage.
 
 ## Longer-term direction
 
