@@ -116,6 +116,13 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedR
         report.quests_added += 1;
     }
 
+    if state.world.generation.is_some() {
+        let (generated_factions, generated_npcs) =
+            crate::procedural_entities::populate_generated_entities(state, &content);
+        report.factions_added += generated_factions;
+        report.npcs_added += generated_npcs;
+    }
+
     crate::game::quests::normalize_all(state);
     report
 }
@@ -204,4 +211,83 @@ pub(crate) fn validate_loaded_state(state: &GameState) -> Vec<String> {
         }
     }
     warnings
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::model::{WorldGenerationMetadata, WorldMode};
+    use crate::procedural::{generate_world, place_authored_content, WorldGenerationConfig};
+
+    #[test]
+    fn generated_world_bootstrap_populates_generated_entities() {
+        let content = load_campaign_content();
+        let seed = 9090;
+        let config = WorldGenerationConfig::default();
+        let mut world = generate_world("Test", seed, config);
+        world.mode = WorldMode::New;
+        world.generation = Some(WorldGenerationMetadata {
+            seed,
+            region_count: config.region_count,
+            location_count: config.location_count,
+            extra_edges: config.extra_edges,
+        });
+        place_authored_content(&mut world, &content);
+        let character = world.spawn_character("Tester".into(), "Warden".into());
+        let mut state = GameState {
+            world,
+            character,
+            threat: Default::default(),
+            corpses: Vec::new(),
+            factions: Vec::new(),
+            npcs: Vec::new(),
+            quests: Vec::new(),
+            last_announced_location_id: None,
+            campaign_content: Some(content),
+        };
+
+        let report = bootstrap_campaign_content(&mut state);
+        assert!(report.factions_added > 0);
+        assert!(report.npcs_added > 0);
+        assert!(state
+            .npcs
+            .iter()
+            .all(|npc| state.world.location_by_id(npc.location_id).is_some()));
+    }
+
+    #[test]
+    fn generated_bootstrap_is_idempotent() {
+        let content = load_campaign_content();
+        let seed = 9091;
+        let config = WorldGenerationConfig::default();
+        let mut world = generate_world("Test", seed, config);
+        world.mode = WorldMode::New;
+        world.generation = Some(WorldGenerationMetadata {
+            seed,
+            region_count: config.region_count,
+            location_count: config.location_count,
+            extra_edges: config.extra_edges,
+        });
+        place_authored_content(&mut world, &content);
+        let character = world.spawn_character("Tester".into(), "Warden".into());
+        let mut state = GameState {
+            world,
+            character,
+            threat: Default::default(),
+            corpses: Vec::new(),
+            factions: Vec::new(),
+            npcs: Vec::new(),
+            quests: Vec::new(),
+            last_announced_location_id: None,
+            campaign_content: Some(content),
+        };
+
+        let first = bootstrap_campaign_content(&mut state);
+        let counts = (state.factions.len(), state.npcs.len());
+        let second = bootstrap_campaign_content(&mut state);
+        assert!(first.factions_added > 0);
+        assert!(first.npcs_added > 0);
+        assert_eq!((second.factions_added, second.npcs_added), (0, 0));
+        assert_eq!(counts, (state.factions.len(), state.npcs.len()));
+    }
 }
