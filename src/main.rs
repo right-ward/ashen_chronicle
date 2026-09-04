@@ -5,7 +5,7 @@ mod input;
 mod model;
 mod persistence;
 mod presentation;
-mod procedural;
+pub mod procedural;
 pub mod ui;
 mod ui_components;
 
