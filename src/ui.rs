@@ -32,6 +32,20 @@ pub fn init() -> std::io::Result<UiGuard> {
 
 pub fn set_menu_screen(title: impl Into<String>, subtitle: Option<String>, art: Option<String>) {
     let title = title.into();
+    let art = art.or_else(|| {
+        (title == "LEAVE?").then(|| {
+            r#"        .-''''-.
+       /  .--.  \\
+      /  /    \\  \\
+      | |      | |
+      | |      | |
+      |  \\____/  |
+       \\        /
+        '------'
+"#
+            .to_string()
+        })
+    });
     let mut state = screen_state().lock().unwrap();
     state.title = title.clone();
     state.subtitle = subtitle.clone();
