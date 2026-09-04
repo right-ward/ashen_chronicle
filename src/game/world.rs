@@ -23,7 +23,11 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedR
         .clone()
         .unwrap_or_else(load_campaign_content);
     let mut report = CampaignSeedReport {
-        locations_added: content.seed_world(&mut state.world),
+        locations_added: if state.world.generation.is_some() {
+            0
+        } else {
+            content.seed_world(&mut state.world)
+        },
         ..Default::default()
     };
     state.campaign_content = Some(content.clone());
