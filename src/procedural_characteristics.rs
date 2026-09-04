@@ -94,7 +94,11 @@ pub fn generate_world_characteristics(world: &World) -> WorldCharacteristics {
     WorldCharacteristics { regions, locations }
 }
 
-fn generate_region_characteristics(seed: u64, index: usize, region_id: EntityId) -> RegionCharacteristics {
+fn generate_region_characteristics(
+    seed: u64,
+    index: usize,
+    region_id: EntityId,
+) -> RegionCharacteristics {
     let mut rng = DeterministicRng::new(seed ^ region_id.rotate_left(17) ^ index as u64);
     let theme = match rng.gen_range(6) {
         0 => RegionTheme::Frontier,
@@ -224,7 +228,10 @@ fn region_resources(theme: RegionTheme, climate: Climate) -> Vec<String> {
 }
 
 fn region_tags(theme: RegionTheme, climate: Climate, prosperity: u8, danger: u8) -> Vec<String> {
-    let mut tags = vec![theme_tag(theme).to_string(), climate_tag(climate).to_string()];
+    let mut tags = vec![
+        theme_tag(theme).to_string(),
+        climate_tag(climate).to_string(),
+    ];
     if prosperity >= 65 {
         tags.push("prosperous".to_string());
     } else if prosperity <= 30 {
@@ -265,11 +272,7 @@ fn location_kind_for(
 }
 
 fn location_resources(kind: LocationKind, region_resources: &[String]) -> Vec<String> {
-    let mut resources = region_resources
-        .iter()
-        .take(2)
-        .cloned()
-        .collect::<Vec<_>>();
+    let mut resources = region_resources.iter().take(2).cloned().collect::<Vec<_>>();
     match kind {
         LocationKind::Mine => resources.push("ore".to_string()),
         LocationKind::Settlement => resources.push("supplies".to_string()),
@@ -380,7 +383,10 @@ mod tests {
         let a = generated_world();
         let b = generated_world();
 
-        assert_eq!(generate_world_characteristics(&a), generate_world_characteristics(&b));
+        assert_eq!(
+            generate_world_characteristics(&a),
+            generate_world_characteristics(&b)
+        );
     }
 
     #[test]
