@@ -16,13 +16,14 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ### v0.48.0: procedural content and emerging world
 - Added deterministic procedural generation primitives for regional themes, climates, prosperity, danger, population, resources, and tags.
 - Added deterministic location characteristics derived from surrounding regional context, including location kinds, population, resources, danger, and tags.
-- Kept characteristics renderer-independent and reproducible from the persisted world generation seed and generated entity identities.
+- Added deterministic generated location names, context-driven factions, and NPCs using reusable name/content pools.
+- Populated generated settlements and other populated locations with runtime-valid NPCs assigned to context-matched generated factions while preserving authored entities.
+- Made generated entity population idempotent across repeated campaign bootstrap calls and covered deterministic generation with focused tests.
 
 ## Next
 
 ### v0.48.0 in progress
 
-- Generate settlements, factions, NPCs, and other world entities from generated characteristics.
 - Generate relationships, influence, and conflicts between generated entities.
 - Integrate authored content as stable anchors within the generated ecosystem.
 - Generate emergent quests and initial world events from generated world state.
