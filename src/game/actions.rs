@@ -99,10 +99,10 @@ fn character_view(state: &GameState) -> CharacterView {
 }
 
 fn build_meditation_view(state: &GameState) -> MeditationView {
-    let safe_to_meditate = !state.threat.active
-        && !state
-            .world
-            .location_is_dangerous(state.character.location_id);
+    let location_id = state.character.location_id;
+    let active_threat_here = state.threat.active
+        && state.threat.source_location_id.is_none_or(|source| source == location_id);
+    let safe_to_meditate = !active_threat_here && !state.world.location_is_dangerous(location_id);
     MeditationView {
         character: character_view(state),
         current_time: crate::game::time::time_display(state.world.time_points, state.world.day),
