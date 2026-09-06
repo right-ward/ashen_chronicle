@@ -529,3 +529,11 @@ src/
 - Persisted the generated world's seed and generation configuration as world-level metadata with backward-compatible defaults for older saves.
 - Switched new-game initialization to generated worlds and preserved generated structure plus runtime mutations across save/load without re-seeding generated locations.
 - Added focused generation, content-placement, save/load, and initialization coverage for the new world lifecycle.
+
+## v0.48.0: procedural content and emerging world
+- Added deterministic procedural generation primitives for regional themes, climates, prosperity, danger, population, resources, and tags.
+- Added deterministic location characteristics derived from surrounding regional context, including location kinds, population, resources, danger, and tags.
+- Added deterministic generated location names, context-driven factions, and NPCs using reusable name/content pools.
+- Populated generated settlements and other populated locations with runtime-valid NPCs assigned to context-matched generated factions while preserving authored entities.
+- Made generated entity population idempotent across repeated campaign bootstrap calls and covered deterministic generation with focused tests.
+
