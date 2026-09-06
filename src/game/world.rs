@@ -121,6 +121,7 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedR
             crate::procedural_entities::populate_generated_entities(state, &content);
         report.factions_added += generated_factions;
         report.npcs_added += generated_npcs;
+        crate::procedural_relationships::populate_generated_relationships(state);
     }
 
     crate::game::quests::normalize_all(state);
