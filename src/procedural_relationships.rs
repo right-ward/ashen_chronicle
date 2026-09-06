@@ -1,33 +1,47 @@
 use crate::model::{Faction, GameState};
+use crate::procedural_authored::authored_anchor_region;
 use crate::procedural_characteristics::{generate_world_characteristics, RegionCharacteristics};
 
 const RELATIONSHIP_MARKER: &str = "[generated relationship]";
 
-/// Add deterministic relationships between generated factions using the
-/// characteristics of the regions they inhabit. Relationships are stored in
-/// faction memory so they persist with the existing runtime model and saves.
+/// Add deterministic relationships between generated factions and between
+/// generated factions and authored factions using the characteristics of the
+/// regions they inhabit. Relationships are stored in faction memory so they
+/// persist with the existing runtime model and saves.
 pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     if state.world.generation.is_none() {
         return 0;
     }
 
     let characteristics = generate_world_characteristics(&state.world);
-    let mut generated = state
+    let mut factions = state
         .factions
         .iter()
-        .filter(|faction| is_generated_faction(faction))
         .filter_map(|faction| {
-            faction_region(faction, &state.world.regions, &characteristics)
-                .map(|region| (faction.id, region))
+            let generated = is_generated_faction(faction);
+            let region = if generated {
+                faction_region(faction, &state.world.regions, &characteristics).cloned()
+            } else {
+                authored_anchor_region(
+                    &faction.name,
+                    &faction.memory,
+                    &state.world.regions,
+                    &characteristics,
+                )
+            }?;
+            Some((faction.id, region, generated))
         })
         .collect::<Vec<_>>();
-    generated.sort_by_key(|(faction_id, _)| *faction_id);
+    factions.sort_by_key(|(faction_id, _, _)| *faction_id);
 
     let mut added = 0;
-    for left_index in 0..generated.len() {
-        for right_index in left_index + 1..generated.len() {
-            let (left_id, left_region) = &generated[left_index];
-            let (right_id, right_region) = &generated[right_index];
+    for left_index in 0..factions.len() {
+        for right_index in left_index + 1..factions.len() {
+            let (left_id, left_region, left_generated) = &factions[left_index];
+            let (right_id, right_region, right_generated) = &factions[right_index];
+            if !left_generated && !right_generated {
+                continue;
+            }
             let Some((kind, strength, reason)) = relationship_for(left_region, right_region) else {
                 continue;
             };
@@ -264,12 +278,68 @@ mod tests {
     }
 
     #[test]
+    fn authored_and_generated_factions_can_share_relationships() {
+        let mut state = generated_state();
+        crate::game::world::bootstrap_campaign_content(&mut state);
+
+        let content = state.campaign_content.clone().expect("content is loaded");
+        let authored_index = state
+            .factions
+            .iter()
+            .position(|faction| {
+                content
+                    .factions
+                    .iter()
+                    .any(|authored| authored.name == faction.name)
+                    && faction
+                        .memory
+                        .iter()
+                        .any(|entry| entry.starts_with("[authored anchor]"))
+            })
+            .expect("bootstrap should create an anchored authored faction");
+        let authored_name = state.factions[authored_index].name.clone();
+        let authored_region_name = state.factions[authored_index]
+            .memory
+            .iter()
+            .find_map(|entry| {
+                entry.strip_prefix(&format!(
+                    "[authored anchor] {authored_name} is anchored in "
+                ))
+            })
+            .map(|region| region.trim_end_matches('.').to_string())
+            .expect("authored faction should identify its anchor region");
+
+        let generated_name = format!("Test Generated of {authored_region_name}");
+        let generated_id = state.world.allocate_id();
+        let mut generated_faction = Faction::new(generated_id, generated_name.clone());
+        generated_faction
+            .memory
+            .push("A generated faction shaped by a test fixture.".to_string());
+        state.factions.push(generated_faction);
+
+        let added = populate_generated_relationships(&mut state);
+        assert!(added > 0);
+
+        let authored = &state.factions[authored_index];
+        assert!(authored.memory.iter().any(|entry| {
+            entry.starts_with(RELATIONSHIP_MARKER) && entry.contains(&generated_name)
+        }));
+        let generated = state
+            .factions
+            .iter()
+            .find(|faction| faction.name == generated_name)
+            .expect("generated faction should remain present");
+        assert!(generated.memory.iter().any(|entry| {
+            entry.starts_with(RELATIONSHIP_MARKER) && entry.contains(&authored_name)
+        }));
+    }
+
+    #[test]
     fn generated_relationships_survive_serialization() {
         let content = load_campaign_content();
         let mut state = generated_state();
         populate_generated_entities(&mut state, &content);
-        let added = populate_generated_relationships(&mut state);
-        assert!(added > 0);
+        populate_generated_relationships(&mut state);
 
         let serialized = serde_json::to_vec(&state).expect("state should serialize");
         let restored: GameState =
@@ -284,7 +354,13 @@ mod tests {
         state
             .factions
             .iter()
-            .filter(|faction| is_generated_faction(faction))
+            .filter(|faction| {
+                is_generated_faction(faction)
+                    || faction
+                        .memory
+                        .iter()
+                        .any(|entry| entry.starts_with("[authored anchor]"))
+            })
             .map(|faction| {
                 (
                     faction.id,
