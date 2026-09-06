@@ -6,6 +6,7 @@ mod model;
 mod persistence;
 mod presentation;
 pub mod procedural;
+pub mod procedural_authored;
 pub mod procedural_characteristics;
 pub mod procedural_entities;
 pub mod procedural_relationships;
