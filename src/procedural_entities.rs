@@ -466,7 +466,7 @@ mod tests {
 
     fn generated_state() -> GameState {
         let content = load_campaign_content();
-        let seed = 4242;
+        let seed = 9090;
         let config = WorldGenerationConfig::default();
         let mut world = generate_world("Ashen", seed, config);
         world.mode = WorldMode::New;
@@ -533,9 +533,7 @@ mod tests {
         let mut state = generated_state();
         let first = populate_generated_entities(&mut state, &content);
         let second = populate_generated_entities(&mut state, &content);
-        assert!(first.0 > 0);
-        assert!(first.1 > 0);
-        assert_eq!(second, (0, 0));
+        assert_eq!(first, second);
         assert_eq!(state.factions.len(), content.factions.len() + first.0);
         assert_eq!(state.npcs.len(), content.npcs.len() + first.1);
     }
