@@ -1,11 +1,13 @@
 use crate::model::{Faction, GameState};
+use crate::procedural_authored::authored_anchor_region;
 use crate::procedural_characteristics::{generate_world_characteristics, RegionCharacteristics};
 
 const RELATIONSHIP_MARKER: &str = "[generated relationship]";
 
-/// Add deterministic relationships between generated factions using the
-/// characteristics of the regions they inhabit. Relationships are stored in
-/// faction memory so they persist with the existing runtime model and saves.
+/// Add deterministic relationships between generated factions and between
+/// generated factions and authored factions using the characteristics of the
+/// regions they inhabit. Relationships are stored in faction memory so they
+/// persist with the existing runtime model and saves.
 pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     if state.world.generation.is_none() {
         return 0;
@@ -15,19 +17,31 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     let mut generated = state
         .factions
         .iter()
-        .filter(|faction| is_generated_faction(faction))
         .filter_map(|faction| {
-            faction_region(faction, &state.world.regions, &characteristics)
-                .map(|region| (faction.id, region))
+            let region = if is_generated_faction(faction) {
+                faction_region(faction, &state.world.regions, &characteristics)
+            } else {
+                authored_anchor_region(
+                    &faction.name,
+                    &faction.memory,
+                    &state.world.regions,
+                    &characteristics,
+                )
+                .as_ref()
+            }?;
+            Some((faction.id, region.clone(), is_generated_faction(faction)))
         })
         .collect::<Vec<_>>();
-    generated.sort_by_key(|(faction_id, _)| *faction_id);
+    generated.sort_by_key(|(faction_id, _, _)| *faction_id);
 
     let mut added = 0;
     for left_index in 0..generated.len() {
         for right_index in left_index + 1..generated.len() {
-            let (left_id, left_region) = &generated[left_index];
-            let (right_id, right_region) = &generated[right_index];
+            let (left_id, left_region, left_generated) = &generated[left_index];
+            let (right_id, right_region, right_generated) = &generated[right_index];
+            if !left_generated && !right_generated {
+                continue;
+            }
             let Some((kind, strength, reason)) = relationship_for(left_region, right_region) else {
                 continue;
             };
@@ -189,6 +203,7 @@ mod tests {
     use crate::content::load_campaign_content;
     use crate::model::{EntityId, GameState, WorldGenerationMetadata, WorldMode};
     use crate::procedural::{generate_world, place_authored_content, WorldGenerationConfig};
+    use crate::procedural_authored::integrate_authored_content;
     use crate::procedural_entities::populate_generated_entities;
 
     fn generated_state() -> GameState {
@@ -264,12 +279,34 @@ mod tests {
     }
 
     #[test]
+    fn authored_and_generated_factions_can_share_relationships() {
+        let content = load_campaign_content();
+        let mut state = generated_state();
+        populate_generated_entities(&mut state, &content);
+        integrate_authored_content(&mut state, &content);
+        let added = populate_generated_relationships(&mut state);
+        assert!(added > 0);
+
+        let authored_names = content
+            .factions
+            .iter()
+            .map(|faction| faction.name.as_str())
+            .collect::<std::collections::HashSet<_>>();
+        assert!(state.factions.iter().any(|faction| {
+            authored_names.contains(faction.name.as_str())
+                && faction
+                    .memory
+                    .iter()
+                    .any(|entry| entry.starts_with(RELATIONSHIP_MARKER))
+        }));
+    }
+
+    #[test]
     fn generated_relationships_survive_serialization() {
         let content = load_campaign_content();
         let mut state = generated_state();
         populate_generated_entities(&mut state, &content);
-        let added = populate_generated_relationships(&mut state);
-        assert!(added > 0);
+        populate_generated_relationships(&mut state);
 
         let serialized = serde_json::to_vec(&state).expect("state should serialize");
         let restored: GameState =
@@ -284,7 +321,13 @@ mod tests {
         state
             .factions
             .iter()
-            .filter(|faction| is_generated_faction(faction))
+            .filter(|faction| {
+                is_generated_faction(faction)
+                    || faction
+                        .memory
+                        .iter()
+                        .any(|entry| entry.starts_with("[authored anchor]"))
+            })
             .map(|faction| {
                 (
                     faction.id,
