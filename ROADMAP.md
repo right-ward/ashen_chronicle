@@ -12,12 +12,13 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added deterministic generated location names, context-driven factions, and NPCs using reusable name/content pools.
 - Populated generated settlements and other populated locations with runtime-valid NPCs assigned to context-matched generated factions while preserving authored entities.
 - Made generated entity population idempotent across repeated campaign bootstrap calls and covered deterministic generation with focused tests.
+- Generated deterministic faction relationships from shared resources, danger, prosperity, and environmental differences, recording rivalry, alliance, trade, influence, or dependency in persistent faction memory.
+- Integrated relationship generation into generated-world bootstrap and covered deterministic, idempotent, valid, and serialization-preserving relationship state.
 
 ## Next
 
 ### v0.48.0 in progress
 
-- Generate relationships, influence, and conflicts between generated entities.
 - Integrate authored content as stable anchors within the generated ecosystem.
 - Generate emergent quests and initial world events from generated world state.
 - Establish ongoing world evolution from generated state.
