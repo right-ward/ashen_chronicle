@@ -532,10 +532,12 @@ mod tests {
         let content = load_campaign_content();
         let mut state = generated_state();
         let first = populate_generated_entities(&mut state, &content);
+        let counts = (state.factions.len(), state.npcs.len());
         let second = populate_generated_entities(&mut state, &content);
-        assert_eq!(first, second);
-        assert_eq!(state.factions.len(), content.factions.len() + first.0);
-        assert_eq!(state.npcs.len(), content.npcs.len() + first.1);
+        assert_ne!((first.0, first.1), (0, 0));
+        assert_eq!(second, (0, 0));
+        assert_eq!(state.factions.len(), counts.0);
+        assert_eq!(state.npcs.len(), counts.1);
     }
 
     #[test]
