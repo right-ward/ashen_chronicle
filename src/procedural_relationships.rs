@@ -28,8 +28,7 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
         for right_index in left_index + 1..generated.len() {
             let (left_id, left_region) = &generated[left_index];
             let (right_id, right_region) = &generated[right_index];
-            let Some((kind, strength, reason)) = relationship_for(left_region, right_region)
-            else {
+            let Some((kind, strength, reason)) = relationship_for(left_region, right_region) else {
                 continue;
             };
 
@@ -166,10 +165,7 @@ fn relationship_for(
     None
 }
 
-fn complementary_resources(
-    left: &RegionCharacteristics,
-    right: &RegionCharacteristics,
-) -> bool {
+fn complementary_resources(left: &RegionCharacteristics, right: &RegionCharacteristics) -> bool {
     left.resources.iter().any(|left_resource| {
         right.resources.iter().any(|right_resource| {
             matches!(
@@ -259,7 +255,10 @@ mod tests {
                     panic!("relationship memory should contain a target");
                 };
                 let target = target.split(" (strength").next().unwrap_or_default();
-                assert!(state.factions.iter().any(|candidate| candidate.name == target));
+                assert!(state
+                    .factions
+                    .iter()
+                    .any(|candidate| candidate.name == target));
             }
         }
     }
@@ -273,8 +272,12 @@ mod tests {
         assert!(added > 0);
 
         let serialized = serde_json::to_vec(&state).expect("state should serialize");
-        let restored: GameState = serde_json::from_slice(&serialized).expect("state should deserialize");
-        assert_eq!(relationship_memories(&state), relationship_memories(&restored));
+        let restored: GameState =
+            serde_json::from_slice(&serialized).expect("state should deserialize");
+        assert_eq!(
+            relationship_memories(&state),
+            relationship_memories(&restored)
+        );
     }
 
     fn relationship_memories(state: &GameState) -> Vec<(EntityId, Vec<String>)> {
