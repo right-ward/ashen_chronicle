@@ -1,7 +1,5 @@
 use crate::model::{EntityId, Faction, GameState};
-use crate::procedural_characteristics::{
-    generate_world_characteristics, Climate, RegionCharacteristics, RegionTheme,
-};
+use crate::procedural_characteristics::{generate_world_characteristics, RegionCharacteristics};
 
 const RELATIONSHIP_MARKER: &str = "[generated relationship]";
 
@@ -64,10 +62,18 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
                 continue;
             }
 
-            if let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == *left_id) {
+            if let Some(faction) = state
+                .factions
+                .iter_mut()
+                .find(|faction| faction.id == *left_id)
+            {
                 faction.memory.push(left_memory);
             }
-            if let Some(faction) = state.factions.iter_mut().find(|faction| faction.id == *right_id) {
+            if let Some(faction) = state
+                .factions
+                .iter_mut()
+                .find(|faction| faction.id == *right_id)
+            {
                 faction.memory.push(right_memory);
             }
             added += 1;
