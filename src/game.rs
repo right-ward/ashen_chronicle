@@ -16,7 +16,7 @@ mod records;
 mod runtime;
 mod state_effects;
 mod time;
-mod world;
+pub mod world;
 mod world_screen;
 
 mod interactions {
