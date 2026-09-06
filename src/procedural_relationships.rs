@@ -1,4 +1,4 @@
-use crate::model::{EntityId, Faction, GameState};
+use crate::model::{Faction, GameState};
 use crate::procedural_characteristics::{generate_world_characteristics, RegionCharacteristics};
 
 const RELATIONSHIP_MARKER: &str = "[generated relationship]";
@@ -187,7 +187,7 @@ fn complementary_resources(left: &RegionCharacteristics, right: &RegionCharacter
 mod tests {
     use super::*;
     use crate::content::load_campaign_content;
-    use crate::model::{GameState, WorldGenerationMetadata, WorldMode};
+    use crate::model::{EntityId, GameState, WorldGenerationMetadata, WorldMode};
     use crate::procedural::{generate_world, place_authored_content, WorldGenerationConfig};
     use crate::procedural_entities::populate_generated_entities;
 
