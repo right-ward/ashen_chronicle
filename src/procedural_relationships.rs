@@ -14,12 +14,14 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     }
 
     let characteristics = generate_world_characteristics(&state.world);
-    let mut generated = state
+    let mut factions = state
         .factions
         .iter()
         .filter_map(|faction| {
-            let region = if is_generated_faction(faction) {
+            let generated = is_generated_faction(faction);
+            let region = if generated {
                 faction_region(faction, &state.world.regions, &characteristics)
+                    .cloned()
             } else {
                 authored_anchor_region(
                     &faction.name,
@@ -27,18 +29,17 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
                     &state.world.regions,
                     &characteristics,
                 )
-                .as_ref()
             }?;
-            Some((faction.id, region.clone(), is_generated_faction(faction)))
+            Some((faction.id, region, generated))
         })
         .collect::<Vec<_>>();
-    generated.sort_by_key(|(faction_id, _, _)| *faction_id);
+    factions.sort_by_key(|(faction_id, _, _)| *faction_id);
 
     let mut added = 0;
-    for left_index in 0..generated.len() {
-        for right_index in left_index + 1..generated.len() {
-            let (left_id, left_region, left_generated) = &generated[left_index];
-            let (right_id, right_region, right_generated) = &generated[right_index];
+    for left_index in 0..factions.len() {
+        for right_index in left_index + 1..factions.len() {
+            let (left_id, left_region, left_generated) = &factions[left_index];
+            let (right_id, right_region, right_generated) = &factions[right_index];
             if !left_generated && !right_generated {
                 continue;
             }
