@@ -13,6 +13,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Populated generated settlements and other populated locations with runtime-valid NPCs assigned to context-matched generated factions while preserving authored entities.
 - Made generated entity population idempotent across repeated campaign bootstrap calls and covered deterministic generation with focused tests.
 - Generated deterministic faction relationships from shared resources, danger, prosperity, and environmental differences, recording rivalry, alliance, trade, influence, or dependency in persistent faction memory.
+- Integrated relationship generation into generated-world bootstrap and covered deterministic, idempotent, valid, and serialization-preserving relationship state.
 - Integrated authored campaign NPCs and factions as deterministic anchors in generated regions without replacing their authored identities, faction assignments, locations, or quest references.
 - Allowed authored factions to participate in the same deterministic generated relationship system as generated factions, while retaining authored-authored relationships unchanged.
 - Covered authored anchor placement, authored quest reference integrity, cross-authored/generated relationships, and deterministic integration with focused tests.
