@@ -113,8 +113,7 @@ pub(crate) fn authored_anchor_region(
     let region_name = faction_memory
         .iter()
         .find_map(|entry| entry.strip_prefix(&prefix))
-        .map(str::trim_end_matches)?
-        .strip_suffix('.')?;
+        .map(|value| value.trim_end_matches('.'))?;
     let region = world_regions.iter().find(|region| region.name == region_name)?;
     characteristics
         .regions
