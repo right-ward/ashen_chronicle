@@ -264,6 +264,19 @@ mod tests {
         }
     }
 
+    #[test]
+    fn generated_relationships_survive_serialization() {
+        let content = load_campaign_content();
+        let mut state = generated_state();
+        populate_generated_entities(&mut state, &content);
+        let added = populate_generated_relationships(&mut state);
+        assert!(added > 0);
+
+        let serialized = serde_json::to_vec(&state).expect("state should serialize");
+        let restored: GameState = serde_json::from_slice(&serialized).expect("state should deserialize");
+        assert_eq!(relationship_memories(&state), relationship_memories(&restored));
+    }
+
     fn relationship_memories(state: &GameState) -> Vec<(EntityId, Vec<String>)> {
         state
             .factions
