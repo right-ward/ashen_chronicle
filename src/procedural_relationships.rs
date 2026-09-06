@@ -302,8 +302,9 @@ mod tests {
             .memory
             .iter()
             .find_map(|entry| {
-                entry
-                    .strip_prefix(&format!("[authored anchor] {authored_name} is anchored in "))
+                entry.strip_prefix(&format!(
+                    "[authored anchor] {authored_name} is anchored in "
+                ))
             })
             .map(|region| region.trim_end_matches('.').to_string())
             .expect("authored faction should identify its anchor region");
