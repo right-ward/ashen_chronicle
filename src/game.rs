@@ -16,7 +16,8 @@ mod records;
 mod runtime;
 mod state_effects;
 mod time;
-mod world;
+// Made world public so procedural_authored.rs can use its functions
+pub mod world
 mod world_screen;
 
 mod interactions {
