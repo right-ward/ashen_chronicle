@@ -280,7 +280,7 @@ mod tests {
     #[test]
     fn authored_and_generated_factions_can_share_relationships() {
         let mut state = generated_state();
-        super::super::game::world::bootstrap_campaign_content(&mut state);
+        crate::game::world::bootstrap_campaign_content(&mut state);
 
         let content = state.campaign_content.clone().expect("content is loaded");
         let authored_index = state
