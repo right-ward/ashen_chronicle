@@ -20,8 +20,7 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
         .filter_map(|faction| {
             let generated = is_generated_faction(faction);
             let region = if generated {
-                faction_region(faction, &state.world.regions, &characteristics)
-                    .cloned()
+                faction_region(faction, &state.world.regions, &characteristics).cloned()
             } else {
                 authored_anchor_region(
                     &faction.name,

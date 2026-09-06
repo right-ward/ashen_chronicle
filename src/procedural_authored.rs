@@ -64,7 +64,12 @@ pub fn integrate_authored_content(state: &mut GameState, content: &CampaignConte
                 .npcs
                 .iter()
                 .filter(|npc| npc.faction_name.as_deref() == Some(faction.name.as_str()))
-                .filter_map(|npc| state.npcs.iter().find(|candidate| candidate.name == npc.name))
+                .filter_map(|npc| {
+                    state
+                        .npcs
+                        .iter()
+                        .find(|candidate| candidate.name == npc.name)
+                })
                 .filter_map(|npc| state.world.location_by_id(npc.location_id))
                 .filter_map(|location| {
                     state
@@ -79,9 +84,8 @@ pub fn integrate_authored_content(state: &mut GameState, content: &CampaignConte
         .collect::<Vec<_>>();
 
     for (faction_name, region_name) in authored_faction_regions {
-        let marker = format!(
-            "{AUTHORED_ANCHOR_MARKER} {faction_name} is anchored in {region_name}."
-        );
+        let marker =
+            format!("{AUTHORED_ANCHOR_MARKER} {faction_name} is anchored in {region_name}.");
         let Some(faction) = state
             .factions
             .iter_mut()
@@ -114,7 +118,9 @@ pub(crate) fn authored_anchor_region(
         .iter()
         .find_map(|entry| entry.strip_prefix(&prefix))
         .map(|value| value.trim_end_matches('.'))?;
-    let region = world_regions.iter().find(|region| region.name == region_name)?;
+    let region = world_regions
+        .iter()
+        .find(|region| region.name == region_name)?;
     characteristics
         .regions
         .iter()
