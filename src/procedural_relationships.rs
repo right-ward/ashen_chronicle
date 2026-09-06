@@ -203,7 +203,6 @@ mod tests {
     use crate::content::load_campaign_content;
     use crate::model::{EntityId, GameState, WorldGenerationMetadata, WorldMode};
     use crate::procedural::{generate_world, place_authored_content, WorldGenerationConfig};
-    use crate::procedural_authored::integrate_authored_content;
     use crate::procedural_entities::populate_generated_entities;
 
     fn generated_state() -> GameState {
@@ -280,21 +279,38 @@ mod tests {
 
     #[test]
     fn authored_and_generated_factions_can_share_relationships() {
-        let content = load_campaign_content();
         let mut state = generated_state();
-        populate_generated_entities(&mut state, &content);
-        integrate_authored_content(&mut state, &content);
+        super::super::game::world::bootstrap_campaign_content(&mut state);
 
-        let anchor_region_name = state
-            .world
-            .regions
-            .first()
-            .expect("generated world has an anchor region")
-            .name
-            .clone();
-        let generated_name = format!("Test Generated of {anchor_region_name}");
+        let content = state.campaign_content.clone().expect("content is loaded");
+        let authored_index = state
+            .factions
+            .iter()
+            .position(|faction| {
+                content
+                    .factions
+                    .iter()
+                    .any(|authored| authored.name == faction.name)
+                    && faction
+                        .memory
+                        .iter()
+                        .any(|entry| entry.starts_with("[authored anchor]"))
+            })
+            .expect("bootstrap should create an anchored authored faction");
+        let authored_name = state.factions[authored_index].name.clone();
+        let authored_region_name = state.factions[authored_index]
+            .memory
+            .iter()
+            .find_map(|entry| {
+                entry
+                    .strip_prefix(&format!("[authored anchor] {authored_name} is anchored in "))
+            })
+            .map(|region| region.trim_end_matches('.').to_string())
+            .expect("authored faction should identify its anchor region");
+
+        let generated_name = format!("Test Generated of {authored_region_name}");
         let generated_id = state.world.allocate_id();
-        let mut generated_faction = Faction::new(generated_id, generated_name);
+        let mut generated_faction = Faction::new(generated_id, generated_name.clone());
         generated_faction
             .memory
             .push("A generated faction shaped by a test fixture.".to_string());
@@ -303,17 +319,17 @@ mod tests {
         let added = populate_generated_relationships(&mut state);
         assert!(added > 0);
 
-        let authored_names = content
+        let authored = &state.factions[authored_index];
+        assert!(authored.memory.iter().any(|entry| {
+            entry.starts_with(RELATIONSHIP_MARKER) && entry.contains(&generated_name)
+        }));
+        let generated = state
             .factions
             .iter()
-            .map(|faction| faction.name.as_str())
-            .collect::<std::collections::HashSet<_>>();
-        assert!(state.factions.iter().any(|faction| {
-            authored_names.contains(faction.name.as_str())
-                && faction
-                    .memory
-                    .iter()
-                    .any(|entry| entry.starts_with(RELATIONSHIP_MARKER))
+            .find(|faction| faction.name == generated_name)
+            .expect("generated faction should remain present");
+        assert!(generated.memory.iter().any(|entry| {
+            entry.starts_with(RELATIONSHIP_MARKER) && entry.contains(&authored_name)
         }));
     }
 
