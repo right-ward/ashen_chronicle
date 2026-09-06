@@ -284,6 +284,22 @@ mod tests {
         let mut state = generated_state();
         populate_generated_entities(&mut state, &content);
         integrate_authored_content(&mut state, &content);
+
+        let anchor_region_name = state
+            .world
+            .regions
+            .first()
+            .expect("generated world has an anchor region")
+            .name
+            .clone();
+        let generated_name = format!("Test Generated of {anchor_region_name}");
+        let generated_id = state.world.allocate_id();
+        let mut generated_faction = Faction::new(generated_id, generated_name);
+        generated_faction
+            .memory
+            .push("A generated faction shaped by a test fixture.".to_string());
+        state.factions.push(generated_faction);
+
         let added = populate_generated_relationships(&mut state);
         assert!(added > 0);
 
