@@ -156,11 +156,9 @@ fn generate_factions(
             region.climate,
             region.resources.first().map(String::as_str),
         );
-        let mut name = format!("{} of {}", base, world_region.name);
-        let mut suffix = 2;
-        while reserved.contains(&name) {
-            name = format!("{} of {} {}", base, world_region.name, suffix);
-            suffix += 1;
+        let name = format!("{} of {}", base, world_region.name);
+        if reserved.contains(&name) {
+            continue;
         }
         let id = world.allocate_id();
         let mut faction = Faction::new(id, name.clone());
@@ -535,7 +533,9 @@ mod tests {
         let mut state = generated_state();
         let first = populate_generated_entities(&mut state, &content);
         let second = populate_generated_entities(&mut state, &content);
-        assert_eq!(first, second);
+        assert!(first.0 > 0);
+        assert!(first.1 > 0);
+        assert_eq!(second, (0, 0));
         assert_eq!(state.factions.len(), content.factions.len() + first.0);
         assert_eq!(state.npcs.len(), content.npcs.len() + first.1);
     }
