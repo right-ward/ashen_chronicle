@@ -279,14 +279,11 @@ fn ensure_generated_faction_representatives(
         {
             continue;
         }
-        let Some(region_name) = faction_name.rsplit_once(" of ").map(|(_, name)| name) else {
-            continue;
-        };
         let Some(region_id) = state
             .world
             .regions
             .iter()
-            .find(|region| region.name == region_name)
+            .find(|region| faction_name.ends_with(&format!("of {}", region.name)))
             .map(|region| region.id)
         else {
             continue;
