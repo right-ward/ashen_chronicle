@@ -1,4 +1,4 @@
-use crate::model::{Faction, GameState, Npc};
+use crate::model::{Faction, GameState};
 use crate::procedural_authored::authored_anchor_region;
 use crate::procedural_characteristics::{generate_world_characteristics, RegionCharacteristics};
 
@@ -12,8 +12,6 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     if state.world.generation.is_none() {
         return 0;
     }
-
-    ensure_generated_faction_representatives(state);
 
     let characteristics = generate_world_characteristics(&state.world);
     let mut factions = state
@@ -95,67 +93,6 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
         }
     }
 
-    added
-}
-
-fn ensure_generated_faction_representatives(state: &mut GameState) -> usize {
-    let generated_factions = state
-        .factions
-        .iter()
-        .filter(|faction| is_generated_faction(faction))
-        .map(|faction| (faction.id, faction.name.clone()))
-        .collect::<Vec<_>>();
-    let mut added = 0;
-    for (faction_id, faction_name) in generated_factions {
-        if state
-            .npcs
-            .iter()
-            .any(|npc| npc.faction_id == Some(faction_id))
-        {
-            continue;
-        }
-        let Some(region_name) = faction_name.rsplit_once(" of ").map(|(_, name)| name) else {
-            continue;
-        };
-        let Some(region_id) = state
-            .world
-            .regions
-            .iter()
-            .find(|region| region.name == region_name)
-            .map(|region| region.id)
-        else {
-            continue;
-        };
-        let Some(location_id) = state
-            .world
-            .locations
-            .iter()
-            .find(|location| location.region_id == region_id)
-            .map(|location| location.id)
-        else {
-            continue;
-        };
-
-        let mut name = format!("Envoy of {faction_name}");
-        let mut suffix = 2;
-        while state.npcs.iter().any(|npc| npc.name == name) {
-            name = format!("Envoy of {faction_name} {suffix}");
-            suffix += 1;
-        }
-        let id = state.world.allocate_id();
-        let mut npc = Npc::new(
-            id,
-            name,
-            "Faction Representative",
-            location_id,
-            Some(faction_id),
-        );
-        npc.memory.push(format!(
-            "Represents {faction_name} and speaks for its interests in the region."
-        ));
-        state.npcs.push(npc);
-        added += 1;
-    }
     added
 }
 
@@ -346,7 +283,6 @@ mod tests {
         let content = load_campaign_content();
         let mut state = generated_state();
         populate_generated_entities(&mut state, &content);
-        populate_generated_relationships(&mut state);
 
         for faction in state
             .factions
