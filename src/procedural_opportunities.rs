@@ -21,37 +21,22 @@ pub fn populate_generated_opportunities(state: &mut GameState) -> usize {
         ) {
             added += 1;
         }
-        added
+        if added > 0 {
+            added
+        } else {
+            create_danger_opportunity(state)
+        }
     } else {
         create_danger_opportunity(state)
     }
 }
 
-fn find_opportunity_giver(
-    state: &GameState,
-    faction_id: EntityId,
-    preferred_location_id: EntityId,
-) -> Option<EntityId> {
+fn faction_member_npc(state: &GameState, faction_id: EntityId) -> Option<EntityId> {
     state
         .npcs
         .iter()
-        .find(|npc| npc.location_id == preferred_location_id && npc.faction_id == Some(faction_id))
+        .find(|npc| npc.faction_id == Some(faction_id))
         .map(|npc| npc.id)
-        .or_else(|| {
-            state
-                .npcs
-                .iter()
-                .find(|npc| npc.faction_id == Some(faction_id))
-                .map(|npc| npc.id)
-        })
-        .or_else(|| {
-            state
-                .npcs
-                .iter()
-                .find(|npc| npc.location_id == preferred_location_id)
-                .map(|npc| npc.id)
-        })
-        .or_else(|| state.npcs.first().map(|npc| npc.id))
 }
 
 fn create_relationship_quest(
@@ -70,7 +55,7 @@ fn create_relationship_quest(
         .location_by_id(location_id)
         .map(|l| l.name.clone())
         .unwrap_or_else(|| "an unknown place".into());
-    let Some(giver) = find_opportunity_giver(state, faction_id, location_id) else {
+    let Some(giver) = faction_member_npc(state, faction_id) else {
         return 0;
     };
     let faction = state
@@ -125,7 +110,7 @@ fn create_danger_opportunity(state: &mut GameState) -> usize {
     else {
         return 0;
     };
-    let Some(giver) = find_opportunity_giver(state, faction.id, location.id) else {
+    let Some(giver) = faction_member_npc(state, faction.id) else {
         return 0;
     };
     let id = format!("{QUEST_PREFIX}danger.{}", location.id);
@@ -238,7 +223,7 @@ fn create_follow_up(
     else {
         return;
     };
-    let Some(giver) = find_opportunity_giver(state, faction_id, target.id) else {
+    let Some(giver) = faction_member_npc(state, faction_id) else {
         return;
     };
     let id = format!("{EVOLUTION_QUEST_PREFIX}{source}");
@@ -470,7 +455,12 @@ mod tests {
             .location_by_id(quest.target_location_id)
             .is_some());
         assert!(state.factions.iter().any(|f| f.id == quest.faction_id));
-        assert!(state.npcs.iter().any(|n| n.id == quest.giver_npc_id));
+        let giver = state
+            .npcs
+            .iter()
+            .find(|npc| npc.id == quest.giver_npc_id)
+            .expect("generated quest giver");
+        assert_eq!(giver.faction_id, Some(quest.faction_id));
         assert!(!quest.objectives.is_empty());
     }
 
