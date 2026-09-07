@@ -104,7 +104,6 @@ pub fn integrate_authored_content(state: &mut GameState, content: &CampaignConte
             || state.npcs.iter().any(|runtime| runtime.name == npc.name)
     }));
 
-    crate::procedural_opportunities::populate_generated_opportunities(state);
     added
 }
 
@@ -159,7 +158,6 @@ mod tests {
             npcs: Vec::new(),
             quests: Vec::new(),
             last_announced_location_id: None,
-            rng_state: 0,
             campaign_content: Some(content),
         }
     }
