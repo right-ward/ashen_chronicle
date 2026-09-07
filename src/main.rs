@@ -10,6 +10,7 @@ pub mod procedural_authored;
 pub mod procedural_characteristics;
 pub mod procedural_entities;
 pub mod procedural_relationships;
+mod rng;
 pub mod ui;
 mod ui_components;
 

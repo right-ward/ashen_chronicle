@@ -10,16 +10,24 @@ pub const SAVE_BASE_NAME: &str = "ashen_chronicle_save";
 const SAVE_EXTENSION: &str = "json.gz";
 const LEGACY_SAVE_FILE_NAME: &str = "ashen_chronicle_save.json";
 
-#[derive(Debug, Serialize, Deserialize)]
-struct SaveFile {
+#[derive(Debug, Serialize)]
+struct SaveFile<'a> {
+    save_file_version: u32,
+    game: &'a GameState,
+}
+
+#[derive(Debug, Deserialize)]
+struct LoadedSaveFile {
     save_file_version: u32,
     game: GameState,
 }
 
+const MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;
+
 pub fn save_game(path: &Path, state: &GameState) -> io::Result<()> {
     let payload = SaveFile {
         save_file_version: SAVE_FILE_VERSION,
-        game: state.clone(),
+        game: state,
     };
     let json =
         serde_json::to_vec_pretty(&payload).map_err(|err| io::Error::other(err.to_string()))?;
@@ -32,21 +40,41 @@ pub fn save_game(path: &Path, state: &GameState) -> io::Result<()> {
 }
 
 pub fn load_game(path: &Path) -> io::Result<GameState> {
+    let file = File::open(path)?;
+    if file.metadata()?.len() > MAX_SAVE_BYTES {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "save file exceeds the maximum supported size",
+        ));
+    }
     let mut data = Vec::new();
-    File::open(path)?.read_to_end(&mut data)?;
+    file.take(MAX_SAVE_BYTES + 1).read_to_end(&mut data)?;
+    if data.len() as u64 > MAX_SAVE_BYTES {
+        return Err(io::Error::new(
+            io::ErrorKind::InvalidData,
+            "save file exceeds the maximum supported size",
+        ));
+    }
     let json = if is_gzip(&data) {
-        let mut decoder = GzDecoder::new(data.as_slice());
+        let decoder = GzDecoder::new(data.as_slice());
         let mut decoded = Vec::new();
         decoder
+            .take(MAX_SAVE_BYTES + 1)
             .read_to_end(&mut decoded)
             .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;
+        if decoded.len() as u64 > MAX_SAVE_BYTES {
+            return Err(io::Error::new(
+                io::ErrorKind::InvalidData,
+                "decompressed save exceeds the maximum supported size",
+            ));
+        }
         decoded
     } else {
         // Backward compatibility for the pre-compression JSON save format.
         data
     };
 
-    let parsed: SaveFile = serde_json::from_slice(&json)
+    let parsed: LoadedSaveFile = serde_json::from_slice(&json)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;
     if parsed.save_file_version > SAVE_FILE_VERSION || parsed.save_file_version == 0 {
         return Err(io::Error::new(
@@ -184,6 +212,7 @@ mod tests {
         assert_eq!(loaded.character.turn, 7);
         assert_eq!(loaded.character.name, "Tester");
         assert_eq!(loaded.world.event_cooldowns, state.world.event_cooldowns);
+        assert_eq!(loaded.rng_state, state.rng_state);
         assert_eq!(loaded.world.generation, generation);
         assert_eq!(loaded.world.locations[0].description, mutated_description);
         assert_ne!(loaded.world.locations[0].description, original_description);
@@ -204,7 +233,7 @@ mod tests {
         );
         let payload = SaveFile {
             save_file_version: SAVE_FILE_VERSION,
-            game: state.clone(),
+            game: &state,
         };
         fs::write(
             &path,
@@ -234,6 +263,26 @@ mod tests {
             path,
             PathBuf::from("./ashen_chronicle_save_Ash Walker.json.gz")
         );
+    }
+
+    #[test]
+    fn oversized_gzip_is_rejected_after_decompression() {
+        let dir = temp_dir();
+        let path = dir.join("oversized.json.gz");
+        let file = File::create(&path).expect("save should be created");
+        let mut encoder = GzEncoder::new(file, Compression::default());
+        let chunk = vec![b'x'; 1024 * 1024];
+        for _ in 0..9 {
+            encoder
+                .write_all(&chunk)
+                .expect("test payload should write");
+        }
+        encoder.finish().expect("gzip should finish");
+
+        let err = load_game(&path).expect_err("oversized gzip should fail");
+        assert_eq!(err.kind(), io::ErrorKind::InvalidData);
+        assert!(err.to_string().contains("decompressed"));
+        fs::remove_dir_all(&dir).expect("temporary directory should be removed");
     }
 
     #[test]

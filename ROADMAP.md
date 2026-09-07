@@ -17,6 +17,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Integrated authored campaign NPCs and factions as deterministic anchors in generated regions without replacing their authored identities, faction assignments, locations, or quest references.
 - Allowed authored factions to participate in the same deterministic generated relationship system as generated factions, while retaining authored-authored relationships unchanged.
 - Covered authored anchor placement, authored quest reference integrity, cross-authored/generated relationships, and deterministic integration with focused tests.
+- Hardened gameplay and persistence with negative Insight XP handling, persistent deterministic event RNG, bounded history, save-size/decompression limits, mod path confinement, and save serialization without cloning the full GameState.
 
 ## Next
 

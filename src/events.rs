@@ -1,6 +1,6 @@
 use crate::content::{EventConditionContent, EventContent, EventEffectContent};
 use crate::model::{Condition, GameState};
-use std::time::{SystemTime, UNIX_EPOCH};
+use crate::rng::DeterministicRng;
 
 #[derive(Debug, Clone)]
 pub struct EventContext<'a> {
@@ -23,12 +23,15 @@ impl<'a> EventContext<'a> {
 
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
     let Some(chosen) = ({
-        let Some(content) = state.campaign_content.as_ref() else {
+        let Some(events) = state
+            .campaign_content
+            .as_ref()
+            .map(|content| content.events.clone())
+        else {
             return false;
         };
-        let chance_roll = random_roll() % 100;
-        let candidates: Vec<&EventContent> = content
-            .events
+        let chance_roll = next_random_roll(state) % 100;
+        let candidates: Vec<&EventContent> = events
             .iter()
             .filter(|event| event.trigger == context.trigger)
             .filter(|event| matches_conditions(event.conditions.as_ref(), state, context))
@@ -39,7 +42,7 @@ pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool 
             None
         } else {
             Some(
-                weighted_pick(&candidates, random_roll())
+                weighted_pick(&candidates, next_random_roll(state))
                     .unwrap_or(candidates[0])
                     .clone(),
             )
@@ -168,11 +171,11 @@ fn weighted_pick<'a>(events: &[&'a EventContent], roll: u64) -> Option<&'a Event
     events.last().copied()
 }
 
-fn random_roll() -> u64 {
-    SystemTime::now()
-        .duration_since(UNIX_EPOCH)
-        .map(|duration| duration.as_nanos() as u64)
-        .unwrap_or(0)
+fn next_random_roll(state: &mut GameState) -> u64 {
+    let mut rng = DeterministicRng::from_state(state.rng_state);
+    let roll = rng.next_u64();
+    state.rng_state = rng.state();
+    roll
 }
 
 fn apply_event(state: &mut GameState, event: &EventContent, context: &EventContext<'_>) {
@@ -419,6 +422,18 @@ mod tests {
             .as_deref()
             .unwrap()
             .contains("A sign appears."));
+    }
+
+    #[test]
+    fn event_rng_sequence_is_reproducible_from_persisted_state() {
+        let mut a = test_state();
+        let mut b = a.clone();
+        let first_a = next_random_roll(&mut a);
+        let first_b = next_random_roll(&mut b);
+        let second_a = next_random_roll(&mut a);
+        let second_b = next_random_roll(&mut b);
+        assert_eq!((first_a, second_a), (first_b, second_b));
+        assert_ne!(a.rng_state, test_state().rng_state);
     }
 
     #[test]
