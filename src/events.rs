@@ -31,7 +31,7 @@ pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool 
             return false;
         };
         let chance_roll = next_random_roll(state) % 100;
-        let candidates: Vec<&EventContent> = content
+        let candidates: Vec<&EventContent> = events
             .iter()
             .filter(|event| event.trigger == context.trigger)
             .filter(|event| matches_conditions(event.conditions.as_ref(), state, context))

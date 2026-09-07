@@ -495,6 +495,7 @@ mod tests {
         let valid = ModManifest {
             id: "test".into(),
             name: "Test".into(),
+            version: "1.0.0".into(),
             enabled: true,
             priority: 0,
             content_file: "nested/content.json".into(),

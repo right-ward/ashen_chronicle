@@ -212,6 +212,7 @@ mod tests {
         assert_eq!(loaded.character.turn, 7);
         assert_eq!(loaded.character.name, "Tester");
         assert_eq!(loaded.world.event_cooldowns, state.world.event_cooldowns);
+        assert_eq!(loaded.rng_state, state.rng_state);
         assert_eq!(loaded.world.generation, generation);
         assert_eq!(loaded.world.locations[0].description, mutated_description);
         assert_ne!(loaded.world.locations[0].description, original_description);
