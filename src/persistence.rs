@@ -56,7 +56,7 @@ pub fn load_game(path: &Path) -> io::Result<GameState> {
         ));
     }
     let json = if is_gzip(&data) {
-        let mut decoder = GzDecoder::new(data.as_slice());
+        let decoder = GzDecoder::new(data.as_slice());
         let mut decoded = Vec::new();
         decoder
             .take(MAX_SAVE_BYTES + 1)
