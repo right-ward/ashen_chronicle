@@ -35,9 +35,7 @@ fn find_opportunity_giver(
     state
         .npcs
         .iter()
-        .find(|npc| {
-            npc.location_id == preferred_location_id && npc.faction_id == Some(faction_id)
-        })
+        .find(|npc| npc.location_id == preferred_location_id && npc.faction_id == Some(faction_id))
         .map(|npc| npc.id)
         .or_else(|| {
             state
