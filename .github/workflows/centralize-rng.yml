@@ -1,0 +1,40 @@
+name: Finish deterministic RNG centralization
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  centralize:
+    if: "!contains(github.event.head_commit.message, '[rng-central]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Centralize procedural RNG
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          p = Path('src/procedural_characteristics.rs')
+          text = p.read_text()
+          text = text.replace('use crate::model::{EntityId, World};\n', 'use crate::model::{EntityId, World};\nuse crate::rng::DeterministicRng;\n', 1)
+          old = '''struct DeterministicRng {\n    state: u64,\n}\n\nimpl DeterministicRng {\n    fn new(seed: u64) -> Self {\n        Self {\n            state: seed.wrapping_add(0x9E37_79B9_7F4A_7C15),\n        }\n    }\n\n    fn next_u64(&mut self) -> u64 {\n        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);\n        let mut z = self.state;\n        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);\n        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);\n        z ^ (z >> 31)\n    }\n\n    fn gen_range(&mut self, upper: usize) -> usize {\n        debug_assert!(upper > 0);\n        (self.next_u64() as usize) % upper\n    }\n}\n'''
+          assert text.count(old) == 1
+          text = text.replace(old, '', 1)
+          for upper in ['6', '21', '421', '4', '5', '100', '181', '81', '73', '31', '11']:
+              text = text.replace(f'rng.gen_range({upper})', f'rng.gen_range(0..{upper})')
+          p.write_text(text)
+          Path('.github/workflows/centralize-rng.yml').unlink()
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cargo fmt --all
+          git add --all
+          git commit -m "[rng-central] finish deterministic RNG centralization"
+          git push origin HEAD:fix/v0.48.0-hardening
