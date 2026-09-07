@@ -1,0 +1,48 @@
+name: Sync hardening release metadata
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  sync:
+    if: "!contains(github.event.head_commit.message, '[metadata-final]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Sync metadata
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          lock = Path('Cargo.lock')
+          text = lock.read_text()
+          old = 'name = "ashen_chronicle"\nversion = "0.47.0"'
+          new = 'name = "ashen_chronicle"\nversion = "0.48.1"'
+          assert text.count(old) == 1
+          lock.write_text(text.replace(old, new, 1))
+
+          roadmap = Path('ROADMAP.md')
+          text = roadmap.read_text()
+          marker = '- Covered authored anchor placement, authored quest reference integrity, cross-authored/generated relationships, and deterministic integration with focused tests.\n'
+          addition = marker + '- Hardened gameplay and persistence with negative Insight XP handling, persistent deterministic event RNG, bounded history, save-size/decompression limits, mod path confinement, and save serialization without cloning the full GameState.\n'
+          assert marker in text
+          if addition not in text:
+              text = text.replace(marker, addition, 1)
+          roadmap.write_text(text)
+
+          Path('.github/workflows/lock-roadmap-fix.yml').unlink()
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "[metadata-final] sync hardening release metadata"
+          git push origin HEAD:fix/v0.48.0-hardening
