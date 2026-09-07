@@ -1,4 +1,5 @@
 use crate::model::{EntityId, World};
+use crate::rng::DeterministicRng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum RegionTheme {
@@ -100,7 +101,7 @@ fn generate_region_characteristics(
     region_id: EntityId,
 ) -> RegionCharacteristics {
     let mut rng = DeterministicRng::new(seed ^ region_id.rotate_left(17) ^ index as u64);
-    let theme = match rng.gen_range(6) {
+    let theme = match rng.gen_range(0..6) {
         0 => RegionTheme::Frontier,
         1 => RegionTheme::Woodland,
         2 => RegionTheme::Highlands,
@@ -109,9 +110,9 @@ fn generate_region_characteristics(
         _ => RegionTheme::Coast,
     };
     let climate = climate_for(theme, &mut rng);
-    let prosperity = base_prosperity(theme).saturating_add(rng.gen_range(21) as u8);
-    let danger = base_danger(theme).saturating_add(rng.gen_range(21) as u8);
-    let population = 80 + rng.gen_range(421) as u32 + (prosperity as u32 * 4);
+    let prosperity = base_prosperity(theme).saturating_add(rng.gen_range(0..21) as u8);
+    let danger = base_danger(theme).saturating_add(rng.gen_range(0..21) as u8);
+    let population = 80 + rng.gen_range(0..421) as u32 + (prosperity as u32 * 4);
     let resources = region_resources(theme, climate);
     let tags = region_tags(theme, climate, prosperity, danger);
 
@@ -149,11 +150,11 @@ fn generate_location_characteristics(
         })
         .min(100);
     let population = match kind {
-        LocationKind::Settlement => 20 + rng.gen_range(181) as u32,
-        LocationKind::Crossroads => 10 + rng.gen_range(81) as u32,
-        LocationKind::Mine => 8 + rng.gen_range(73) as u32,
-        LocationKind::Shrine => rng.gen_range(31) as u32,
-        LocationKind::Ruin | LocationKind::Wilderness => rng.gen_range(11) as u32,
+        LocationKind::Settlement => 20 + rng.gen_range(0..181) as u32,
+        LocationKind::Crossroads => 10 + rng.gen_range(0..81) as u32,
+        LocationKind::Mine => 8 + rng.gen_range(0..73) as u32,
+        LocationKind::Shrine => rng.gen_range(0..31) as u32,
+        LocationKind::Ruin | LocationKind::Wilderness => rng.gen_range(0..11) as u32,
     };
     let resources = location_resources(kind, &region.resources);
     let tags = location_tags(kind, danger, population);
@@ -172,7 +173,7 @@ fn generate_location_characteristics(
 fn climate_for(theme: RegionTheme, rng: &mut DeterministicRng) -> Climate {
     match theme {
         RegionTheme::Highlands | RegionTheme::Wastes => {
-            if rng.gen_range(4) == 0 {
+            if rng.gen_range(0..4) == 0 {
                 Climate::Arid
             } else {
                 Climate::Cold
@@ -180,7 +181,7 @@ fn climate_for(theme: RegionTheme, rng: &mut DeterministicRng) -> Climate {
         }
         RegionTheme::Marsh | RegionTheme::Coast => Climate::Wet,
         RegionTheme::Woodland | RegionTheme::Frontier => {
-            if rng.gen_range(5) == 0 {
+            if rng.gen_range(0..5) == 0 {
                 Climate::Cold
             } else {
                 Climate::Temperate
@@ -251,7 +252,7 @@ fn location_kind_for(
     danger: u8,
     rng: &mut DeterministicRng,
 ) -> LocationKind {
-    let roll = rng.gen_range(100);
+    let roll = rng.gen_range(0..100);
     if prosperity >= 60 && roll < 35 {
         return LocationKind::Settlement;
     }
@@ -324,31 +325,6 @@ fn kind_tag(kind: LocationKind) -> &'static str {
         LocationKind::Mine => "mine",
         LocationKind::Shrine => "shrine",
         LocationKind::Crossroads => "crossroads",
-    }
-}
-
-struct DeterministicRng {
-    state: u64,
-}
-
-impl DeterministicRng {
-    fn new(seed: u64) -> Self {
-        Self {
-            state: seed.wrapping_add(0x9E37_79B9_7F4A_7C15),
-        }
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut z = self.state;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        z ^ (z >> 31)
-    }
-
-    fn gen_range(&mut self, upper: usize) -> usize {
-        debug_assert!(upper > 0);
-        (self.next_u64() as usize) % upper
     }
 }
 
