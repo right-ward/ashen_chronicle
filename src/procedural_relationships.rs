@@ -228,6 +228,7 @@ mod tests {
             npcs: Vec::new(),
             quests: Vec::new(),
             last_announced_location_id: None,
+            rng_state: 0,
             campaign_content: Some(content),
         }
     }
