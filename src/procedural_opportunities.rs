@@ -99,12 +99,7 @@ fn create_danger_opportunity(state: &mut GameState) -> usize {
         .factions
         .iter()
         .filter(|f| is_generated_faction(f))
-        .find(|f| {
-            state
-                .npcs
-                .iter()
-                .any(|npc| npc.faction_id == Some(f.id))
-        })
+        .find(|f| state.npcs.iter().any(|npc| npc.faction_id == Some(f.id)))
         .cloned()
     else {
         return 0;
