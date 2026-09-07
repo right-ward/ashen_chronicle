@@ -16,6 +16,12 @@ struct SaveFile<'a> {
     game: &'a GameState,
 }
 
+#[derive(Debug, Deserialize)]
+struct LoadedSaveFile {
+    save_file_version: u32,
+    game: GameState,
+}
+
 const MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;
 
 pub fn save_game(path: &Path, state: &GameState) -> io::Result<()> {
@@ -68,7 +74,7 @@ pub fn load_game(path: &Path) -> io::Result<GameState> {
         data
     };
 
-    let parsed: SaveFile = serde_json::from_slice(&json)
+    let parsed: LoadedSaveFile = serde_json::from_slice(&json)
         .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;
     if parsed.save_file_version > SAVE_FILE_VERSION || parsed.save_file_version == 0 {
         return Err(io::Error::new(

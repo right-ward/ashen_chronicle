@@ -483,7 +483,11 @@ mod tests {
         let nested = mod_root.join("nested");
         let outside = root.join("outside.json");
         fs::create_dir_all(&nested).expect("test directories should be created");
-        fs::write(&nested.join("content.json"), "{}").expect("nested content should exist");
+        fs::write(
+            nested.join("content.json"),
+            serde_json::to_string(&default_campaign_content()).expect("content should serialize"),
+        )
+        .expect("nested content should exist");
         fs::write(&outside, "{}").expect("outside content should exist");
         let manifest_path = mod_root.join("manifest.json");
         fs::write(&manifest_path, "{}").expect("manifest should exist");
@@ -495,7 +499,7 @@ mod tests {
             priority: 0,
             content_file: "nested/content.json".into(),
         };
-        assert!(load_mod_content(&manifest_path, &valid).is_err());
+        assert!(load_mod_content(&manifest_path, &valid).is_ok());
 
         let escaping = ModManifest {
             content_file: "../outside.json".into(),

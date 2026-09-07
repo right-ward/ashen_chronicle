@@ -23,12 +23,15 @@ impl<'a> EventContext<'a> {
 
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
     let Some(chosen) = ({
-        let Some(content) = state.campaign_content.as_ref() else {
+        let Some(events) = state
+            .campaign_content
+            .as_ref()
+            .map(|content| content.events.clone())
+        else {
             return false;
         };
         let chance_roll = next_random_roll(state) % 100;
         let candidates: Vec<&EventContent> = content
-            .events
             .iter()
             .filter(|event| event.trigger == context.trigger)
             .filter(|event| matches_conditions(event.conditions.as_ref(), state, context))
