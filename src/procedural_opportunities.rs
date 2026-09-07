@@ -188,7 +188,10 @@ fn populate_danger_opportunity(state: &mut GameState) -> usize {
                 ..Default::default()
             }),
             effects: vec![EventEffectContent::History {
-                text: format!("The danger around {} is close and immediate.", location.name),
+                text: format!(
+                    "The danger around {} is close and immediate.",
+                    location.name
+                ),
             }],
         },
     ) {
@@ -213,7 +216,13 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
                 && (quest.content_id.starts_with(GENERATED_QUEST_PREFIX)
                     || quest.content_id.starts_with(EVOLUTION_QUEST_PREFIX))
         })
-        .map(|quest| (quest.content_id.clone(), quest.target_location_id, quest.faction_id))
+        .map(|quest| {
+            (
+                quest.content_id.clone(),
+                quest.target_location_id,
+                quest.faction_id,
+            )
+        })
         .collect::<Vec<_>>();
 
     let mut changed = 0;
@@ -349,16 +358,18 @@ fn ensure_generated_event(state: &mut GameState, event: EventContent) -> bool {
     let Some(content) = state.campaign_content.as_mut() else {
         return false;
     };
-    if content.events.iter().any(|candidate| candidate.id == event.id) {
+    if content
+        .events
+        .iter()
+        .any(|candidate| candidate.id == event.id)
+    {
         return false;
     }
     content.events.push(event);
     true
 }
 
-fn select_relationship_opportunity(
-    state: &GameState,
-) -> Option<(u64, u64, String, u64)> {
+fn select_relationship_opportunity(state: &GameState) -> Option<(u64, u64, String, u64)> {
     let mut generated_factions = state
         .factions
         .iter()
@@ -477,7 +488,10 @@ mod tests {
 
     fn prepared_state() -> GameState {
         let mut state = generated_state();
-        let content = state.campaign_content.clone().expect("content should exist");
+        let content = state
+            .campaign_content
+            .clone()
+            .expect("content should exist");
         populate_generated_entities(&mut state, &content);
         crate::procedural_authored::integrate_authored_content(&mut state, &content);
         populate_generated_relationships(&mut state);
@@ -521,8 +535,14 @@ mod tests {
             .iter()
             .find(|quest| quest.content_id.starts_with(GENERATED_QUEST_PREFIX))
             .expect("generated quest should exist");
-        assert!(state.world.location_by_id(quest.target_location_id).is_some());
-        assert!(state.factions.iter().any(|faction| faction.id == quest.faction_id));
+        assert!(state
+            .world
+            .location_by_id(quest.target_location_id)
+            .is_some());
+        assert!(state
+            .factions
+            .iter()
+            .any(|faction| faction.id == quest.faction_id));
         assert!(state.npcs.iter().any(|npc| npc.id == quest.giver_npc_id));
         assert!(!quest.objectives.is_empty());
     }
