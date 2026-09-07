@@ -93,6 +93,7 @@ pub fn populate_generated_relationships(state: &mut GameState) -> usize {
         }
     }
 
+    crate::procedural_opportunities::populate_generated_opportunities(state);
     added
 }
 
