@@ -149,9 +149,7 @@ pub(crate) fn search_remains(state: &mut GameState) -> std::io::Result<()> {
 
         character::gain_experience(
             state,
-            (5 + state.character.effective_insight())
-                .try_into()
-                .unwrap(),
+            remains_experience(state.character.effective_insight()),
         );
 
         let result_view = RemainsResultView {
@@ -200,6 +198,10 @@ pub(crate) fn notify_item_gain(state: &GameState, item: &Item) {
         println!("");
         println!("{}", art);
     }
+}
+
+fn remains_experience(effective_insight: i32) -> u32 {
+    (5 + effective_insight).max(0) as u32
 }
 
 fn corpse_label(corpse: &Corpse) -> String {
@@ -257,5 +259,17 @@ fn create_corpse(state: &mut GameState, epitaph: String) -> Corpse {
         inventory,
         epitaph,
         scavenged: false,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn negative_insight_experience_is_clamped_instead_of_panicking() {
+        assert_eq!(remains_experience(-6), 0);
+        assert_eq!(remains_experience(0), 5);
+        assert_eq!(remains_experience(3), 8);
     }
 }

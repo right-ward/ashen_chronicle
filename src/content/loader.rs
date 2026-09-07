@@ -181,11 +181,30 @@ fn load_content_file(path: &Path) -> io::Result<CampaignContent> {
 }
 
 fn load_mod_content(manifest_path: &Path, manifest: &ModManifest) -> io::Result<CampaignContent> {
-    let content_path = manifest_path
+    let mod_root = manifest_path
         .parent()
         .unwrap_or_else(|| Path::new("."))
-        .join(&manifest.content_file);
-    load_content_file(&content_path)
+        .canonicalize()?;
+    let content_path = mod_root.join(&manifest.content_file);
+    let resolved_path = fs::canonicalize(&content_path).map_err(|err| {
+        io::Error::new(
+            err.kind(),
+            format!(
+                "could not resolve mod content path {}: {err}",
+                content_path.display()
+            ),
+        )
+    })?;
+    if !resolved_path.starts_with(&mod_root) {
+        return Err(io::Error::new(
+            io::ErrorKind::PermissionDenied,
+            format!(
+                "mod content path escapes its mod directory: {}",
+                manifest.content_file
+            ),
+        ));
+    }
+    load_content_file(&resolved_path)
 }
 
 fn discover_mods(mods_root: &Path, warnings: &mut Vec<String>) -> Vec<DiscoveredMod> {
@@ -452,6 +471,40 @@ mod tests {
             conditions: None,
             effects: vec![EventEffectContent::Pause],
         }
+    }
+
+    #[test]
+    fn mod_content_paths_must_stay_inside_mod_directory() {
+        let root = std::env::temp_dir().join(format!(
+            "ashen_chronicle_mod_path_test_{}",
+            std::process::id()
+        ));
+        let mod_root = root.join("mod");
+        let nested = mod_root.join("nested");
+        let outside = root.join("outside.json");
+        fs::create_dir_all(&nested).expect("test directories should be created");
+        fs::write(&nested.join("content.json"), "{}").expect("nested content should exist");
+        fs::write(&outside, "{}").expect("outside content should exist");
+        let manifest_path = mod_root.join("manifest.json");
+        fs::write(&manifest_path, "{}").expect("manifest should exist");
+
+        let valid = ModManifest {
+            id: "test".into(),
+            name: "Test".into(),
+            enabled: true,
+            priority: 0,
+            content_file: "nested/content.json".into(),
+        };
+        assert!(load_mod_content(&manifest_path, &valid).is_err());
+
+        let escaping = ModManifest {
+            content_file: "../outside.json".into(),
+            ..valid
+        };
+        let err = load_mod_content(&manifest_path, &escaping)
+            .expect_err("escaping path should be rejected");
+        assert_eq!(err.kind(), io::ErrorKind::PermissionDenied);
+        fs::remove_dir_all(&root).expect("test directory should be removed");
     }
 
     #[test]

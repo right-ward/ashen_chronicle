@@ -1,5 +1,6 @@
 use crate::content::CampaignContent;
 use crate::model::{Location, Region, World, WorldMode};
+use crate::rng::DeterministicRng;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub struct WorldGenerationConfig {
@@ -82,8 +83,8 @@ pub fn generate_world(
 
     while added_edges < extra_edges && attempts < max_attempts {
         attempts += 1;
-        let a = rng.gen_range(world.locations.len());
-        let b = rng.gen_range(world.locations.len());
+        let a = rng.gen_range(0..world.locations.len());
+        let b = rng.gen_range(0..world.locations.len());
         if a == b || has_exit(&world.locations[a], world.locations[b].id) {
             continue;
         }
@@ -210,35 +211,6 @@ fn add_bidirectional_exit(world: &mut World, a_index: usize, b_index: usize) {
 
 fn has_exit(location: &Location, target_id: u64) -> bool {
     location.exits.contains(&target_id)
-}
-
-struct DeterministicRng {
-    state: u64,
-}
-
-impl DeterministicRng {
-    fn new(seed: u64) -> Self {
-        Self {
-            state: seed.wrapping_add(0x9E37_79B9_7F4A_7C15),
-        }
-    }
-
-    fn next_u64(&mut self) -> u64 {
-        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);
-        let mut z = self.state;
-        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);
-        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);
-        z ^ (z >> 31)
-    }
-
-    fn next_bool(&mut self) -> bool {
-        self.next_u64() & 1 == 1
-    }
-
-    fn gen_range(&mut self, upper: usize) -> usize {
-        debug_assert!(upper > 0);
-        (self.next_u64() as usize) % upper
-    }
 }
 
 #[cfg(test)]

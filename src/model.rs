@@ -4,6 +4,7 @@ use std::time::{SystemTime, UNIX_EPOCH};
 use crate::content::{load_campaign_content, CampaignContent};
 
 pub type EntityId = u64;
+const MAX_HISTORY_ENTRIES: usize = 500;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 pub enum WorldMode {
@@ -304,6 +305,8 @@ pub struct GameState {
     pub quests: Vec<Quest>,
     #[serde(default)]
     pub last_announced_location_id: Option<EntityId>,
+    #[serde(default)]
+    pub rng_state: u64,
     #[serde(skip)]
     pub campaign_content: Option<CampaignContent>,
 }
@@ -367,6 +370,7 @@ impl World {
             outcome: None,
         };
         self.history.push(entry);
+        self.trim_history();
     }
 
     pub fn record_event_history(
@@ -393,6 +397,14 @@ impl World {
             outcome: Some(outcome),
         };
         self.history.push(entry);
+        self.trim_history();
+    }
+
+    fn trim_history(&mut self) {
+        if self.history.len() > MAX_HISTORY_ENTRIES {
+            let excess = self.history.len() - MAX_HISTORY_ENTRIES;
+            self.history.drain(0..excess);
+        }
     }
 
     pub fn spawn_character(&mut self, name: String, title: String) -> Character {
@@ -566,6 +578,7 @@ pub fn create_new_state(
         npcs: Vec::new(),
         quests: Vec::new(),
         last_announced_location_id: None,
+        rng_state: crate::rng::DeterministicRng::new(seed ^ 0xA5A5_5A5A_1234_5678).state(),
         campaign_content: Some(content),
     }
 }
@@ -601,6 +614,7 @@ pub fn create_inherited_state(
         npcs: state.npcs.clone(),
         quests: Vec::new(),
         last_announced_location_id: None,
+        rng_state: state.rng_state,
         campaign_content: Some(content),
     }
 }
@@ -608,6 +622,22 @@ pub fn create_inherited_state(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn world_history_is_bounded_to_recent_entries() {
+        let mut state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "First Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+        for turn in 0..550 {
+            state.world.record_history(turn, format!("entry {turn}"));
+        }
+        assert_eq!(state.world.history.len(), MAX_HISTORY_ENTRIES);
+        assert_eq!(state.world.history.first().unwrap().text, "entry 50");
+        assert_eq!(state.world.history.last().unwrap().text, "entry 549");
+    }
 
     #[test]
     fn new_worlds_record_generation_metadata() {
