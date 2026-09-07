@@ -1,0 +1,35 @@
+name: Diagnose hardening CI failure
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  diagnose:
+    if: "!contains(github.event.head_commit.message, '[debug-final]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions-rust-lang/setup-rust-toolchain@v1
+        with:
+          toolchain: stable
+          rustflags: -D warnings
+      - name: Run failing validation with visible output
+        run: |
+          cargo clippy --all-targets --all-features -- -D warnings
+          cargo test --release --no-fail-fast
+      - name: Remove diagnostic workflow
+        if: always()
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          rm -f .github/workflows/debug-hardening-ci.yml
+          git add --all
+          git commit -m "[debug-final] remove CI diagnostic workflow" || true
+          git push origin HEAD:fix/v0.48.0-hardening
