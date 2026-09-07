@@ -98,7 +98,13 @@ fn create_danger_opportunity(state: &mut GameState) -> usize {
     let Some(faction) = state
         .factions
         .iter()
-        .find(|f| is_generated_faction(f))
+        .filter(|f| is_generated_faction(f))
+        .find(|f| {
+            state
+                .npcs
+                .iter()
+                .any(|npc| npc.faction_id == Some(f.id))
+        })
         .cloned()
     else {
         return 0;
@@ -333,6 +339,13 @@ fn select_relationship(state: &GameState) -> Option<(EntityId, EntityId, String,
         .collect::<Vec<_>>();
     factions.sort_by_key(|f| f.id);
     factions.into_iter().find_map(|faction| {
+        if !state
+            .npcs
+            .iter()
+            .any(|npc| npc.faction_id == Some(faction.id))
+        {
+            return None;
+        }
         let mut memories = faction
             .memory
             .iter()
