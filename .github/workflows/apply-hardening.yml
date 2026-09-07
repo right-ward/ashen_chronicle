@@ -1,0 +1,149 @@
+name: Apply hardening implementation
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  apply:
+    if: "!contains(github.event.head_commit.message, '[hardening]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply hardening changes
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          import re
+
+          def replace(path, old, new, count=1):
+              p = Path(path)
+              text = p.read_text()
+              if text.count(old) != count:
+                  raise SystemExit(f'{path}: expected {count} occurrence(s), found {text.count(old)}')
+              p.write_text(text.replace(old, new, count))
+
+          # Shared deterministic RNG (#176).
+          Path('src/rng.rs').write_text('''use std::ops::Range;\n\nconst GAMMA: u64 = 0x9E37_79B9_7F4A_7C15;\n\n#[derive(Debug, Clone, Copy, PartialEq, Eq)]\npub struct DeterministicRng {\n    state: u64,\n}\n\nimpl DeterministicRng {\n    pub fn new(seed: u64) -> Self {\n        Self {\n            state: seed.wrapping_add(GAMMA),\n        }\n    }\n\n    pub fn from_state(state: u64) -> Self {\n        Self { state }\n    }\n\n    pub fn state(&self) -> u64 {\n        self.state\n    }\n\n    pub fn next_u64(&mut self) -> u64 {\n        self.state = self.state.wrapping_add(GAMMA);\n        let mut z = self.state;\n        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);\n        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);\n        z ^ (z >> 31)\n    }\n\n    pub fn next_bool(&mut self) -> bool {\n        self.next_u64() & 1 == 1\n    }\n\n    pub fn gen_range(&mut self, range: Range<usize>) -> usize {\n        debug_assert!(range.start < range.end);\n        range.start + (self.next_u64() as usize % (range.end - range.start))\n    }\n}\n\n#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn identical_seeds_produce_identical_sequences() {\n        let mut a = DeterministicRng::new(123);\n        let mut b = DeterministicRng::new(123);\n        assert_eq!(a.next_u64(), b.next_u64());\n        assert_eq!(a.next_bool(), b.next_bool());\n        assert_eq!(a.gen_range(2..10), b.gen_range(2..10));\n    }\n\n    #[test]\n    fn state_round_trip_continues_the_same_sequence() {\n        let mut original = DeterministicRng::new(456);\n        let _ = original.next_u64();\n        let saved = original.state();\n        let mut restored = DeterministicRng::from_state(saved);\n        assert_eq!(original.next_u64(), restored.next_u64());\n    }\n}\n''')
+          replace('src/main.rs', 'mod persistence;\n', 'mod persistence;\nmod rng;\n')
+
+          # #176: use the shared RNG while preserving the existing algorithm.
+          procedural = Path('src/procedural.rs')
+          text = procedural.read_text()
+          text = text.replace('use crate::model::{Location, Region, World, WorldMode};\n', 'use crate::model::{Location, Region, World, WorldMode};\nuse crate::rng::DeterministicRng;\n')
+          old_rng = '''struct DeterministicRng {\n    state: u64,\n}\n\nimpl DeterministicRng {\n    fn new(seed: u64) -> Self {\n        Self {\n            state: seed.wrapping_add(0x9E37_79B9_7F4A_7C15),\n        }\n    }\n\n    fn next_u64(&mut self) -> u64 {\n        self.state = self.state.wrapping_add(0x9E37_79B9_7F4A_7C15);\n        let mut z = self.state;\n        z = (z ^ (z >> 30)).wrapping_mul(0xBF58_476D_1CE4_E5B9);\n        z = (z ^ (z >> 27)).wrapping_mul(0x94D0_49BB_1331_11EB);\n        z ^ (z >> 31)\n    }\n\n    fn next_bool(&mut self) -> bool {\n        self.next_u64() & 1 == 1\n    }\n\n    fn gen_range(&mut self, upper: usize) -> usize {\n        debug_assert!(upper > 0);\n        (self.next_u64() as usize) % upper\n    }\n}\n'''
+          if text.count(old_rng) != 1:
+              raise SystemExit('procedural.rs: deterministic RNG block not found')
+          text = text.replace(old_rng, '')
+          text = text.replace('rng.gen_range(world.locations.len())', 'rng.gen_range(0..world.locations.len())')
+          procedural.write_text(text)
+
+          # #174: avoid unsigned conversion panic for negative effective Insight.
+          legacy = Path('src/game/legacy.rs')
+          text = legacy.read_text()
+          old = '''        character::gain_experience(\n            state,\n            (5 + state.character.effective_insight())\n                .try_into()\n                .unwrap(),\n        );'''
+          new = '''        character::gain_experience(state, remains_experience(state.character.effective_insight()));'''
+          if text.count(old) != 1:
+              raise SystemExit('legacy.rs: XP conversion not found')
+          text = text.replace(old, new)
+          marker = 'fn corpse_label(corpse: &Corpse) -> String {'
+          helper = '''fn remains_experience(effective_insight: i32) -> u32 {\n    (5 + effective_insight).max(0) as u32\n}\n\n'''
+          text = text.replace(marker, helper + marker, 1)
+          test_marker = '#[cfg(test)]\nmod tests {'
+          tests = '''#[cfg(test)]\nmod tests {\n    use super::*;\n\n    #[test]\n    fn negative_insight_experience_is_clamped_instead_of_panicking() {\n        assert_eq!(remains_experience(-6), 0);\n        assert_eq!(remains_experience(0), 5);\n        assert_eq!(remains_experience(3), 8);\n    }\n}\n\n'''
+          # legacy.rs currently has no test module; append a focused regression module.
+          if test_marker not in text:
+              text += '\n' + tests
+          legacy.write_text(text)
+
+          # #175: persist gameplay-event RNG state in GameState.
+          model = Path('src/model.rs')
+          text = model.read_text()
+          replace('src/model.rs', '    #[serde(default)]\n    pub last_announced_location_id: Option<EntityId>,\n', '    #[serde(default)]\n    pub last_announced_location_id: Option<EntityId>,\n    #[serde(default)]\n    pub rng_state: u64,\n')
+          model = Path('src/model.rs')
+          text = model.read_text()
+          text = text.replace('''        last_announced_location_id: None,\n        campaign_content: Some(content),\n    }\n}\n\npub fn create_inherited_state(''', '''        last_announced_location_id: None,\n        rng_state: crate::rng::DeterministicRng::new(seed ^ 0xA5A5_5A5A_1234_5678).state(),\n        campaign_content: Some(content),\n    }\n}\n\npub fn create_inherited_state(''', 1)
+          text = text.replace('''        last_announced_location_id: None,\n        campaign_content: Some(content),\n    }\n}\n\n#[cfg(test)]''', '''        last_announced_location_id: None,\n        rng_state: state.rng_state,\n        campaign_content: Some(content),\n    }\n}\n\n#[cfg(test)]''', 1)
+          model.write_text(text)
+
+          # #175: replace wall-clock event randomness with the persisted RNG.
+          events = Path('src/events.rs')
+          text = events.read_text()
+          text = text.replace('use crate::model::{Condition, GameState};\nuse std::time::{SystemTime, UNIX_EPOCH};\n', 'use crate::model::{Condition, GameState};\nuse crate::rng::DeterministicRng;\n')
+          text = text.replace('''        let chance_roll = random_roll() % 100;''', '''        let chance_roll = next_random_roll(state) % 100;''', 1)
+          text = text.replace('''                weighted_pick(&candidates, random_roll())''', '''                weighted_pick(&candidates, next_random_roll(state))''', 1)
+          old = '''fn random_roll() -> u64 {\n    SystemTime::now()\n        .duration_since(UNIX_EPOCH)\n        .map(|duration| duration.as_nanos() as u64)\n        .unwrap_or(0)\n}\n'''
+          new = '''fn next_random_roll(state: &mut GameState) -> u64 {\n    let mut rng = DeterministicRng::from_state(state.rng_state);\n    let roll = rng.next_u64();\n    state.rng_state = rng.state();\n    roll\n}\n'''
+          if text.count(old) != 1:
+              raise SystemExit('events.rs: random_roll function not found')
+          text = text.replace(old, new)
+          test_marker = '''    #[test]\n    fn cooldown_blocks_event_until_turn_is_reached() {'''
+          extra = '''    #[test]\n    fn event_rng_sequence_is_reproducible_from_persisted_state() {\n        let mut a = test_state();\n        let mut b = a.clone();\n        let first_a = next_random_roll(&mut a);\n        let first_b = next_random_roll(&mut b);\n        let second_a = next_random_roll(&mut a);\n        let second_b = next_random_roll(&mut b);\n        assert_eq!((first_a, second_a), (first_b, second_b));\n        assert_ne!(a.rng_state, test_state().rng_state);\n    }\n\n'''
+          text = text.replace(test_marker, extra + test_marker, 1)
+          events.write_text(text)
+
+          # #177 and #180: borrow state while serializing and cap decompression.
+          persistence = Path('src/persistence.rs')
+          text = persistence.read_text()
+          text = text.replace('''#[derive(Debug, Serialize, Deserialize)]\nstruct SaveFile {\n    save_file_version: u32,\n    game: GameState,\n}\n''', '''#[derive(Debug, Serialize)]\nstruct SaveFile<'a> {\n    save_file_version: u32,\n    game: &'a GameState,\n}\n\nconst MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;\n''', 1)
+          text = text.replace('''    let payload = SaveFile {\n        save_file_version: SAVE_FILE_VERSION,\n        game: state.clone(),\n    };''', '''    let payload = SaveFile {\n        save_file_version: SAVE_FILE_VERSION,\n        game: state,\n    };''', 1)
+          old = '''pub fn load_game(path: &Path) -> io::Result<GameState> {\n    let mut data = Vec::new();\n    File::open(path)?.read_to_end(&mut data)?;\n    let json = if is_gzip(&data) {\n        let mut decoder = GzDecoder::new(data.as_slice());\n        let mut decoded = Vec::new();\n        decoder\n            .read_to_end(&mut decoded)\n            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;\n        decoded\n    } else {\n        // Backward compatibility for the pre-compression JSON save format.\n        data\n    };'''
+          new = '''pub fn load_game(path: &Path) -> io::Result<GameState> {\n    let file = File::open(path)?;\n    if file.metadata()?.len() > MAX_SAVE_BYTES {\n        return Err(io::Error::new(\n            io::ErrorKind::InvalidData,\n            "save file exceeds the maximum supported size",\n        ));\n    }\n    let mut data = Vec::new();\n    file.take(MAX_SAVE_BYTES + 1).read_to_end(&mut data)?;\n    if data.len() as u64 > MAX_SAVE_BYTES {\n        return Err(io::Error::new(\n            io::ErrorKind::InvalidData,\n            "save file exceeds the maximum supported size",\n        ));\n    }\n    let json = if is_gzip(&data) {\n        let mut decoder = GzDecoder::new(data.as_slice());\n        let mut decoded = Vec::new();\n        decoder\n            .take(MAX_SAVE_BYTES + 1)\n            .read_to_end(&mut decoded)\n            .map_err(|err| io::Error::new(io::ErrorKind::InvalidData, err.to_string()))?;\n        if decoded.len() as u64 > MAX_SAVE_BYTES {\n            return Err(io::Error::new(\n                io::ErrorKind::InvalidData,\n                "decompressed save exceeds the maximum supported size",\n            ));\n        }\n        decoded\n    } else {\n        // Backward compatibility for the pre-compression JSON save format.\n        data\n    };'''
+          if text.count(old) != 1:
+              raise SystemExit('persistence.rs: load_game block not found')
+          text = text.replace(old, new)
+          text = text.replace('''        let payload = SaveFile {\n            save_file_version: SAVE_FILE_VERSION,\n            game: state.clone(),\n        };''', '''        let payload = SaveFile {\n            save_file_version: SAVE_FILE_VERSION,\n            game: &state,\n        };''')
+          # Legacy JSON tests need an owned deserializable wrapper now that SaveFile is serialization-only.
+          text = text.replace('''        let payload = SaveFile {\n            save_file_version: SAVE_FILE_VERSION,\n            game: state.clone(),\n        };\n        fs::write(\n            &path,\n            serde_json::to_vec_pretty(&payload).expect("json should serialize"),\n        )''', '''        let payload = serde_json::json!({\n            "save_file_version": SAVE_FILE_VERSION,\n            "game": state,\n        });\n        fs::write(\n            &path,\n            serde_json::to_vec_pretty(&payload).expect("json should serialize"),\n        )''', 1)
+          text = text.replace('''    fn invalid_gzip_is_reported_as_invalid_data() {''', '''    fn oversized_gzip_is_rejected_after_decompression() {\n        let dir = temp_dir();\n        let path = dir.join("oversized.json.gz");\n        let file = File::create(&path).expect("save should be created");\n        let mut encoder = GzEncoder::new(file, Compression::default());\n        let chunk = vec![b'x'; 1024 * 1024];\n        for _ in 0..9 {\n            encoder.write_all(&chunk).expect("test payload should write");\n        }\n        encoder.finish().expect("gzip should finish");\n\n        let err = load_game(&path).expect_err("oversized gzip should fail");\n        assert_eq!(err.kind(), io::ErrorKind::InvalidData);\n        assert!(err.to_string().contains("decompressed"));\n        fs::remove_dir_all(&dir).expect("temporary directory should be removed");\n    }\n\n    #[test]\n    fn invalid_gzip_is_reported_as_invalid_data() {''', 1)
+          persistence.write_text(text)
+
+          # #178: bound history growth while keeping recent history available to gameplay.
+          model = Path('src/model.rs')
+          text = model.read_text()
+          text = text.replace('''pub type EntityId = u64;\n''', '''pub type EntityId = u64;\nconst MAX_HISTORY_ENTRIES: usize = 500;\n''', 1)
+          text = text.replace('''        self.history.push(entry);\n    }\n\n    pub fn record_event_history(''', '''        self.history.push(entry);\n        self.trim_history();\n    }\n\n    pub fn record_event_history(''', 1)
+          text = text.replace('''        self.history.push(entry);\n    }\n\n    pub fn spawn_character(''', '''        self.history.push(entry);\n        self.trim_history();\n    }\n\n    fn trim_history(&mut self) {\n        if self.history.len() > MAX_HISTORY_ENTRIES {\n            let excess = self.history.len() - MAX_HISTORY_ENTRIES;\n            self.history.drain(0..excess);\n        }\n    }\n\n    pub fn spawn_character(''', 1)
+          model.write_text(text)
+
+          # #179: constrain mod content paths to the discovered mod directory.
+          loader = Path('src/content/loader.rs')
+          text = loader.read_text()
+          old = '''fn load_mod_content(manifest_path: &Path, manifest: &ModManifest) -> io::Result<CampaignContent> {\n    let content_path = manifest_path\n        .parent()\n        .unwrap_or_else(|| Path::new("."))\n        .join(&manifest.content_file);\n    load_content_file(&content_path)\n}\n'''
+          new = '''fn load_mod_content(manifest_path: &Path, manifest: &ModManifest) -> io::Result<CampaignContent> {\n    let mod_root = manifest_path\n        .parent()\n        .unwrap_or_else(|| Path::new("."))\n        .canonicalize()?;\n    let content_path = mod_root.join(&manifest.content_file);\n    let resolved_path = fs::canonicalize(&content_path).map_err(|err| {\n        io::Error::new(\n            err.kind(),\n            format!("could not resolve mod content path {}: {err}", content_path.display()),\n        )\n    })?;\n    if !resolved_path.starts_with(&mod_root) {\n        return Err(io::Error::new(\n            io::ErrorKind::PermissionDenied,\n            format!(\n                "mod content path escapes its mod directory: {}",\n                manifest.content_file\n            ),\n        ));\n    }\n    load_content_file(&resolved_path)\n}\n'''
+          if text.count(old) != 1:
+              raise SystemExit('loader.rs: mod content loader block not found')
+          text = text.replace(old, new)
+          test_marker = '''    #[test]\n    fn data_root_candidates_do_not_duplicate_canonical_paths() {'''
+          extra = '''    #[test]\n    fn mod_content_paths_must_stay_inside_mod_directory() {\n        let root = std::env::temp_dir().join(format!("ashen_chronicle_mod_path_test_{}", std::process::id()));\n        let mod_root = root.join("mod");\n        let nested = mod_root.join("nested");\n        let outside = root.join("outside.json");\n        fs::create_dir_all(&nested).expect("test directories should be created");\n        fs::write(&nested.join("content.json"), "{}").expect("nested content should exist");\n        fs::write(&outside, "{}").expect("outside content should exist");\n        let manifest_path = mod_root.join("manifest.json");\n        fs::write(&manifest_path, "{}").expect("manifest should exist");\n\n        let valid = ModManifest {\n            id: "test".into(),\n            name: "Test".into(),\n            enabled: true,\n            priority: 0,\n            content_file: "nested/content.json".into(),\n        };\n        assert!(load_mod_content(&manifest_path, &valid).is_err());\n\n        let escaping = ModManifest {\n            content_file: "../outside.json".into(),\n            ..valid\n        };\n        let err = load_mod_content(&manifest_path, &escaping).expect_err("escaping path should be rejected");\n        assert_eq!(err.kind(), io::ErrorKind::PermissionDenied);\n        fs::remove_dir_all(&root).expect("test directory should be removed");\n    }\n\n'''
+          text = text.replace(test_marker, extra + test_marker, 1)
+          loader.write_text(text)
+
+          # #181: history retention regression coverage.
+          model = Path('src/model.rs')
+          text = model.read_text()
+          marker = '''    #[test]\n    fn new_worlds_record_generation_metadata() {'''
+          extra = '''    #[test]\n    fn world_history_is_bounded_to_recent_entries() {\n        let mut state = create_new_state(\n            "Test World",\n            WorldMode::New,\n            "First Warden".to_string(),\n            "Ash Walker".to_string(),\n        );\n        for turn in 0..550 {\n            state.world.record_history(turn, format!("entry {turn}"));\n        }\n        assert_eq!(state.world.history.len(), MAX_HISTORY_ENTRIES);\n        assert_eq!(state.world.history.first().unwrap().text, "entry 50");\n        assert_eq!(state.world.history.last().unwrap().text, "entry 549");\n    }\n\n'''
+          text = text.replace(marker, extra + marker, 1)
+          model.write_text(text)
+
+          # Version bump for the hardening release.
+          replace('Cargo.toml', 'version = "0.47.0"', 'version = "0.48.1"')
+
+          # Remove this temporary implementation workflow before committing the actual changes.
+          Path('.github/workflows/apply-hardening.yml').unlink()
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cargo fmt --all
+          git add --all
+          git commit -m "[hardening] secure and stabilize gameplay persistence"
+          git push origin HEAD:fix/v0.48.0-hardening
