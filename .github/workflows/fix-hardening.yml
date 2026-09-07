@@ -1,0 +1,62 @@
+name: Correct hardening implementation
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: "!contains(github.event.head_commit.message, '[hardening-fix]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Apply corrections
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+
+          # Events: avoid borrowing campaign content immutably while mutating RNG state.
+          p = Path('src/events.rs')
+          text = p.read_text()
+          old = '''        let Some(content) = state.campaign_content.as_ref() else {\n            return false;\n        };\n        let chance_roll = next_random_roll(state) % 100;'''
+          new = '''        let Some(events) = state.campaign_content.as_ref().map(|content| content.events.clone()) else {\n            return false;\n        };\n        let chance_roll = next_random_roll(state) % 100;'''
+          assert text.count(old) == 1
+          text = text.replace(old, new, 1)
+          text = text.replace('''.events\n            .iter()''', '''.iter()''', 1)
+          # The previous replacement leaves `events` as the local candidate source.
+          text = text.replace('''        let candidates: Vec<&EventContent> = events\n            .iter()''', '''        let candidates: Vec<&EventContent> = events\n            .iter()''', 1)
+          p.write_text(text)
+
+          # Persistence: separate the owned deserialization shape from the borrowed save shape.
+          p = Path('src/persistence.rs')
+          text = p.read_text()
+          old = '''#[derive(Debug, Serialize)]\nstruct SaveFile<'a> {\n    save_file_version: u32,\n    game: &'a GameState,\n}\n\nconst MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;'''
+          new = '''#[derive(Debug, Serialize)]\nstruct SaveFile<'a> {\n    save_file_version: u32,\n    game: &'a GameState,\n}\n\n#[derive(Debug, Deserialize)]\nstruct LoadedSaveFile {\n    save_file_version: u32,\n    game: GameState,\n}\n\nconst MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;'''
+          assert text.count(old) == 1
+          text = text.replace(old, new, 1)
+          text = text.replace('''    let parsed: SaveFile = serde_json::from_slice(&json)''', '''    let parsed: LoadedSaveFile = serde_json::from_slice(&json)''', 1)
+          p.write_text(text)
+
+          # Loader test: verify a valid nested path still loads, then reject traversal.
+          p = Path('src/content/loader.rs')
+          text = p.read_text()
+          text = text.replace('''        fs::write(&nested.join("content.json"), "{}").expect("nested content should exist");''', '''        fs::write(\n            nested.join("content.json"),\n            serde_json::to_string(&default_campaign_content()).expect("content should serialize"),\n        )\n        .expect("nested content should exist");''', 1)
+          text = text.replace('''        assert!(load_mod_content(&manifest_path, &valid).is_err());''', '''        assert!(load_mod_content(&manifest_path, &valid).is_ok());''', 1)
+          p.write_text(text)
+
+          Path('.github/workflows/fix-hardening.yml').unlink()
+          PY
+
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cargo fmt --all
+          git add --all
+          git commit -m "[hardening-fix] correct hardening implementation"
+          git push origin HEAD:fix/v0.48.0-hardening
