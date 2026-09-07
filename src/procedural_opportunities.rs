@@ -15,7 +15,10 @@ pub fn populate_generated_opportunities(state: &mut GameState) -> usize {
     if let Some((faction_id, target_id, kind, location_id)) = select_relationship(state) {
         let mut added = create_relationship_quest(state, faction_id, target_id, &kind, location_id);
         let event_id = format!("{EVENT_PREFIX}{faction_id}.{target_id}.{kind}");
-        if ensure_event(state, relationship_event(state, event_id, &kind, location_id)) {
+        if ensure_event(
+            state,
+            relationship_event(state, event_id, &kind, location_id),
+        ) {
             added += 1;
         }
         added
@@ -89,13 +92,7 @@ fn create_relationship_quest(
 }
 
 fn create_danger_opportunity(state: &mut GameState) -> usize {
-    let Some(location) = state
-        .world
-        .locations
-        .iter()
-        .find(|l| l.dangerous)
-        .cloned()
-    else {
+    let Some(location) = state.world.locations.iter().find(|l| l.dangerous).cloned() else {
         return 0;
     };
     let Some(faction) = state
@@ -154,7 +151,10 @@ fn create_danger_opportunity(state: &mut GameState) -> usize {
                 ..Default::default()
             }),
             effects: vec![EventEffectContent::History {
-                text: format!("The danger around {} is close and immediate.", location.name),
+                text: format!(
+                    "The danger around {} is close and immediate.",
+                    location.name
+                ),
             }],
         },
     ) {
@@ -314,7 +314,11 @@ fn ensure_event(state: &mut GameState, event: EventContent) -> bool {
     let Some(content) = state.campaign_content.as_mut() else {
         return false;
     };
-    if content.events.iter().any(|candidate| candidate.id == event.id) {
+    if content
+        .events
+        .iter()
+        .any(|candidate| candidate.id == event.id)
+    {
         return false;
     }
     content.events.push(event);
@@ -428,16 +432,32 @@ mod tests {
     fn generated_world_gets_quest_and_event() {
         let mut state = prepared_state();
         assert!(populate_generated_opportunities(&mut state) > 0);
-        assert!(state.quests.iter().any(|q| q.content_id.starts_with(QUEST_PREFIX)));
-        assert!(state.campaign_content.as_ref().unwrap().events.iter().any(|e| e.id.starts_with(EVENT_PREFIX)));
+        assert!(state
+            .quests
+            .iter()
+            .any(|q| q.content_id.starts_with(QUEST_PREFIX)));
+        assert!(state
+            .campaign_content
+            .as_ref()
+            .unwrap()
+            .events
+            .iter()
+            .any(|e| e.id.starts_with(EVENT_PREFIX)));
     }
 
     #[test]
     fn generated_quest_references_valid_entities() {
         let mut state = prepared_state();
         populate_generated_opportunities(&mut state);
-        let quest = state.quests.iter().find(|q| q.content_id.starts_with(QUEST_PREFIX)).expect("generated quest");
-        assert!(state.world.location_by_id(quest.target_location_id).is_some());
+        let quest = state
+            .quests
+            .iter()
+            .find(|q| q.content_id.starts_with(QUEST_PREFIX))
+            .expect("generated quest");
+        assert!(state
+            .world
+            .location_by_id(quest.target_location_id)
+            .is_some());
         assert!(state.factions.iter().any(|f| f.id == quest.faction_id));
         assert!(state.npcs.iter().any(|n| n.id == quest.giver_npc_id));
         assert!(!quest.objectives.is_empty());
@@ -447,13 +467,24 @@ mod tests {
     fn completed_generated_quest_evolves_world() {
         let mut state = prepared_state();
         populate_generated_opportunities(&mut state);
-        let index = state.quests.iter().position(|q| q.content_id.starts_with(QUEST_PREFIX)).expect("generated quest");
+        let index = state
+            .quests
+            .iter()
+            .position(|q| q.content_id.starts_with(QUEST_PREFIX))
+            .expect("generated quest");
         let location_id = state.quests[index].target_location_id;
-        state.world.location_by_id_mut(location_id).unwrap().dangerous = true;
+        state
+            .world
+            .location_by_id_mut(location_id)
+            .unwrap()
+            .dangerous = true;
         state.quests[index].completed = true;
         assert_eq!(evolve_generated_world(&mut state), 1);
         assert!(!state.world.location_by_id(location_id).unwrap().dangerous);
-        assert!(state.quests.iter().any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
+        assert!(state
+            .quests
+            .iter()
+            .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
         assert_eq!(evolve_generated_world(&mut state), 0);
     }
 
@@ -461,11 +492,23 @@ mod tests {
     fn generated_state_survives_serialization() {
         let mut state = prepared_state();
         populate_generated_opportunities(&mut state);
-        let index = state.quests.iter().position(|q| q.content_id.starts_with(QUEST_PREFIX)).expect("generated quest");
+        let index = state
+            .quests
+            .iter()
+            .position(|q| q.content_id.starts_with(QUEST_PREFIX))
+            .expect("generated quest");
         state.quests[index].completed = true;
-        state.world.location_by_id_mut(state.quests[index].target_location_id).unwrap().dangerous = true;
+        state
+            .world
+            .location_by_id_mut(state.quests[index].target_location_id)
+            .unwrap()
+            .dangerous = true;
         evolve_generated_world(&mut state);
-        let restored: GameState = serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
-        assert!(restored.quests.iter().any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
+        let restored: GameState =
+            serde_json::from_slice(&serde_json::to_vec(&state).unwrap()).unwrap();
+        assert!(restored
+            .quests
+            .iter()
+            .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
     }
 }
