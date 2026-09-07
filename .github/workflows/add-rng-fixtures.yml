@@ -1,0 +1,38 @@
+name: Update GameState fixtures
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  fixtures:
+    if: "!contains(github.event.head_commit.message, '[rng-fixtures]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Update fixtures
+        shell: bash
+        run: |
+          python3 <<'PY'
+          from pathlib import Path
+          for path in Path('src').rglob('*.rs'):
+              text = path.read_text()
+              needle = '            last_announced_location_id: None,\n'
+              replacement = needle + '            rng_state: 0,\n'
+              if needle in text and 'rng_state: 0' not in text:
+                  text = text.replace(needle, replacement)
+                  path.write_text(text)
+          Path('.github/workflows/add-rng-fixtures.yml').unlink()
+          PY
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          cargo fmt --all
+          git add --all
+          git commit -m "[rng-fixtures] update GameState fixtures for persistent RNG"
+          git push origin HEAD:fix/v0.48.0-hardening
