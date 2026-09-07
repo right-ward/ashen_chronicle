@@ -279,6 +279,7 @@ mod tests {
             character,
             threat: Default::default(),
             corpses: Vec::new(),
+            factions: Vec::new(),
             npcs: Vec::new(),
             quests: Vec::new(),
             last_announced_location_id: None,
