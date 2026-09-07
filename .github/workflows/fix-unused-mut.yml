@@ -1,0 +1,36 @@
+name: Fix hardening clippy warning
+
+on:
+  push:
+    branches:
+      - fix/v0.48.0-hardening
+
+permissions:
+  contents: write
+
+jobs:
+  fix:
+    if: "!contains(github.event.head_commit.message, '[mut-final]')"
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - name: Fix warning
+        run: |
+          python3 - <<'PY'
+          from pathlib import Path
+          p = Path('src/persistence.rs')
+          text = p.read_text()
+          old = '        let mut decoder = GzDecoder::new(data.as_slice());'
+          new = '        let decoder = GzDecoder::new(data.as_slice());'
+          assert text.count(old) == 1
+          p.write_text(text.replace(old, new, 1))
+          Path('.github/workflows/fix-unused-mut.yml').unlink()
+          PY
+          cargo fmt --all
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add --all
+          git commit -m "[mut-final] fix hardening clippy warning"
+          git push origin HEAD:fix/v0.48.0-hardening
