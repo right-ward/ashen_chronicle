@@ -123,6 +123,7 @@ pub(crate) fn bootstrap_campaign_content(state: &mut GameState) -> CampaignSeedR
         report.npcs_added += generated_npcs;
         crate::procedural_authored::integrate_authored_content(state, &content);
         crate::procedural_relationships::populate_generated_relationships(state);
+        crate::procedural_opportunities::populate_generated_opportunities(state);
     }
 
     crate::game::quests::normalize_all(state);
@@ -278,7 +279,6 @@ mod tests {
             character,
             threat: Default::default(),
             corpses: Vec::new(),
-            factions: Vec::new(),
             npcs: Vec::new(),
             quests: Vec::new(),
             last_announced_location_id: None,
