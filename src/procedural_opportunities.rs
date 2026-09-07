@@ -332,14 +332,14 @@ fn select_relationship(state: &GameState) -> Option<(EntityId, EntityId, String,
         .filter(|f| is_generated_faction(f))
         .collect::<Vec<_>>();
     factions.sort_by_key(|f| f.id);
-    for faction in factions {
+    factions.into_iter().find_map(|faction| {
         let mut memories = faction
             .memory
             .iter()
             .filter(|m| m.starts_with(RELATIONSHIP_MARKER))
             .collect::<Vec<_>>();
         memories.sort();
-        for memory in memories {
+        memories.into_iter().find_map(|memory| {
             let body = memory.strip_prefix(RELATIONSHIP_MARKER)?.trim_start();
             let (kind, rest) = body.split_once(" with ")?;
             let target_name = rest.split(" (strength").next()?.trim();
@@ -358,10 +358,9 @@ fn select_relationship(state: &GameState) -> Option<(EntityId, EntityId, String,
                         .find(|l| l.dangerous)
                         .map(|l| l.id)
                 })?;
-            return Some((faction.id, target.id, kind.to_string(), location));
-        }
-    }
-    None
+            Some((faction.id, target.id, kind.to_string(), location))
+        })
+    })
 }
 
 fn faction_location(state: &GameState, faction: &crate::model::Faction) -> Option<EntityId> {
