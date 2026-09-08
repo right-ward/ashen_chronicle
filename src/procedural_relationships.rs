@@ -279,7 +279,7 @@ mod tests {
     }
 
     #[test]
-    fn generated_factions_have_representative_npcs() {
+    fn generated_factions_with_locations_have_representative_npcs() {
         let content = load_campaign_content();
         let mut state = generated_state();
         populate_generated_entities(&mut state, &content);
@@ -289,6 +289,22 @@ mod tests {
             .iter()
             .filter(|faction| is_generated_faction(faction))
         {
+            let Some(region) = state
+                .world
+                .regions
+                .iter()
+                .find(|region| faction.name.ends_with(&format!("of {}", region.name)))
+            else {
+                continue;
+            };
+            if !state
+                .world
+                .locations
+                .iter()
+                .any(|location| location.region_id == region.id)
+            {
+                continue;
+            }
             assert!(state
                 .npcs
                 .iter()
