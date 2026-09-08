@@ -25,10 +25,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-### v0.48.x in progress
-
-- Strengthen end-to-end procedural generation, integration, persistence, and evolution coverage.
-- Review the completed procedural milestone for remaining edge cases before closing the v0.48.x parent milestone.
+No active milestone. The v0.48.1 procedural content and emerging-world milestone is complete and ready for release.
 
 ## Longer-term direction
 
