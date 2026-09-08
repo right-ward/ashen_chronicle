@@ -7,7 +7,7 @@ const RELATIONSHIP_MARKER: &str = "[generated relationship]";
 /// Add deterministic relationships between generated factions and between
 /// generated factions and authored factions using the characteristics of the
 /// regions they inhabit. Relationships are stored in faction memory so they
-/// persist with the existing runtime model and saves.
+/// persist using the existing runtime model and saves.
 pub fn populate_generated_relationships(state: &mut GameState) -> usize {
     if state.world.generation.is_none() {
         return 0;
@@ -275,6 +275,40 @@ mod tests {
                     .iter()
                     .any(|candidate| candidate.name == target));
             }
+        }
+    }
+
+    #[test]
+    fn generated_factions_with_locations_have_representative_npcs() {
+        let content = load_campaign_content();
+        let mut state = generated_state();
+        populate_generated_entities(&mut state, &content);
+
+        for faction in state
+            .factions
+            .iter()
+            .filter(|faction| is_generated_faction(faction))
+        {
+            let Some(region) = state
+                .world
+                .regions
+                .iter()
+                .find(|region| faction.name.ends_with(&format!("of {}", region.name)))
+            else {
+                continue;
+            };
+            if !state
+                .world
+                .locations
+                .iter()
+                .any(|location| location.region_id == region.id)
+            {
+                continue;
+            }
+            assert!(state
+                .npcs
+                .iter()
+                .any(|npc| npc.faction_id == Some(faction.id)));
         }
     }
 

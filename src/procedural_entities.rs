@@ -48,7 +48,7 @@ pub fn populate_generated_entities(
         &characteristics,
         content,
     );
-    let generated_npcs = generate_npcs(
+    let mut generated_npcs = generate_npcs(
         &mut state.world,
         &state.factions,
         &mut state.npcs,
@@ -56,9 +56,13 @@ pub fn populate_generated_entities(
         &generated_location_names,
         content,
     );
+    generated_npcs += ensure_generated_faction_representatives(state, content, &generated_factions);
 
-    assert_eq!(state.factions.len() - faction_start, generated_factions);
-    (generated_factions, generated_npcs)
+    assert_eq!(
+        state.factions.len() - faction_start,
+        generated_factions.len()
+    );
+    (generated_factions.len(), generated_npcs)
 }
 
 fn rename_generated_locations(
@@ -130,14 +134,14 @@ fn generate_factions(
     factions: &mut Vec<Faction>,
     characteristics: &crate::procedural_characteristics::WorldCharacteristics,
     content: &CampaignContent,
-) -> usize {
+) -> Vec<(EntityId, EntityId)> {
     let existing = factions
         .iter()
         .map(|faction| faction.name.clone())
         .chain(content.factions.iter().map(|faction| faction.name.clone()))
         .collect::<HashSet<_>>();
     let mut reserved = existing;
-    let mut added = 0;
+    let mut added = Vec::new();
 
     for region in &characteristics.regions {
         let should_generate = region.population >= 200 || region.prosperity >= 45;
@@ -171,7 +175,7 @@ fn generate_factions(
         ));
         factions.push(faction);
         reserved.insert(name);
-        added += 1;
+        added.push((id, region.region_id));
     }
     added
 }
@@ -245,6 +249,124 @@ fn generate_npcs(
         }
     }
     generated
+}
+
+fn ensure_generated_faction_representatives(
+    state: &mut GameState,
+    content: &CampaignContent,
+    newly_generated_factions: &[(EntityId, EntityId)],
+) -> usize {
+    let mut added = 0;
+    let mut reserved = state
+        .npcs
+        .iter()
+        .map(|npc| npc.name.clone())
+        .chain(content.npcs.iter().map(|npc| npc.name.clone()))
+        .collect::<HashSet<_>>();
+
+    for &(faction_id, region_id) in newly_generated_factions {
+        let already_has_member = state
+            .npcs
+            .iter()
+            .any(|npc| npc.faction_id == Some(faction_id));
+        if already_has_member {
+            continue;
+        }
+        let Some(location_id) = state
+            .world
+            .locations
+            .iter()
+            .find(|location| location.region_id == region_id)
+            .map(|location| location.id)
+        else {
+            continue;
+        };
+        let Some(faction_name) = state
+            .factions
+            .iter()
+            .find(|faction| faction.id == faction_id)
+            .map(|faction| faction.name.clone())
+        else {
+            continue;
+        };
+        add_faction_representative(state, &mut reserved, faction_id, faction_name, location_id);
+        added += 1;
+    }
+
+    let existing_generated_factions = state
+        .factions
+        .iter()
+        .filter(|faction| {
+            faction
+                .memory
+                .iter()
+                .any(|entry| entry.starts_with("A generated faction shaped by"))
+                && !newly_generated_factions
+                    .iter()
+                    .any(|(faction_id, _)| *faction_id == faction.id)
+        })
+        .map(|faction| (faction.id, faction.name.clone()))
+        .collect::<Vec<_>>();
+
+    for (faction_id, faction_name) in existing_generated_factions {
+        if state
+            .npcs
+            .iter()
+            .any(|npc| npc.faction_id == Some(faction_id))
+        {
+            continue;
+        }
+        let Some(region_id) = state
+            .world
+            .regions
+            .iter()
+            .find(|region| faction_name.ends_with(&format!("of {}", region.name)))
+            .map(|region| region.id)
+        else {
+            continue;
+        };
+        let Some(location_id) = state
+            .world
+            .locations
+            .iter()
+            .find(|location| location.region_id == region_id)
+            .map(|location| location.id)
+        else {
+            continue;
+        };
+        add_faction_representative(state, &mut reserved, faction_id, faction_name, location_id);
+        added += 1;
+    }
+
+    added
+}
+
+fn add_faction_representative(
+    state: &mut GameState,
+    reserved: &mut HashSet<String>,
+    faction_id: EntityId,
+    faction_name: String,
+    location_id: EntityId,
+) {
+    let mut name = format!("Envoy of {faction_name}");
+    let mut suffix = 2;
+    while reserved.contains(&name) {
+        name = format!("Envoy of {faction_name} {suffix}");
+        suffix += 1;
+    }
+    let id = state.world.allocate_id();
+    let mut npc = Npc::new(
+        id,
+        name.clone(),
+        "Faction Representative",
+        location_id,
+        Some(faction_id),
+    );
+    npc.memory.push(format!(
+        "Represents {faction_name} and speaks for its interests in the region."
+    ));
+    state.npcs.push(npc);
+    reserved.insert(name);
 }
 
 fn faction_location_context(faction: &Faction, world: &World, region_id: EntityId) -> bool {

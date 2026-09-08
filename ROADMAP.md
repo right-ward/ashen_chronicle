@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-### v0.48.0: procedural content and emerging world
+### v0.48.1: procedural content and emerging world
 - Added deterministic procedural generation primitives for regional themes, climates, prosperity, danger, population, resources, and tags.
 - Added deterministic location characteristics derived from surrounding regional context, including location kinds, population, resources, danger, and tags.
 - Added deterministic generated location names, context-driven factions, and NPCs using reusable name/content pools.
@@ -18,14 +18,17 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Allowed authored factions to participate in the same deterministic generated relationship system as generated factions, while retaining authored-authored relationships unchanged.
 - Covered authored anchor placement, authored quest reference integrity, cross-authored/generated relationships, and deterministic integration with focused tests.
 - Hardened gameplay and persistence with negative Insight XP handling, persistent deterministic event RNG, bounded history, save-size/decompression limits, mod path confinement, and save serialization without cloning the full GameState.
+- Generated persistent quests from faction relationships and dangerous locations, using existing quest objectives and NPC/faction runtime references.
+- Generated deterministic travel events from the same world relationships and dangerous locations, reusing the existing event trigger/cooldown/history flow.
+- Added consequence-driven world evolution: completing generated opportunities can pacify dangerous locations, record persistent faction memory, and create deterministic follow-up opportunities without regenerating the world graph.
+- Covered generated opportunities, valid references, evolution, serialization, and time-driven consequence propagation with focused tests.
 
 ## Next
 
-### v0.48.0 in progress
+### v0.48.x in progress
 
-- Generate emergent quests and initial world events from generated world state.
-- Establish ongoing world evolution from generated state.
 - Strengthen end-to-end procedural generation, integration, persistence, and evolution coverage.
+- Review the completed procedural milestone for remaining edge cases before closing the v0.48.x parent milestone.
 
 ## Longer-term direction
 
