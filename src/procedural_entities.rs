@@ -56,8 +56,7 @@ pub fn populate_generated_entities(
         &generated_location_names,
         content,
     );
-    generated_npcs +=
-        ensure_generated_faction_representatives(state, content, &generated_factions);
+    generated_npcs += ensure_generated_faction_representatives(state, content, &generated_factions);
 
     assert_eq!(
         state.factions.len() - faction_start,
@@ -290,13 +289,7 @@ fn ensure_generated_faction_representatives(
         else {
             continue;
         };
-        add_faction_representative(
-            state,
-            &mut reserved,
-            faction_id,
-            faction_name,
-            location_id,
-        );
+        add_faction_representative(state, &mut reserved, faction_id, faction_name, location_id);
         added += 1;
     }
 
@@ -341,13 +334,7 @@ fn ensure_generated_faction_representatives(
         else {
             continue;
         };
-        add_faction_representative(
-            state,
-            &mut reserved,
-            faction_id,
-            faction_name,
-            location_id,
-        );
+        add_faction_representative(state, &mut reserved, faction_id, faction_name, location_id);
         added += 1;
     }
 
