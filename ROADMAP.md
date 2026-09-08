@@ -25,7 +25,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-No active milestone. The v0.48.1 procedural content and emerging-world milestone is complete and ready for release.
+0.49.x milestone
 
 ## Longer-term direction
 
