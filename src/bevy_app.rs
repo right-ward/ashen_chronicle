@@ -6,8 +6,8 @@
 
 use bevy::prelude::*;
 
-const WINDOW_WIDTH: f32 = 1280.0;
-const WINDOW_HEIGHT: f32 = 720.0;
+const WINDOW_WIDTH: u32 = 1280;
+const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub(crate) fn run() {
@@ -41,7 +41,7 @@ mod tests {
     #[test]
     fn foundation_window_configuration_is_stable() {
         assert_eq!(WINDOW_TITLE, "The Ashen Chronicle");
-        assert_eq!(WINDOW_WIDTH, 1280.0);
-        assert_eq!(WINDOW_HEIGHT, 720.0);
+        assert_eq!(WINDOW_WIDTH, 1280);
+        assert_eq!(WINDOW_HEIGHT, 720);
     }
 }
