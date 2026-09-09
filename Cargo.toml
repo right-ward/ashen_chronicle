@@ -20,7 +20,9 @@ strip = true
 
 [dependencies]
 bevy = { version = "0.19.1", optional = true, default-features = false, features = [
-    "2d",
+    "default_app",
+    "2d_bevy_render",
+    "std",
     "bevy_winit",
     "x11",
     "android-game-activity",
