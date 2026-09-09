@@ -4,7 +4,7 @@ version = "0.48.1"
 edition = "2021"
 
 [features]
-bevy = []
+bevy = ["dep:bevy"]
 
 [profile.release]
 codegen-units = 10
@@ -19,7 +19,12 @@ opt-level = 3
 strip = true
 
 [dependencies]
-bevy = "0.19.1"
+bevy = { version = "0.19.1", optional = true, default-features = false, features = [
+    "2d",
+    "bevy_winit",
+    "x11",
+    "android-game-activity",
+] }
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 flate2 = "1.1"
