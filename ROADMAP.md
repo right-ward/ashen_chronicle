@@ -23,9 +23,13 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added consequence-driven world evolution: completing generated opportunities can pacify dangerous locations, record persistent faction memory, and create deterministic follow-up opportunities without regenerating the world graph.
 - Covered generated opportunities, valid references, evolution, serialization, and time-driven consequence propagation with focused tests.
 
+### v0.49.x: Ratatui to Bevy migration (in progress)
+- Established the Bevy application foundation as an opt-in graphical runtime while retaining the existing Ratatui frontend for the incremental migration.
+- Added a dedicated Bevy application module and kept engine/bootstrap concerns separate from gameplay state and rules.
+
 ## Next
 
-0.49.x milestone
+Continue v0.49.x with the reusable Bevy presentation, input, and navigation layer, followed by incremental screen migration and the eventual Ratatui/crossterm removal.
 
 ## Longer-term direction
 
