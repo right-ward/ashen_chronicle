@@ -140,6 +140,7 @@ pub(crate) fn build_quest_log_view(state: &GameState) -> QuestLogView {
     }
 }
 
+#[cfg(feature = "bevy")]
 pub(crate) fn build_quest_view_for(state: &GameState, quest_index: usize) -> Option<QuestView> {
     let quest = state
         .quests
