@@ -13,18 +13,18 @@ const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub(crate) fn run() {
-    App::new()
-        .add_plugins(DefaultPlugins.set(WindowPlugin {
-            primary_window: Some(Window {
-                title: WINDOW_TITLE.to_owned(),
-                resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
-                resizable: true,
-                ..default()
-            }),
+    let mut app = App::new();
+    app.add_plugins(DefaultPlugins.set(WindowPlugin {
+        primary_window: Some(Window {
+            title: WINDOW_TITLE.to_owned(),
+            resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
+            resizable: true,
             ..default()
-        }))
-        .add_systems(Startup, setup)
-        .run();
+        }),
+        ..default()
+    }));
+    bevy_presentation::install(&mut app);
+    app.add_systems(Startup, setup).run();
 }
 
 fn setup(mut commands: Commands) {
