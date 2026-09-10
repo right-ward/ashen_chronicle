@@ -234,14 +234,13 @@ fn keyboard_to_semantic_input(
 
 fn choice_button_input(
     mut interaction_query: Query<(&Interaction, &ChoiceButton), (Changed<Interaction>, With<Button>)>,
+    mut navigation: ResMut<NavigationState>,
     mut input_queue: ResMut<SemanticInputQueue>,
 ) {
     for (interaction, choice) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
+            navigation.selected = choice.index;
             input_queue.0.push(InputEvent::Confirm);
-            input_queue.0.push(InputEvent::Character(
-                char::from_digit((choice.index.min(9)) as u32, 10).unwrap_or('0'),
-            ));
         }
     }
 }
