@@ -14,7 +14,7 @@ mod navigation;
 mod quests;
 mod records;
 mod runtime;
-mod state_effects;
+pub(crate) mod state_effects;
 mod time;
 // Made world public so procedural_authored.rs can use its functions
 pub mod world;
