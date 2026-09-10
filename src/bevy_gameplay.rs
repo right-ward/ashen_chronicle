@@ -9,9 +9,7 @@ use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
-use crate::game::{
-    build_main_menu, build_navigation_view, time_display, travel_to, GameAction, MenuEntry,
-};
+use crate::game::{actions, menu, navigation, time};
 use crate::input::InputEvent;
 use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
 
@@ -85,8 +83,8 @@ fn gameplay_input(
     }
 }
 
-fn menu_entries(session: &GameSession) -> Vec<MenuEntry> {
-    build_main_menu(&session.state)
+fn menu_entries(session: &GameSession) -> Vec<menu::MenuEntry> {
+    menu::build_main_menu(&session.state)
 }
 
 fn move_selection(
@@ -100,7 +98,7 @@ fn move_selection(
     };
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
-        GameplayScreen::Navigation => build_navigation_view(&session.state).destinations.len() + 1,
+        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
     };
     if count == 0 {
         return;
@@ -128,13 +126,13 @@ fn activate_selection(
                 return;
             };
             match entry.action {
-                GameAction::Travel => {
+                menu::GameAction::Travel => {
                     gameplay.screen = GameplayScreen::Navigation;
                     gameplay.selected = 0;
                     gameplay.message = None;
                     gameplay.dirty = true;
                 }
-                GameAction::Quit => {
+                menu::GameAction::Quit => {
                     lifecycle.phase = LifecyclePhase::QuitConfirm;
                     lifecycle.selected = 1;
                     lifecycle.mark_dirty();
@@ -149,7 +147,7 @@ fn activate_selection(
             }
         }
         GameplayScreen::Navigation => {
-            let view = build_navigation_view(&session.state);
+            let view = navigation::build_view(&session.state);
             if gameplay.selected >= view.destinations.len() {
                 gameplay.screen = GameplayScreen::Dashboard;
                 gameplay.selected = 0;
@@ -160,7 +158,7 @@ fn activate_selection(
             if let Some(destination) = view.destinations.get(gameplay.selected) {
                 let old_turn = session.state.character.turn;
                 let target_id = destination.id;
-                if travel_to(&mut session.state, target_id).is_ok() {
+                if actions::travel_to(&mut session.state, target_id).is_ok() {
                     let mut message = session
                         .state
                         .world
@@ -218,7 +216,7 @@ fn render_if_active(
         ),
         GameplayScreen::Navigation => render_navigation(
             &mut commands,
-            &build_navigation_view(&session.state),
+            &navigation::build_view(&session.state),
             gameplay.selected,
         ),
     }
@@ -230,7 +228,7 @@ fn render_if_active(
 fn render_dashboard(
     commands: &mut Commands,
     view: &WorldView,
-    actions_list: &[MenuEntry],
+    actions_list: &[menu::MenuEntry],
     selected: usize,
     message: Option<&str>,
 ) {
@@ -425,7 +423,7 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         .collect();
     WorldView {
         world_name: state.world.name.clone(),
-        time: time_display(state.world.time_points, state.world.day),
+        time: time::time_display(state.world.time_points, state.world.day),
         character: crate::presentation::CharacterView {
             name: state.character.name.clone(),
             title: state.character.title.clone(),
