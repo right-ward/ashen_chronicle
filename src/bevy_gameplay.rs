@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 
 use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
-use crate::bevy_presentation::{self, BevyScreenRoot, NavigationState, ScreenId, SemanticInputQueue};
+use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
 use crate::game::{actions, menu, navigation};
 use crate::input::InputEvent;
 use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
@@ -38,17 +38,14 @@ impl Default for GameplayState {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
-        .add_systems(
-            Update,
-            (gameplay_input, render_if_active).chain(),
-        );
+        .add_systems(Update, (gameplay_input, render_if_active).chain());
 }
 
 fn gameplay_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
     mut navigation_state: ResMut<NavigationState>,
-    mut input_queue: ResMut<SemanticInputQueue>,
+    mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete || lifecycle.session.is_none() {
         return;
@@ -103,17 +100,15 @@ fn move_selection(
     };
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
-        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
+        GameplayScreen::Navigation => {
+            navigation::build_view(&session.state).destinations.len() + 1
+        }
     };
     if count == 0 {
         return;
     }
     gameplay.selected = (gameplay.selected as isize + direction).rem_euclid(count as isize) as usize;
-    navigation_state.current_screen = Some(if gameplay.screen == GameplayScreen::Navigation {
-        ScreenId::Gameplay
-    } else {
-        ScreenId::Gameplay
-    });
+    navigation_state.current_screen = Some(ScreenId::Gameplay);
     navigation_state.selected = gameplay.selected;
     gameplay.dirty = true;
 }
@@ -270,12 +265,18 @@ fn render_dashboard(
     render_history(commands, history, view);
 
     let choices = bevy_presentation::spawn_panel(commands, root);
-    bevy_presentation::spawn_muted_label(commands, choices, "Choose an action. Arrow keys and Enter also work.");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        choices,
+        "Choose an action. Arrow keys and Enter also work.",
+    );
     for (index, entry) in actions_list.iter().enumerate() {
-        bevy_presentation::spawn_choice_button(commands, choices, index, &entry.label);
-    }
-    if selected >= actions_list.len() {
-        bevy_presentation::spawn_muted_label(commands, choices, "No action is currently selected.");
+        let label = if index == selected {
+            format!("▶ {}", entry.label)
+        } else {
+            entry.label.clone()
+        };
+        bevy_presentation::spawn_choice_button(commands, choices, index, label);
     }
 }
 
@@ -290,24 +291,42 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
             format!("Region: {}", current.region_name),
         );
         if current.dangerous {
-            bevy_presentation::spawn_muted_label(commands, panel, "Danger: this location is unsafe.");
+            bevy_presentation::spawn_muted_label(
+                commands,
+                panel,
+                "Danger: this location is unsafe.",
+            );
         }
         if !current.description.trim().is_empty() {
             bevy_presentation::spawn_muted_label(commands, panel, current.description.clone());
         }
     } else {
-        bevy_presentation::spawn_muted_label(commands, panel, "Your current location can no longer be resolved.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "Your current location can no longer be resolved.",
+        );
     }
 
     if view.destinations.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "No known routes lead onward.");
     } else {
         for (index, destination) in view.destinations.iter().enumerate() {
-            bevy_presentation::spawn_choice_button(commands, panel, index, &destination.name);
+            let label = if index == selected {
+                format!("▶ {}", destination.name)
+            } else {
+                destination.name.clone()
+            };
+            bevy_presentation::spawn_choice_button(commands, panel, index, label);
         }
     }
-    bevy_presentation::spawn_choice_button(commands, panel, view.destinations.len(), "Back");
-    let _ = selected;
+    let back_index = view.destinations.len();
+    let back_label = if selected == back_index {
+        "▶ Back"
+    } else {
+        "Back"
+    };
+    bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
 }
 
 fn render_world_context(commands: &mut Commands, parent: Entity, view: &WorldView) {
@@ -316,7 +335,11 @@ fn render_world_context(commands: &mut Commands, parent: Entity, view: &WorldVie
         return;
     };
     bevy_presentation::spawn_label(commands, parent, location.name.clone());
-    bevy_presentation::spawn_muted_label(commands, parent, format!("Region: {}", location.region_name));
+    bevy_presentation::spawn_muted_label(
+        commands,
+        parent,
+        format!("Region: {}", location.region_name),
+    );
     if !location.description.trim().is_empty() {
         bevy_presentation::spawn_muted_label(commands, parent, location.description.clone());
     }
