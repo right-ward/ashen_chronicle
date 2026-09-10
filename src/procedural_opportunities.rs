@@ -5,6 +5,7 @@ const QUEST_PREFIX: &str = "generated.quest.";
 const EVENT_PREFIX: &str = "generated.event.";
 const EVOLUTION_QUEST_PREFIX: &str = "generated.evolution.quest.";
 const EVOLUTION_EVENT_PREFIX: &str = "generated.evolution.event.";
+const EVOLUTION_PROCESSED_EVENT_PREFIX: &str = "quest.evolution.processed.";
 const RELATIONSHIP_MARKER: &str = "[generated relationship]";
 const GENERATED_FACTION_MARKER: &str = "A generated faction shaped by";
 
@@ -176,11 +177,7 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
             q.completed
                 && (q.content_id.starts_with(QUEST_PREFIX)
                     || q.content_id.starts_with(EVOLUTION_QUEST_PREFIX))
-                && !state
-                    .world
-                    .completed_quest_ids
-                    .iter()
-                    .any(|completed_id| completed_id == &q.content_id)
+                && !evolution_already_processed(state, &q.content_id)
         })
         .map(|q| (q.content_id.clone(), q.target_location_id, q.faction_id))
         .collect::<Vec<_>>();
@@ -190,8 +187,10 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
             continue;
         };
         changed += 1;
-        state.world.record_history(
+        state.world.record_event_history(
             state.character.turn,
+            format!("{EVOLUTION_PROCESSED_EVENT_PREFIX}{quest_id}"),
+            name.clone(),
             format!("The danger at {name} receded after {quest_id} was resolved."),
         );
         if let Some(faction) = state.factions.iter_mut().find(|f| f.id == faction_id) {
@@ -199,17 +198,18 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
                 "[world evolution] {name} became safer after {quest_id} was completed."
             ));
         }
-        if !state
-            .world
-            .completed_quest_ids
-            .iter()
-            .any(|completed_id| completed_id == &quest_id)
-        {
-            state.world.completed_quest_ids.push(quest_id.clone());
-        }
         create_follow_up(state, &quest_id, faction_id, location_id);
     }
     changed
+}
+
+fn evolution_already_processed(state: &GameState, quest_id: &str) -> bool {
+    let event_id = format!("{EVOLUTION_PROCESSED_EVENT_PREFIX}{quest_id}");
+    state
+        .world
+        .history
+        .iter()
+        .any(|entry| entry.event_id.as_deref() == Some(event_id.as_str()))
 }
 
 fn pacify_location(state: &mut GameState, location_id: EntityId) -> Option<String> {
@@ -500,11 +500,10 @@ mod tests {
             .iter()
             .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
         assert_eq!(evolve_generated_world(&mut state), 0);
-        assert!(state
-            .world
-            .completed_quest_ids
-            .iter()
-            .any(|id| id == &state.quests[index].content_id));
+        assert!(evolution_already_processed(
+            &state,
+            &state.quests[index].content_id
+        ));
     }
 
     #[test]
@@ -555,10 +554,9 @@ mod tests {
             .quests
             .iter()
             .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
-        assert!(restored
-            .world
-            .completed_quest_ids
-            .iter()
-            .any(|id| id == &state.quests[index].content_id));
+        assert!(evolution_already_processed(
+            &restored,
+            &state.quests[index].content_id
+        ));
     }
 }
