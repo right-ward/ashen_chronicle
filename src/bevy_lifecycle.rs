@@ -8,7 +8,9 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 use std::path::PathBuf;
 
-use crate::bevy_presentation::{self, BevyScreenRoot, NavigationState, ScreenId, SemanticInputQueue};
+use crate::bevy_presentation::{
+    self, BevyScreenRoot, NavigationState, ScreenId, SemanticInputQueue,
+};
 use crate::game::validate_loaded_state;
 use crate::input::InputEvent;
 use crate::model::{create_inherited_state, create_new_state, GameState, WorldMode};
@@ -65,17 +67,17 @@ pub(crate) struct GameSession {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
         .add_systems(Startup, initialize)
-        .add_systems(Update, (text_input, lifecycle_input, render_if_dirty).chain());
+        .add_systems(
+            Update,
+            (text_input, lifecycle_input, render_if_dirty).chain(),
+        );
 }
 
 fn initialize(mut lifecycle: ResMut<LifecycleState>) {
     lifecycle.refresh_saves();
 }
 
-fn text_input(
-    mut keyboard: MessageReader<KeyboardInput>,
-    mut lifecycle: ResMut<LifecycleState>,
-) {
+fn text_input(mut keyboard: MessageReader<KeyboardInput>, mut lifecycle: ResMut<LifecycleState>) {
     if lifecycle.phase != LifecyclePhase::CreateCharacter || lifecycle.selected > 2 {
         return;
     }
@@ -167,7 +169,10 @@ fn activate_selection(
                 match load_game(&path) {
                     Ok(state) => {
                         let warnings = validate_loaded_state(&state);
-                        let save_path = character_save_path(PathBuf::from(".").as_path(), &state.character.name);
+                        let save_path = character_save_path(
+                            PathBuf::from(".").as_path(),
+                            &state.character.name,
+                        );
                         lifecycle.pending_state = Some((state, save_path));
                         lifecycle.message = if warnings.is_empty() {
                             None
@@ -201,7 +206,8 @@ fn activate_selection(
         LifecyclePhase::Death => match lifecycle.selected {
             0 => {
                 lifecycle.create_character();
-                lifecycle.message = Some("A new world begins. The old world remains behind.".to_string());
+                lifecycle.message =
+                    Some("A new world begins. The old world remains behind.".to_string());
             }
             1 => lifecycle.inherit_character(),
             2 => return Some(true),
@@ -241,7 +247,11 @@ fn handle_cancel(lifecycle: &mut LifecycleState, navigation: &mut NavigationStat
 }
 
 fn start_option_count(lifecycle: &LifecycleState) -> usize {
-    if start_has_load(lifecycle) { 3 } else { 2 }
+    if start_has_load(lifecycle) {
+        3
+    } else {
+        2
+    }
 }
 
 fn start_has_load(lifecycle: &LifecycleState) -> bool {
@@ -316,7 +326,9 @@ impl LifecycleState {
     }
 
     fn inherit_character(&mut self) {
-        let Some(session) = self.session.as_ref() else { return };
+        let Some(session) = self.session.as_ref() else {
+            return;
+        };
         let name = if self.character_name.trim().is_empty() {
             "Heir"
         } else {
@@ -415,7 +427,11 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
         ("Title", &lifecycle.character_title),
     ];
     for (index, (label, value)) in fields.into_iter().enumerate() {
-        let marker = if lifecycle.selected == index { ">" } else { " " };
+        let marker = if lifecycle.selected == index {
+            ">"
+        } else {
+            " "
+        };
         bevy_presentation::spawn_label(commands, panel, format!("{marker} {label}: {value}"));
     }
     bevy_presentation::spawn_choice_button(commands, panel, 3, "Begin Life");
@@ -427,7 +443,11 @@ fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
         bevy_presentation::spawn_choice_button(commands, panel, index, label);
     }
     if lifecycle.message.is_some() {
-        bevy_presentation::spawn_muted_label(commands, panel, "Escape returns to the start screen.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "Escape returns to the start screen.",
+        );
     }
 }
 
@@ -440,7 +460,10 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
     bevy_presentation::spawn_label(
         commands,
         panel,
-        format!("{} the {} is ready.", session.state.character.name, session.state.character.title),
+        format!(
+            "{} the {} is ready.",
+            session.state.character.name, session.state.character.title
+        ),
     );
     bevy_presentation::spawn_muted_label(
         commands,
@@ -454,7 +477,9 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
 }
 
 fn render_death(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
-    let Some(session) = lifecycle.session.as_ref() else { return };
+    let Some(session) = lifecycle.session.as_ref() else {
+        return;
+    };
     let view = build_death_view(&session.state);
     bevy_presentation::spawn_label(commands, panel, view.screen.title);
     if let Some(subtitle) = view.screen.subtitle {
@@ -524,7 +549,9 @@ fn build_death_view(state: &GameState) -> DeathView {
         .unwrap_or_default();
     let mut body = vec![format!(
         "{} died at {} on turn {}.",
-        character.display_name(), location_name, state.character.turn
+        character.display_name(),
+        location_name,
+        state.character.turn
     )];
     body.push(String::new());
     body.push("Deeds remembered:".to_string());
@@ -551,7 +578,11 @@ fn build_death_view(state: &GameState) -> DeathView {
     } else {
         body.push(format!(
             "  {}",
-            dropped_items.iter().map(|item| item.name.as_str()).collect::<Vec<_>>().join(", ")
+            dropped_items
+                .iter()
+                .map(|item| item.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
         ));
     }
     DeathView {
@@ -567,7 +598,8 @@ fn build_death_view(state: &GameState) -> DeathView {
         deeds,
         faction_standing,
         dropped_items,
-        memory_note: "The next life will know none of this as memory. It can only be discovered.".to_string(),
+        memory_note: "The next life will know none of this as memory. It can only be discovered."
+            .to_string(),
     }
 }
 
