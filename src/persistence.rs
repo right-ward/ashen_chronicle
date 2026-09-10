@@ -121,7 +121,11 @@ pub fn load_game(path: &Path) -> io::Result<GameState> {
     }
     let mut content = crate::content::load_campaign_content();
     for event in parsed.runtime_generated_events {
-        if content.events.iter().all(|candidate| candidate.id != event.id) {
+        if content
+            .events
+            .iter()
+            .all(|candidate| candidate.id != event.id)
+        {
             content.events.push(event);
         }
     }

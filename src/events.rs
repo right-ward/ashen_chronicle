@@ -24,7 +24,11 @@ impl<'a> EventContext<'a> {
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
     let chance_roll = next_random_roll(state) % 100;
     let candidate_indices = {
-        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
+        let Some(events) = state
+            .campaign_content
+            .as_ref()
+            .map(|content| &content.events)
+        else {
             return false;
         };
         events
@@ -44,7 +48,11 @@ pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool 
 
     let weight_roll = next_random_roll(state);
     let chosen_index = {
-        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
+        let Some(events) = state
+            .campaign_content
+            .as_ref()
+            .map(|content| &content.events)
+        else {
             return false;
         };
         let total_weight = candidate_indices

@@ -103,11 +103,7 @@ pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
     panel
 }
 
-pub fn spawn_label(
-    commands: &mut Commands,
-    parent: Entity,
-    text: impl Into<String>,
-) -> Entity {
+pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<String>) -> Entity {
     let label = commands
         .spawn((
             Text::new(text.into()),
@@ -170,12 +166,7 @@ pub fn spawn_choice_button(
     button
 }
 
-pub fn spawn_gauge(
-    commands: &mut Commands,
-    parent: Entity,
-    current: i32,
-    maximum: i32,
-) -> Entity {
+pub fn spawn_gauge(commands: &mut Commands, parent: Entity, current: i32, maximum: i32) -> Entity {
     let ratio = gauge_ratio(current, maximum);
     let gauge = commands
         .spawn((
@@ -233,7 +224,10 @@ fn keyboard_to_semantic_input(
 }
 
 fn choice_button_input(
-    mut interaction_query: Query<(&Interaction, &ChoiceButton), (Changed<Interaction>, With<Button>)>,
+    mut interaction_query: Query<
+        (&Interaction, &ChoiceButton),
+        (Changed<Interaction>, With<Button>),
+    >,
     mut navigation: ResMut<NavigationState>,
     mut input_queue: ResMut<SemanticInputQueue>,
 ) {
