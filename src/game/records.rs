@@ -23,14 +23,17 @@ fn item_view(item: &crate::model::Item) -> ItemView {
     }
 }
 
-fn build_inventory_view(state: &GameState) -> InventoryView {
+pub(crate) fn build_inventory_view(state: &GameState) -> InventoryView {
     InventoryView {
         character: character_view(state),
         items: state.character.inventory.iter().map(item_view).collect(),
     }
 }
 
-fn build_inventory_detail_view(state: &GameState, selected: usize) -> Option<InventoryDetailView> {
+pub(crate) fn build_inventory_detail_view(
+    state: &GameState,
+    selected: usize,
+) -> Option<InventoryDetailView> {
     let item = state.character.inventory.get(selected)?;
     Some(InventoryDetailView {
         item: item_view(item),
@@ -125,7 +128,7 @@ fn build_quest_view(quest: &Quest) -> QuestView {
     }
 }
 
-fn build_quest_log_view(state: &GameState) -> QuestLogView {
+pub(crate) fn build_quest_log_view(state: &GameState) -> QuestLogView {
     QuestLogView {
         character: character_view(state),
         quests: state
@@ -135,6 +138,15 @@ fn build_quest_log_view(state: &GameState) -> QuestLogView {
             .map(build_quest_view)
             .collect(),
     }
+}
+
+pub(crate) fn build_quest_view_for(state: &GameState, quest_index: usize) -> Option<QuestView> {
+    let quest = state
+        .quests
+        .iter()
+        .filter(|quest| quest.offered || quest.completed)
+        .nth(quest_index)?;
+    Some(build_quest_view(quest))
 }
 
 pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
@@ -223,17 +235,24 @@ fn quest_is_ready(quest: &Quest) -> bool {
         && quest.objectives.iter().all(|objective| objective.completed)
 }
 
+pub(crate) fn record_journal_note(state: &mut GameState, note: &str) -> bool {
+    if note.is_empty() {
+        return false;
+    }
+    state.character.notes.push(note.to_string());
+    state_effects::advance_time(state, 1);
+    state.character.turn += 1;
+    let character_name = state.character.display_name();
+    state.world.record_history(
+        state.character.turn,
+        format!("{} noted: {}", character_name, note),
+    );
+    true
+}
+
 pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
     let note = prompt("Write a journal note: ")?;
-    if !note.is_empty() {
-        state.character.notes.push(note.clone());
-        state_effects::advance_time(state, 1);
-        state.character.turn += 1;
-        let character_name = state.character.display_name();
-        state.world.record_history(
-            state.character.turn,
-            format!("{} noted: {}", character_name, note),
-        );
+    if record_journal_note(state, &note) {
         narrate("The journal entry is recorded.");
     }
     Ok(())
