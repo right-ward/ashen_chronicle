@@ -6,7 +6,7 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
-use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
+use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
@@ -180,10 +180,18 @@ fn record_input(
                     records_state.dirty = true;
                 }
             }
-            InputEvent::Confirm => activate(&mut lifecycle, &mut navigation, &mut records_state),
+            InputEvent::Confirm => {
+                records_state.selected = navigation.selected;
+                activate(
+                    &mut lifecycle,
+                    &mut navigation,
+                    &mut records_state,
+                );
+            }
             InputEvent::Cancel => cancel(&mut navigation, &mut records_state),
             _ => {}
         }
+        navigation.selected = records_state.selected;
     }
 }
 
@@ -194,12 +202,7 @@ fn selection_count(records_state: &RecordScreenState, lifecycle: &LifecycleState
     match records_state.screen {
         RecordScreen::CharacterGeneral => 3,
         RecordScreen::CharacterReputation => 1,
-        RecordScreen::CharacterJournal => {
-            character::build_character_sheet_view(&session.state)
-                .notes
-                .len()
-                + 2
-        }
+        RecordScreen::CharacterJournal => 2,
         RecordScreen::Inventory => records::build_inventory_view(&session.state).items.len() + 1,
         RecordScreen::InventoryDetail => 1,
         RecordScreen::QuestLog => records::build_quest_log_view(&session.state).quests.len() + 1,
@@ -275,26 +278,21 @@ fn activate(
             records_state.selected = 0;
             records_state.dirty = true;
         }
-        RecordScreen::CharacterJournal => {
-            let note_count = character::build_character_sheet_view(&session.state)
-                .notes
-                .len();
-            if records_state.selected < note_count {
-                return;
-            }
-            if records_state.selected == note_count {
+        RecordScreen::CharacterJournal => match records_state.selected {
+            0 => {
                 records_state.journal_parent = JournalParent::Character;
                 records_state.screen = RecordScreen::JournalEntry;
                 records_state.selected = 0;
                 records_state.message = None;
                 records_state.journal_draft.clear();
                 records_state.dirty = true;
-            } else {
+            }
+            _ => {
                 records_state.screen = RecordScreen::CharacterGeneral;
                 records_state.selected = 0;
                 records_state.dirty = true;
             }
-        }
+        },
         RecordScreen::Inventory => {
             let view = records::build_inventory_view(&session.state);
             if records_state.selected >= view.items.len() {
@@ -329,9 +327,7 @@ fn activate(
         }
         RecordScreen::Meditation => {
             let view = actions::build_meditation_view(&session.state);
-            if !view.safe_to_meditate {
-                close_to_gameplay(navigation);
-            } else if records_state.selected >= view.targets.len() {
+            if !view.safe_to_meditate || records_state.selected >= view.targets.len() {
                 close_to_gameplay(navigation);
             } else {
                 match actions::meditate_to_target(
@@ -545,7 +541,11 @@ fn render_header(commands: &mut Commands, title: &str, subtitle: impl Into<Strin
     panel
 }
 
-fn render_character_general(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
+fn render_character_general(
+    commands: &mut Commands,
+    view: &CharacterSheetView,
+    selected: usize,
+) {
     let panel = render_header(
         commands,
         "CHARACTER",
@@ -628,22 +628,25 @@ fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetVie
     bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to character");
 }
 
-fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
+fn render_character_journal(
+    commands: &mut Commands,
+    view: &CharacterSheetView,
+    selected: usize,
+) {
     let panel = render_header(commands, "CHARACTER · JOURNAL", "Recorded personal notes.");
     if view.notes.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "The journal is empty.");
     } else {
         for (index, note) in view.notes.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
             bevy_presentation::spawn_muted_label(
                 commands,
                 panel,
-                format!("{marker}{}. {}", index + 1, note),
+                format!("{}. {}", index + 1, note),
             );
         }
     }
-    let write_index = view.notes.len();
-    let back_index = write_index + 1;
+    let write_index = 0;
+    let back_index = 1;
     let marker = if selected == write_index { "▶ " } else { "" };
     bevy_presentation::spawn_choice_button(
         commands,
@@ -710,7 +713,11 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
 fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) {
     let panel = render_header(commands, "QUEST LOG", view.character.display_name());
     if view.quests.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, panel, "No quests have been recorded yet.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "No quests have been recorded yet.",
+        );
     } else {
         for (index, quest) in view.quests.iter().enumerate() {
             let marker = if selected == index { "▶ " } else { "" };
@@ -776,7 +783,7 @@ fn render_meditation(
     selected: usize,
     message: Option<&str>,
 ) {
-    let panel = render_header(commands, "MEDITATION", view.current_time.clone());
+    let panel = render_header(commands, "MEDITATION", &view.current_time);
     if let Some(message) = message.or(view.unavailable_message.as_deref()) {
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
@@ -784,7 +791,11 @@ fn render_meditation(
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     }
-    bevy_presentation::spawn_muted_label(commands, panel, "Choose when to end your meditation.");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        "Choose when to end your meditation.",
+    );
     for (index, target) in view.targets.iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };
         bevy_presentation::spawn_choice_button(
@@ -809,7 +820,11 @@ fn render_meditation_result(
         "The result of your rest.",
     );
     let Some(result) = result else {
-        bevy_presentation::spawn_muted_label(commands, panel, "No meditation result is available.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "No meditation result is available.",
+        );
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     };
@@ -905,7 +920,7 @@ fn render_journal_entry(
         "JOURNAL ENTRY",
         match parent {
             JournalParent::Gameplay => state.character.display_name(),
-            JournalParent::Character => "Character journal".to_string(),
+            JournalParent::Character => "Character journal",
         },
     );
     if let Some(message) = message {
@@ -913,7 +928,11 @@ fn render_journal_entry(
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Continue");
         return;
     }
-    bevy_presentation::spawn_muted_label(commands, panel, "Type a note. Backspace edits it.");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        "Type a note. Backspace edits it.",
+    );
     bevy_presentation::spawn_label(
         commands,
         panel,
@@ -925,7 +944,12 @@ fn render_journal_entry(
     );
     for (index, label) in ["Record note", "Cancel"].into_iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
+        bevy_presentation::spawn_choice_button(
+            commands,
+            panel,
+            index,
+            format!("{marker}{label}"),
+        );
     }
 }
 
