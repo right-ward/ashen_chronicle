@@ -33,6 +33,14 @@ fn bridge_navigation(
         return;
     }
 
+    if navigation.current_screen == Some(ScreenId::Lifecycle)
+        && lifecycle.pending_state.is_none()
+        && navigation.return_screen.is_none()
+    {
+        navigation.current_screen = Some(ScreenId::Gameplay);
+        navigation.selected = gameplay.selected;
+    }
+
     if navigation.current_screen == Some(ScreenId::Gameplay)
         && navigation.return_screen == Some(ScreenId::Gameplay)
     {
