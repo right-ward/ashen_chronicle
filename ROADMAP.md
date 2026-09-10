@@ -26,6 +26,10 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ### v0.49.x: Ratatui to Bevy migration (in progress)
 - Established the Bevy application foundation as an opt-in graphical runtime while retaining the existing Ratatui frontend for the incremental migration.
 - Added a dedicated Bevy application module and kept engine/bootstrap concerns separate from gameplay state and rules.
+- Persisted runtime-generated event definitions separately from authored campaign events so procedural event progression survives save/load.
+- Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
+- Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
+- Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
 
 ## Next
 
