@@ -85,44 +85,65 @@ pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity
         .id()
 }
 
-pub fn spawn_panel<'a>(parent: &'a mut ChildBuilder) -> EntityCommands<'a> {
-    parent.spawn((
-        Node {
-            width: percent(100),
-            padding: UiRect::all(px(16)),
-            flex_direction: FlexDirection::Column,
-            row_gap: px(10),
-            overflow: Overflow::scroll(),
-            ..default()
-        },
-        BackgroundColor(THEME_PANEL),
-    ))
+pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
+    let panel = commands
+        .spawn((
+            Node {
+                width: percent(100),
+                padding: UiRect::all(px(16)),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(10),
+                overflow: Overflow::scroll(),
+                ..default()
+            },
+            BackgroundColor(THEME_PANEL),
+        ))
+        .id();
+    commands.entity(parent).add_child(panel);
+    panel
 }
 
-pub fn spawn_label(parent: &mut ChildBuilder, text: impl Into<String>) -> Entity {
-    parent
+pub fn spawn_label(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+) -> Entity {
+    let label = commands
         .spawn((
             Text::new(text.into()),
             TextContent,
             TextFont::from_font_size(FontSize::Px(20.0)),
             TextColor(THEME_TEXT),
         ))
-        .id()
+        .id();
+    commands.entity(parent).add_child(label);
+    label
 }
 
-pub fn spawn_muted_label(parent: &mut ChildBuilder, text: impl Into<String>) -> Entity {
-    parent
+pub fn spawn_muted_label(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+) -> Entity {
+    let label = commands
         .spawn((
             Text::new(text.into()),
             TextContent,
             TextFont::from_font_size(FontSize::Px(18.0)),
             TextColor(THEME_MUTED),
         ))
-        .id()
+        .id();
+    commands.entity(parent).add_child(label);
+    label
 }
 
-pub fn spawn_choice_button(parent: &mut ChildBuilder, index: usize, label: impl Into<String>) -> Entity {
-    parent
+pub fn spawn_choice_button(
+    commands: &mut Commands,
+    parent: Entity,
+    index: usize,
+    label: impl Into<String>,
+) -> Entity {
+    let button = commands
         .spawn((
             Button,
             ChoiceButton { index },
@@ -144,16 +165,19 @@ pub fn spawn_choice_button(parent: &mut ChildBuilder, index: usize, label: impl 
                 TextColor(THEME_TEXT),
             )],
         ))
-        .id()
+        .id();
+    commands.entity(parent).add_child(button);
+    button
 }
 
-pub fn spawn_gauge(parent: &mut ChildBuilder, current: i32, maximum: i32) -> Entity {
-    let ratio = if maximum <= 0 {
-        0.0
-    } else {
-        (current.max(0) as f32 / maximum as f32).clamp(0.0, 1.0)
-    };
-    parent
+pub fn spawn_gauge(
+    commands: &mut Commands,
+    parent: Entity,
+    current: i32,
+    maximum: i32,
+) -> Entity {
+    let ratio = gauge_ratio(current, maximum);
+    let gauge = commands
         .spawn((
             Node {
                 width: percent(100),
@@ -171,7 +195,17 @@ pub fn spawn_gauge(parent: &mut ChildBuilder, current: i32, maximum: i32) -> Ent
                 BackgroundColor(THEME_ACCENT),
             )],
         ))
-        .id()
+        .id();
+    commands.entity(parent).add_child(gauge);
+    gauge
+}
+
+pub(crate) fn gauge_ratio(current: i32, maximum: i32) -> f32 {
+    if maximum <= 0 {
+        0.0
+    } else {
+        (current.max(0) as f32 / maximum as f32).clamp(0.0, 1.0)
+    }
 }
 
 fn keyboard_to_semantic_input(
@@ -233,17 +267,9 @@ mod tests {
 
     #[test]
     fn gauge_ratio_is_clamped_to_valid_bounds() {
-        fn ratio(current: i32, maximum: i32) -> f32 {
-            if maximum <= 0 {
-                0.0
-            } else {
-                (current.max(0) as f32 / maximum as f32).clamp(0.0, 1.0)
-            }
-        }
-
-        assert_eq!(ratio(-2, 10), 0.0);
-        assert_eq!(ratio(5, 10), 0.5);
-        assert_eq!(ratio(20, 10), 1.0);
-        assert_eq!(ratio(5, 0), 0.0);
+        assert_eq!(gauge_ratio(-2, 10), 0.0);
+        assert_eq!(gauge_ratio(5, 10), 0.5);
+        assert_eq!(gauge_ratio(20, 10), 1.0);
+        assert_eq!(gauge_ratio(5, 0), 0.0);
     }
 }
