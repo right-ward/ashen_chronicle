@@ -1,19 +1,19 @@
 pub(crate) mod actions;
-mod character;
+pub(crate) mod character;
 mod combat;
 mod combat_screen;
 mod console;
 mod dispatcher;
-mod history_screen;
+pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
 mod lifecycle;
 pub(crate) mod menu;
 pub(crate) mod navigation;
-mod quests;
-mod records;
-mod runtime;
+pub(crate) mod quests;
+pub(crate) mod records;
+pub(crate) mod runtime;
 pub(crate) mod state_effects;
 pub(crate) mod time;
 // Made world public so procedural_authored.rs can use its functions
