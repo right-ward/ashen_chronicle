@@ -1,4 +1,4 @@
-mod actions;
+pub(crate) mod actions;
 mod character;
 mod combat;
 mod combat_screen;
@@ -9,13 +9,13 @@ mod history_screen;
 mod interactions_core;
 mod legacy;
 mod lifecycle;
-mod menu;
-mod navigation;
+pub(crate) mod menu;
+pub(crate) mod navigation;
 mod quests;
 mod records;
 mod runtime;
 pub(crate) mod state_effects;
-mod time;
+pub(crate) mod time;
 // Made world public so procedural_authored.rs can use its functions
 pub mod world;
 mod world_screen;
@@ -65,8 +65,4 @@ pub fn run() -> std::io::Result<()> {
     runtime::main_loop(&mut state, &mut save_path)
 }
 
-pub(crate) use actions::travel_to;
-pub(crate) use menu::{build_main_menu, GameAction, MenuEntry};
-pub(crate) use navigation::build_view as build_navigation_view;
-pub(crate) use time::time_display;
 pub(crate) use world::validate_loaded_state;
