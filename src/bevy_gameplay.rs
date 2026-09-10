@@ -6,7 +6,9 @@
 use bevy::prelude::*;
 
 use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
-use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
+use crate::bevy_presentation::{
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+};
 use crate::game::{actions, menu, navigation};
 use crate::input::InputEvent;
 use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
@@ -74,11 +76,7 @@ fn gameplay_input(
                 navigation_state.selected = gameplay.selected;
             }
             InputEvent::Confirm => {
-                activate_selection(
-                    &mut lifecycle,
-                    &mut gameplay,
-                    &mut navigation_state,
-                );
+                activate_selection(&mut lifecycle, &mut gameplay, &mut navigation_state);
             }
             _ => {}
         }
@@ -100,14 +98,13 @@ fn move_selection(
     };
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
-        GameplayScreen::Navigation => {
-            navigation::build_view(&session.state).destinations.len() + 1
-        }
+        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
     };
     if count == 0 {
         return;
     }
-    gameplay.selected = (gameplay.selected as isize + direction).rem_euclid(count as isize) as usize;
+    gameplay.selected =
+        (gameplay.selected as isize + direction).rem_euclid(count as isize) as usize;
     navigation_state.current_screen = Some(ScreenId::Gameplay);
     navigation_state.selected = gameplay.selected;
     gameplay.dirty = true;
@@ -396,10 +393,13 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
                 dangerous: location.dangerous,
             }
         });
-    let threat = state.threat.active.then(|| crate::presentation::ThreatView {
-        label: state.threat.label.clone(),
-        description: state.threat.description.clone(),
-    });
+    let threat = state
+        .threat
+        .active
+        .then(|| crate::presentation::ThreatView {
+            label: state.threat.label.clone(),
+            description: state.threat.description.clone(),
+        });
     let history = state
         .world
         .history
