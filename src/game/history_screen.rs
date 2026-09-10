@@ -35,7 +35,7 @@ pub(crate) fn run(state: &GameState) -> io::Result<()> {
     }
 }
 
-fn build_view(state: &GameState) -> HistoryView {
+pub(crate) fn build_view(state: &GameState) -> HistoryView {
     HistoryView {
         world_name: state.world.name.clone(),
         time: time_display(state.world.time_points, state.world.day),
