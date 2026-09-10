@@ -60,7 +60,8 @@ fn bridge_navigation(
 
 fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -> Option<ScreenId> {
     let session: &GameSession = lifecycle.session.as_ref()?;
-    let entry = menu::build_main_menu(&session.state).get(selected)?;
+    let entries = menu::build_main_menu(&session.state);
+    let entry = entries.get(selected)?;
     match entry.action {
         menu::GameAction::CharacterSheet => Some(ScreenId::Character),
         menu::GameAction::Inventory => Some(ScreenId::Inventory),
