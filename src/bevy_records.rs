@@ -31,7 +31,6 @@ enum RecordScreen {
     History,
     HistoryDetail,
     JournalEntry,
-    JournalResult,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -132,7 +131,7 @@ fn text_input(
     navigation: Res<NavigationState>,
     mut records_state: ResMut<RecordScreenState>,
 ) {
-    if navigation.current_screen != Some(ScreenId::Journal)
+    if !is_record_screen(navigation.current_screen)
         || records_state.screen != RecordScreen::JournalEntry
         || records_state.message.is_some()
     {
@@ -165,15 +164,15 @@ fn record_input(
     let events = std::mem::take(&mut input_queue.0);
     for event in events {
         match event {
-            InputEvent::Up => move_selection(&mut records_state, &lifecycle, &navigation, -1),
-            InputEvent::Down => move_selection(&mut records_state, &lifecycle, &navigation, 1),
+            InputEvent::Up => move_selection(&mut records_state, &lifecycle, -1),
+            InputEvent::Down => move_selection(&mut records_state, &lifecycle, 1),
             InputEvent::Home => {
                 records_state.selected = 0;
                 records_state.dirty = true;
             }
             InputEvent::End => move_to_end(&mut records_state, &lifecycle),
-            InputEvent::PageUp => move_selection(&mut records_state, &lifecycle, &navigation, -5),
-            InputEvent::PageDown => move_selection(&mut records_state, &lifecycle, &navigation, 5),
+            InputEvent::PageUp => move_selection(&mut records_state, &lifecycle, -5),
+            InputEvent::PageDown => move_selection(&mut records_state, &lifecycle, 5),
             InputEvent::Backspace => {
                 if records_state.screen == RecordScreen::JournalEntry
                     && records_state.message.is_none()
@@ -193,17 +192,16 @@ fn record_input(
     }
 }
 
-fn selection_count(
-    records_state: &RecordScreenState,
-    lifecycle: &LifecycleState,
-) -> usize {
+fn selection_count(records_state: &RecordScreenState, lifecycle: &LifecycleState) -> usize {
     let Some(session) = lifecycle.session.as_ref() else {
         return 1;
     };
     match records_state.screen {
         RecordScreen::CharacterGeneral => 3,
         RecordScreen::CharacterReputation => 1,
-        RecordScreen::CharacterJournal => records::build_character_journal_count(&session.state),
+        RecordScreen::CharacterJournal => {
+            character::build_character_sheet_view(&session.state).notes.len() + 2
+        }
         RecordScreen::Inventory => records::build_inventory_view(&session.state).items.len() + 1,
         RecordScreen::InventoryDetail => 1,
         RecordScreen::QuestLog => records::build_quest_log_view(&session.state).quests.len() + 1,
@@ -220,23 +218,16 @@ fn selection_count(
         RecordScreen::History => history_screen::build_view(&session.state).entries.len() + 1,
         RecordScreen::HistoryDetail => 1,
         RecordScreen::JournalEntry => 2,
-        RecordScreen::JournalResult => 1,
     }
 }
 
-fn move_selection(
-    records_state: &mut RecordScreenState,
-    lifecycle: &LifecycleState,
-    navigation: &NavigationState,
-    direction: isize,
-) {
+fn move_selection(records_state: &mut RecordScreenState, lifecycle: &LifecycleState, direction: isize) {
     let count = selection_count(records_state, lifecycle);
     if count == 0 {
         return;
     }
     records_state.selected =
         (records_state.selected as isize + direction).rem_euclid(count as isize) as usize;
-    let _ = navigation;
     records_state.dirty = true;
 }
 
@@ -246,11 +237,6 @@ fn move_to_end(records_state: &mut RecordScreenState, lifecycle: &LifecycleState
         records_state.selected = count - 1;
         records_state.dirty = true;
     }
-}
-
-fn set_screen(navigation: &mut NavigationState, screen: ScreenId) {
-    navigation.current_screen = Some(screen);
-    navigation.selected = 0;
 }
 
 fn close_to_gameplay(navigation: &mut NavigationState) {
@@ -288,16 +274,20 @@ fn activate(
             records_state.dirty = true;
         }
         RecordScreen::CharacterJournal => {
-            let view = character::build_character_sheet_view(&session.state);
-            if records_state.selected < view.notes.len() {
+            let note_count = character::build_character_sheet_view(&session.state).notes.len();
+            if records_state.selected < note_count {
                 return;
             }
-            if records_state.selected == view.notes.len() {
+            if records_state.selected == note_count {
                 records_state.journal_parent = JournalParent::Character;
                 records_state.screen = RecordScreen::JournalEntry;
                 records_state.selected = 0;
                 records_state.message = None;
                 records_state.journal_draft.clear();
+                records_state.dirty = true;
+            } else {
+                records_state.screen = RecordScreen::CharacterGeneral;
+                records_state.selected = 0;
                 records_state.dirty = true;
             }
         }
@@ -335,7 +325,9 @@ fn activate(
         }
         RecordScreen::Meditation => {
             let view = actions::build_meditation_view(&session.state);
-            if !view.safe_to_meditate || records_state.selected >= view.targets.len() {
+            if !view.safe_to_meditate {
+                close_to_gameplay(navigation);
+            } else if records_state.selected >= view.targets.len() {
                 close_to_gameplay(navigation);
             } else {
                 match actions::meditate_to_target(
@@ -375,8 +367,7 @@ fn activate(
             records_state.dirty = true;
         }
         RecordScreen::JournalEntry => {
-            if let Some(message) = records_state.message.as_ref() {
-                let _ = message;
+            if records_state.message.is_some() {
                 if records_state.journal_parent == JournalParent::Character {
                     records_state.screen = RecordScreen::CharacterJournal;
                     records_state.selected = 0;
@@ -409,7 +400,6 @@ fn activate(
                 }
             }
         }
-        RecordScreen::JournalResult => close_to_gameplay(navigation),
     }
 }
 
@@ -419,7 +409,8 @@ fn cancel(navigation: &mut NavigationState, records_state: &mut RecordScreenStat
         | RecordScreen::Inventory
         | RecordScreen::QuestLog
         | RecordScreen::Meditation
-        | RecordScreen::History => close_to_gameplay(navigation),
+        | RecordScreen::History
+        | RecordScreen::MeditationResult => close_to_gameplay(navigation),
         RecordScreen::CharacterReputation | RecordScreen::CharacterJournal => {
             records_state.screen = RecordScreen::CharacterGeneral;
             records_state.selected = 0;
@@ -436,7 +427,6 @@ fn cancel(navigation: &mut NavigationState, records_state: &mut RecordScreenStat
             records_state.selected = records_state.detail_index;
             records_state.dirty = true;
         }
-        RecordScreen::MeditationResult => close_to_gameplay(navigation),
         RecordScreen::HistoryDetail => {
             records_state.screen = RecordScreen::History;
             records_state.selected = records_state.detail_index;
@@ -452,7 +442,6 @@ fn cancel(navigation: &mut NavigationState, records_state: &mut RecordScreenStat
                 close_to_gameplay(navigation);
             }
         }
-        RecordScreen::JournalResult => close_to_gameplay(navigation),
     }
 }
 
@@ -539,7 +528,6 @@ fn render_if_active(
             records_state.message.as_deref(),
             records_state.journal_parent,
         ),
-        RecordScreen::JournalResult => render_journal_result(&mut commands, records_state.message.as_deref()),
     }
     records_state.dirty = false;
 }
@@ -638,9 +626,11 @@ fn render_character_journal(
         }
     }
     let write_index = view.notes.len();
+    let back_index = write_index + 1;
     let marker = if selected == write_index { "▶ " } else { "" };
     bevy_presentation::spawn_choice_button(commands, panel, write_index, format!("{marker}Write new note"));
-    bevy_presentation::spawn_choice_button(commands, panel, write_index + 1, "Back");
+    let marker = if selected == back_index { "▶ " } else { "" };
+    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
 }
 
 fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usize) {
@@ -741,7 +731,7 @@ fn render_meditation(
     selected: usize,
     message: Option<&str>,
 ) {
-    let panel = render_header(commands, "MEDITATION", &view.current_time);
+    let panel = render_header(commands, "MEDITATION", view.current_time.clone());
     if let Some(message) = message.or(view.unavailable_message.as_deref()) {
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
@@ -782,7 +772,11 @@ fn render_meditation_result(
 }
 
 fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) {
-    let panel = render_header(commands, "WORLD HISTORY", format!("{} · {}", view.world_name, view.character.display_name()));
+    let panel = render_header(
+        commands,
+        "WORLD HISTORY",
+        format!("{} · {}", view.world_name, view.character.display_name()),
+    );
     bevy_presentation::spawn_muted_label(commands, panel, &view.time);
     if view.entries.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "The world has not recorded any history yet.");
@@ -836,7 +830,7 @@ fn render_journal_entry(
         "JOURNAL ENTRY",
         match parent {
             JournalParent::Gameplay => state.character.display_name(),
-            JournalParent::Character => "Character journal",
+            JournalParent::Character => "Character journal".to_string(),
         },
     );
     if let Some(message) = message {
@@ -854,14 +848,6 @@ fn render_journal_entry(
         let marker = if selected == index { "▶ " } else { "" };
         bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
     }
-}
-
-fn render_journal_result(commands: &mut Commands, message: Option<&str>) {
-    let panel = render_header(commands, "JOURNAL · COMPLETE", "The note has been handled.");
-    if let Some(message) = message {
-        bevy_presentation::spawn_muted_label(commands, panel, message);
-    }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to gameplay");
 }
 
 fn entry_marker(entry: &HistoryEntryView) -> &'static str {
