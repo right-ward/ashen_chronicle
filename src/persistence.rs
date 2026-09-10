@@ -1,3 +1,4 @@
+use crate::content::EventContent;
 use crate::model::GameState;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{Deserialize, Serialize};
@@ -9,17 +10,22 @@ const SAVE_FILE_VERSION: u32 = 2;
 pub const SAVE_BASE_NAME: &str = "ashen_chronicle_save";
 const SAVE_EXTENSION: &str = "json.gz";
 const LEGACY_SAVE_FILE_NAME: &str = "ashen_chronicle_save.json";
+const GENERATED_EVENT_PREFIXES: &[&str] = &["generated.event.", "generated.evolution.event."];
 
 #[derive(Debug, Serialize)]
 struct SaveFile<'a> {
     save_file_version: u32,
     game: &'a GameState,
+    #[serde(default)]
+    runtime_generated_events: Vec<EventContent>,
 }
 
 #[derive(Debug, Deserialize)]
 struct LoadedSaveFile {
     save_file_version: u32,
     game: GameState,
+    #[serde(default)]
+    runtime_generated_events: Vec<EventContent>,
 }
 
 const MAX_SAVE_BYTES: u64 = 8 * 1024 * 1024;
@@ -28,6 +34,18 @@ pub fn save_game(path: &Path, state: &GameState) -> io::Result<()> {
     let payload = SaveFile {
         save_file_version: SAVE_FILE_VERSION,
         game: state,
+        runtime_generated_events: state
+            .campaign_content
+            .as_ref()
+            .map(|content| {
+                content
+                    .events
+                    .iter()
+                    .filter(|event| is_runtime_generated_event(&event.id))
+                    .cloned()
+                    .collect()
+            })
+            .unwrap_or_default(),
     };
     let json =
         serde_json::to_vec_pretty(&payload).map_err(|err| io::Error::other(err.to_string()))?;
@@ -101,8 +119,20 @@ pub fn load_game(path: &Path) -> io::Result<GameState> {
             game.character.attributes.endurance = 1;
         }
     }
-    game.campaign_content = Some(crate::content::load_campaign_content());
+    let mut content = crate::content::load_campaign_content();
+    for event in parsed.runtime_generated_events {
+        if content.events.iter().all(|candidate| candidate.id != event.id) {
+            content.events.push(event);
+        }
+    }
+    game.campaign_content = Some(content);
     Ok(game)
+}
+
+fn is_runtime_generated_event(event_id: &str) -> bool {
+    GENERATED_EVENT_PREFIXES
+        .iter()
+        .any(|prefix| event_id.starts_with(prefix))
 }
 
 pub fn character_save_path(directory: &Path, character_name: &str) -> PathBuf {
@@ -164,6 +194,7 @@ fn is_gzip(data: &[u8]) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::content::{EventConditionContent, EventEffectContent};
     use crate::model::{create_new_state, EventCooldown, WorldMode};
     use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -222,6 +253,60 @@ mod tests {
     }
 
     #[test]
+    fn runtime_generated_events_round_trip_separately_from_authored_content() {
+        let dir = temp_dir();
+        let path = character_save_path(&dir, "Generated Events");
+        let mut state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "Tester".to_string(),
+            "Ash Walker".to_string(),
+        );
+        let generated = EventContent {
+            id: "generated.evolution.event.test".to_string(),
+            trigger: "travel_arrival".to_string(),
+            weight: 1,
+            chance_percent: Some(100),
+            cooldown_turns: Some(12),
+            conditions: Some(EventConditionContent {
+                dangerous: Some(true),
+                ..Default::default()
+            }),
+            effects: vec![EventEffectContent::History {
+                text: "A generated sign remains after the save.".to_string(),
+            }],
+        };
+        let authored_id = state
+            .campaign_content
+            .as_ref()
+            .unwrap()
+            .events
+            .first()
+            .map(|event| event.id.clone())
+            .expect("authored event should exist");
+        state
+            .campaign_content
+            .as_mut()
+            .unwrap()
+            .events
+            .push(generated.clone());
+
+        save_game(&path, &state).expect("save should succeed");
+        let loaded = load_game(&path).expect("load should succeed");
+        let events = &loaded.campaign_content.as_ref().unwrap().events;
+        assert!(events.iter().any(|event| event.id == authored_id));
+        assert!(events.iter().any(|event| event.id == generated.id));
+        assert_eq!(
+            events
+                .iter()
+                .filter(|event| event.id == generated.id)
+                .count(),
+            1
+        );
+        fs::remove_dir_all(&dir).expect("temporary directory should be removed");
+    }
+
+    #[test]
     fn legacy_json_save_still_loads() {
         let dir = temp_dir();
         let path = legacy_save_path(&dir);
@@ -234,6 +319,7 @@ mod tests {
         let payload = SaveFile {
             save_file_version: SAVE_FILE_VERSION,
             game: &state,
+            runtime_generated_events: Vec::new(),
         };
         fs::write(
             &path,
