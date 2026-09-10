@@ -69,11 +69,10 @@ impl Default for RecordScreenState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<RecordScreenState>()
-        .add_systems(
-            Update,
-            (sync_screen, text_input, record_input, render_if_active).chain(),
-        );
+    app.init_resource::<RecordScreenState>().add_systems(
+        Update,
+        (sync_screen, text_input, record_input, render_if_active).chain(),
+    );
 }
 
 fn is_record_screen(screen: Option<ScreenId>) -> bool {
@@ -181,11 +180,7 @@ fn record_input(
                     records_state.dirty = true;
                 }
             }
-            InputEvent::Confirm => activate(
-                &mut lifecycle,
-                &mut navigation,
-                &mut records_state,
-            ),
+            InputEvent::Confirm => activate(&mut lifecycle, &mut navigation, &mut records_state),
             InputEvent::Cancel => cancel(&mut navigation, &mut records_state),
             _ => {}
         }
@@ -200,7 +195,10 @@ fn selection_count(records_state: &RecordScreenState, lifecycle: &LifecycleState
         RecordScreen::CharacterGeneral => 3,
         RecordScreen::CharacterReputation => 1,
         RecordScreen::CharacterJournal => {
-            character::build_character_sheet_view(&session.state).notes.len() + 2
+            character::build_character_sheet_view(&session.state)
+                .notes
+                .len()
+                + 2
         }
         RecordScreen::Inventory => records::build_inventory_view(&session.state).items.len() + 1,
         RecordScreen::InventoryDetail => 1,
@@ -221,7 +219,11 @@ fn selection_count(records_state: &RecordScreenState, lifecycle: &LifecycleState
     }
 }
 
-fn move_selection(records_state: &mut RecordScreenState, lifecycle: &LifecycleState, direction: isize) {
+fn move_selection(
+    records_state: &mut RecordScreenState,
+    lifecycle: &LifecycleState,
+    direction: isize,
+) {
     let count = selection_count(records_state, lifecycle);
     if count == 0 {
         return;
@@ -274,7 +276,9 @@ fn activate(
             records_state.dirty = true;
         }
         RecordScreen::CharacterJournal => {
-            let note_count = character::build_character_sheet_view(&session.state).notes.len();
+            let note_count = character::build_character_sheet_view(&session.state)
+                .notes
+                .len();
             if records_state.selected < note_count {
                 return;
             }
@@ -380,11 +384,14 @@ fn activate(
             }
             match records_state.selected {
                 0 => {
-                    if records::record_journal_note(&mut session.state, &records_state.journal_draft) {
-                        records_state.message =
-                            Some("The journal entry is recorded.".to_string());
+                    if records::record_journal_note(
+                        &mut session.state,
+                        &records_state.journal_draft,
+                    ) {
+                        records_state.message = Some("The journal entry is recorded.".to_string());
                     } else {
-                        records_state.message = Some("Write a note before recording it.".to_string());
+                        records_state.message =
+                            Some("Write a note before recording it.".to_string());
                     }
                     records_state.dirty = true;
                 }
@@ -505,10 +512,9 @@ fn render_if_active(
             records_state.selected,
             records_state.message.as_deref(),
         ),
-        RecordScreen::MeditationResult => render_meditation_result(
-            &mut commands,
-            records_state.meditation_result.as_ref(),
-        ),
+        RecordScreen::MeditationResult => {
+            render_meditation_result(&mut commands, records_state.meditation_result.as_ref())
+        }
         RecordScreen::History => render_history(
             &mut commands,
             &history_screen::build_view(&session.state),
@@ -539,11 +545,7 @@ fn render_header(commands: &mut Commands, title: &str, subtitle: impl Into<Strin
     panel
 }
 
-fn render_character_general(
-    commands: &mut Commands,
-    view: &CharacterSheetView,
-    selected: usize,
-) {
+fn render_character_general(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
     let panel = render_header(
         commands,
         "CHARACTER",
@@ -586,7 +588,10 @@ fn render_character_general(
             bevy_presentation::spawn_muted_label(
                 commands,
                 panel,
-                format!("{} · {} portions{}", condition.name, condition.remaining, effect),
+                format!(
+                    "{} · {} portions{}",
+                    condition.name, condition.remaining, effect
+                ),
             );
         }
     }
@@ -597,12 +602,24 @@ fn render_character_general(
 }
 
 fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetView) {
-    let panel = render_header(commands, "CHARACTER · REPUTATION", "Faction standing and remembered dealings.");
+    let panel = render_header(
+        commands,
+        "CHARACTER · REPUTATION",
+        "Faction standing and remembered dealings.",
+    );
     if view.factions.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, panel, "No faction reputations have been recorded.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "No faction reputations have been recorded.",
+        );
     } else {
         for faction in &view.factions {
-            bevy_presentation::spawn_label(commands, panel, format!("{} {:+}", faction.name, faction.reputation));
+            bevy_presentation::spawn_label(
+                commands,
+                panel,
+                format!("{} {:+}", faction.name, faction.reputation),
+            );
             for memory in faction.memories.iter().rev() {
                 bevy_presentation::spawn_muted_label(commands, panel, format!("  · {memory}"));
             }
@@ -611,24 +628,29 @@ fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetVie
     bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to character");
 }
 
-fn render_character_journal(
-    commands: &mut Commands,
-    view: &CharacterSheetView,
-    selected: usize,
-) {
+fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
     let panel = render_header(commands, "CHARACTER · JOURNAL", "Recorded personal notes.");
     if view.notes.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "The journal is empty.");
     } else {
         for (index, note) in view.notes.iter().enumerate() {
             let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_muted_label(commands, panel, format!("{marker}{}. {}", index + 1, note));
+            bevy_presentation::spawn_muted_label(
+                commands,
+                panel,
+                format!("{marker}{}. {}", index + 1, note),
+            );
         }
     }
     let write_index = view.notes.len();
     let back_index = write_index + 1;
     let marker = if selected == write_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, write_index, format!("{marker}Write new note"));
+    bevy_presentation::spawn_choice_button(
+        commands,
+        panel,
+        write_index,
+        format!("{marker}Write new note"),
+    );
     let marker = if selected == back_index { "▶ " } else { "" };
     bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
 }
@@ -640,7 +662,12 @@ fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usi
     } else {
         for (index, item) in view.items.iter().enumerate() {
             let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{}", item.name));
+            bevy_presentation::spawn_choice_button(
+                commands,
+                panel,
+                index,
+                format!("{marker}{}", item.name),
+            );
         }
     }
     let back_index = view.items.len();
@@ -656,7 +683,11 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &view.item.name);
-    bevy_presentation::spawn_muted_label(commands, panel, format!("Item {} of {}", view.position, view.total));
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        format!("Item {} of {}", view.position, view.total),
+    );
     bevy_presentation::spawn_muted_label(
         commands,
         panel,
@@ -667,7 +698,11 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
         },
     );
     if view.art.is_some() {
-        bevy_presentation::spawn_muted_label(commands, panel, "Item art is available in the campaign content.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "Item art is available in the campaign content.",
+        );
     }
     bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to inventory");
 }
@@ -693,7 +728,11 @@ fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) 
 }
 
 fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
-    let panel = render_header(commands, "QUEST · DETAILS", "Objective progress and reward.");
+    let panel = render_header(
+        commands,
+        "QUEST · DETAILS",
+        "Objective progress and reward.",
+    );
     let Some(view) = view else {
         bevy_presentation::spawn_muted_label(commands, panel, "That quest is no longer available.");
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
@@ -713,14 +752,20 @@ fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
             bevy_presentation::spawn_muted_label(
                 commands,
                 panel,
-                format!("[{marker}] {} ({}/{})", objective.label, objective.progress, objective.required),
+                format!(
+                    "[{marker}] {} ({}/{})",
+                    objective.label, objective.progress, objective.required
+                ),
             );
         }
     }
     bevy_presentation::spawn_muted_label(
         commands,
         panel,
-        format!("Reward: {}", view.reward_item_name.as_deref().unwrap_or("—")),
+        format!(
+            "Reward: {}",
+            view.reward_item_name.as_deref().unwrap_or("—")
+        ),
     );
     bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to quest log");
 }
@@ -742,7 +787,12 @@ fn render_meditation(
     bevy_presentation::spawn_muted_label(commands, panel, "Choose when to end your meditation.");
     for (index, target) in view.targets.iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{}", target.label));
+        bevy_presentation::spawn_choice_button(
+            commands,
+            panel,
+            index,
+            format!("{marker}{}", target.label),
+        );
     }
     let back = view.targets.len();
     let marker = if selected == back { "▶ " } else { "" };
@@ -753,15 +803,27 @@ fn render_meditation_result(
     commands: &mut Commands,
     result: Option<&crate::presentation::MeditationResultView>,
 ) {
-    let panel = render_header(commands, "MEDITATION · COMPLETE", "The result of your rest.");
+    let panel = render_header(
+        commands,
+        "MEDITATION · COMPLETE",
+        "The result of your rest.",
+    );
     let Some(result) = result else {
         bevy_presentation::spawn_muted_label(commands, panel, "No meditation result is available.");
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &result.ending_time);
-    bevy_presentation::spawn_muted_label(commands, panel, format!("Time meditated: {} portion(s)", result.portions));
-    bevy_presentation::spawn_muted_label(commands, panel, format!("HP recovered: {}", result.hp_recovered));
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        format!("Time meditated: {} portion(s)", result.portions),
+    );
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        format!("HP recovered: {}", result.hp_recovered),
+    );
     if result.exhausted_removed {
         bevy_presentation::spawn_muted_label(commands, panel, "Exhausted is removed.");
     }
@@ -779,7 +841,11 @@ fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) 
     );
     bevy_presentation::spawn_muted_label(commands, panel, &view.time);
     if view.entries.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, panel, "The world has not recorded any history yet.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "The world has not recorded any history yet.",
+        );
     } else {
         for (index, entry) in view.entries.iter().enumerate() {
             let marker = if selected == index { "▶ " } else { "" };
@@ -787,7 +853,12 @@ fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) 
                 commands,
                 panel,
                 index,
-                format!("{marker}Day {} {} {}", entry.day, entry_marker(entry), entry.text),
+                format!(
+                    "{marker}Day {} {} {}",
+                    entry.day,
+                    entry_marker(entry),
+                    entry.text
+                ),
             );
         }
     }
@@ -799,7 +870,11 @@ fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) 
 fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryView>) {
     let panel = render_header(commands, "HISTORY · DETAILS", "Chronicle entry.");
     let Some(entry) = entry else {
-        bevy_presentation::spawn_muted_label(commands, panel, "That history entry is no longer available.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "That history entry is no longer available.",
+        );
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     };
@@ -842,7 +917,11 @@ fn render_journal_entry(
     bevy_presentation::spawn_label(
         commands,
         panel,
-        if draft.is_empty() { "_".to_string() } else { draft.to_string() },
+        if draft.is_empty() {
+            "_".to_string()
+        } else {
+            draft.to_string()
+        },
     );
     for (index, label) in ["Record note", "Cancel"].into_iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };

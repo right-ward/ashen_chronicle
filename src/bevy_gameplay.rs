@@ -68,7 +68,9 @@ fn gameplay_input(
                 gameplay.selected = 0;
                 gameplay.dirty = true;
             }
-            InputEvent::End => move_selection_to_end(&mut gameplay, &mut navigation_state, &lifecycle),
+            InputEvent::End => {
+                move_selection_to_end(&mut gameplay, &mut navigation_state, &lifecycle)
+            }
             InputEvent::Cancel => {
                 if gameplay.screen == GameplayScreen::Navigation {
                     gameplay.screen = GameplayScreen::Dashboard;
