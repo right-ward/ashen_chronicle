@@ -59,7 +59,7 @@ pub(crate) fn open(state: &mut GameState) -> io::Result<()> {
     Ok(())
 }
 
-fn build_view(state: &GameState) -> NavigationView {
+pub(crate) fn build_view(state: &GameState) -> NavigationView {
     let Some(current_location) = state.world.location_by_id(state.character.location_id) else {
         return NavigationView::default();
     };

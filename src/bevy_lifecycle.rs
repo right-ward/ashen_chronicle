@@ -259,6 +259,10 @@ fn start_has_load(lifecycle: &LifecycleState) -> bool {
 }
 
 impl LifecycleState {
+    pub(crate) fn mark_dirty(&mut self) {
+        self.dirty = true;
+    }
+
     fn refresh_saves(&mut self) {
         let current_dir = PathBuf::from(".");
         self.save_files = find_save_files(&current_dir).unwrap_or_default();

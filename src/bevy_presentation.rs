@@ -35,6 +35,9 @@ pub struct ScrollViewport;
 #[derive(Resource, Default)]
 pub struct SemanticInputQueue(pub Vec<InputEvent>);
 
+#[derive(Resource, Default)]
+pub struct GameplayInputQueue(pub Vec<InputEvent>);
+
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NavigationState {
     pub current_screen: Option<ScreenId>,
@@ -57,6 +60,7 @@ pub enum ScreenId {
 
 pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
+        .init_resource::<GameplayInputQueue>()
         .init_resource::<NavigationState>()
         .add_systems(Update, keyboard_to_semantic_input)
         .add_systems(Update, choice_button_input);
@@ -201,7 +205,9 @@ pub(crate) fn gauge_ratio(current: i32, maximum: i32) -> f32 {
 
 fn keyboard_to_semantic_input(
     keyboard: Res<ButtonInput<KeyCode>>,
-    mut input_queue: ResMut<SemanticInputQueue>,
+    navigation: Res<NavigationState>,
+    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
     let mappings = [
         (KeyCode::ArrowUp, InputEvent::Up),
@@ -218,7 +224,11 @@ fn keyboard_to_semantic_input(
     ];
     for (key, event) in mappings {
         if keyboard.just_pressed(key) {
-            input_queue.0.push(event);
+            if navigation.current_screen == Some(ScreenId::Gameplay) {
+                gameplay_queue.0.push(event);
+            } else {
+                lifecycle_queue.0.push(event);
+            }
         }
     }
 }
@@ -229,12 +239,17 @@ fn choice_button_input(
         (Changed<Interaction>, With<Button>),
     >,
     mut navigation: ResMut<NavigationState>,
-    mut input_queue: ResMut<SemanticInputQueue>,
+    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
     for (interaction, choice) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             navigation.selected = choice.index;
-            input_queue.0.push(InputEvent::Confirm);
+            if navigation.current_screen == Some(ScreenId::Gameplay) {
+                gameplay_queue.0.push(InputEvent::Confirm);
+            } else {
+                lifecycle_queue.0.push(InputEvent::Confirm);
+            }
         }
     }
 }

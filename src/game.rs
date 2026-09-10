@@ -1,4 +1,4 @@
-mod actions;
+pub(crate) mod actions;
 mod character;
 mod combat;
 mod combat_screen;
@@ -9,13 +9,13 @@ mod history_screen;
 mod interactions_core;
 mod legacy;
 mod lifecycle;
-mod menu;
-mod navigation;
+pub(crate) mod menu;
+pub(crate) mod navigation;
 mod quests;
 mod records;
 mod runtime;
 pub(crate) mod state_effects;
-mod time;
+pub(crate) mod time;
 // Made world public so procedural_authored.rs can use its functions
 pub mod world;
 mod world_screen;
