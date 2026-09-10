@@ -22,6 +22,25 @@ on:
       - 'Cargo.lock'
       - 'data/**'
   workflow_dispatch:
+    inputs:
+      branch:
+        description: Branch to build
+        required: true
+        type: string
+      target:
+        description: Platform and architecture to build
+        required: true
+        type: choice
+        options:
+          - android-x86_64
+          - android-aarch64
+          - android-armv7
+          - linux-x86_64
+          - linux-aarch64
+          - macos-x86_64
+          - macos-aarch64
+          - windows-x86_64
+          - windows-aarch64
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}
@@ -103,6 +122,7 @@ jobs:
         if: github.event_name != 'pull_request'
         uses: actions/checkout@v7.0.1
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
           fetch-depth: 0
 
       - name: Set up Rust
@@ -138,6 +158,9 @@ jobs:
           echo "test_status=$test_status" >> test.log
 
           if [ "$fmt_status" -ne 0 ] || [ "$clippy_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then
+            echo "fmt_status=$fmt_status"
+            echo "clippy_status=$clippy_status"
+            echo "test_status=$test_status"
             exit 1
           fi
 
@@ -160,7 +183,9 @@ jobs:
 
   build:
     name: Build ${{ matrix.platform }} ${{ matrix.arch }}
-    if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && matrix.dispatch_target == inputs.target)
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -168,57 +193,68 @@ jobs:
         include:
           - platform: android
             arch: x86_64
+            dispatch_target: android-x86_64
             target: x86_64-linux-android
             runner: ubuntu-latest
             archive_ext: tar.xz
           - platform: android
             arch: aarch64
+            dispatch_target: android-aarch64
             target: aarch64-linux-android
             runner: ubuntu-latest
             archive_ext: tar.xz
           - platform: android
             arch: armv7
+            dispatch_target: android-armv7
             target: armv7-linux-androideabi
             runner: ubuntu-latest
             archive_ext: tar.xz
           - platform: linux
             arch: x86_64
+            dispatch_target: linux-x86_64
             target: x86_64-unknown-linux-gnu
             runner: ubuntu-latest
             archive_ext: tar.xz
           - platform: linux
             arch: aarch64
+            dispatch_target: linux-aarch64
             target: aarch64-unknown-linux-gnu
             runner: ubuntu-latest
             archive_ext: tar.xz
           - platform: macos
             arch: x86_64
+            dispatch_target: macos-x86_64
             target: x86_64-apple-darwin
             runner: macos-15-intel
             archive_ext: tar.xz
           - platform: macos
             arch: aarch64
+            dispatch_target: macos-aarch64
             target: aarch64-apple-darwin
             runner: macos-15
             archive_ext: tar.xz
           - platform: windows
             arch: x86_64
+            dispatch_target: windows-x86_64
             target: x86_64-pc-windows-msvc
             runner: windows-latest
             archive_ext: zip
           - platform: windows
             arch: aarch64
+            dispatch_target: windows-aarch64
             target: aarch64-pc-windows-msvc
             runner: windows-latest
             archive_ext: zip
 
     steps:
-      - name: Checkout tag
+      - name: Checkout source
         uses: actions/checkout@v7.0.1
         with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
           fetch-depth: 0
 
       - name: Verify tag points to main
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           if ! git branch -r --contains "$GITHUB_SHA" | grep -qE 'origin/main$'; then
@@ -227,6 +263,7 @@ jobs:
           fi
 
       - name: Validate release version
+        if: github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')
         shell: bash
         run: |
           case "$GITHUB_REF_NAME" in
@@ -353,7 +390,14 @@ jobs:
         run: |
           set -euo pipefail
 
-          release_name="ashen_chronicle-${GITHUB_REF_NAME}-${BUILD_PLATFORM}-${ARCH}"
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            ref_name="${GITHUB_HEAD_REF:-${GITHUB_REF_NAME}}"
+            ref_name="${ref_name//\//-}"
+          else
+            ref_name="$GITHUB_REF_NAME"
+          fi
+
+          release_name="ashen_chronicle-${ref_name}-${BUILD_PLATFORM}-${ARCH}"
           package_dir="package/$release_name"
           mkdir -p "$package_dir"
 
@@ -373,7 +417,7 @@ jobs:
         uses: actions/upload-artifact@v7.0.1
         with:
           name: release-${{ matrix.platform }}-${{ matrix.arch }}
-          path: ashen_chronicle-${{ github.ref_name }}-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.archive_ext }}
+          path: ashen_chronicle-*-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.archive_ext }}
           if-no-files-found: error
           retention-days: 7
           archive: false
@@ -392,7 +436,7 @@ jobs:
               "platform=${BUILD_PLATFORM}" \
               "arch=${ARCH}" \
               "target=${TARGET}" \
-              "tag=${GITHUB_REF_NAME}"
+              "ref=${GITHUB_REF_NAME}"
             cat build.log 2>/dev/null || true
           } > build-log.txt
           tar caf "build-log-${BUILD_PLATFORM}-${ARCH}.tar.xz" build-log.txt
