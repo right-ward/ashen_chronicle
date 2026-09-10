@@ -23,26 +23,53 @@ impl<'a> EventContext<'a> {
 
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
     let chance_roll = next_random_roll(state) % 100;
-    let weight_roll = next_random_roll(state);
-    let Some(chosen) = ({
+    let candidate_indices = {
         let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
             return false;
         };
-        let candidates: Vec<&EventContent> = events
+        events
             .iter()
-            .filter(|event| event.trigger == context.trigger)
-            .filter(|event| matches_conditions(event.conditions.as_ref(), state, context))
-            .filter(|event| event_is_off_cooldown(state, &event.id))
-            .filter(|event| event.chance_percent.unwrap_or(100) as u64 > chance_roll)
-            .collect();
-        if candidates.is_empty() {
-            None
-        } else {
-            weighted_pick(&candidates, weight_roll)
-                .or_else(|| candidates.first().copied())
-                .cloned()
+            .enumerate()
+            .filter(|(_, event)| event.trigger == context.trigger)
+            .filter(|(_, event)| matches_conditions(event.conditions.as_ref(), state, context))
+            .filter(|(_, event)| event_is_off_cooldown(state, &event.id))
+            .filter(|(_, event)| event.chance_percent.unwrap_or(100) as u64 > chance_roll)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>()
+    };
+
+    if candidate_indices.is_empty() {
+        return false;
+    }
+
+    let weight_roll = next_random_roll(state);
+    let chosen_index = {
+        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
+            return false;
+        };
+        let total_weight = candidate_indices
+            .iter()
+            .map(|&index| events[index].weight.max(1) as u64)
+            .sum::<u64>();
+        let mut cursor = weight_roll % total_weight;
+        let mut chosen = candidate_indices[0];
+        for &index in &candidate_indices {
+            let weight = events[index].weight.max(1) as u64;
+            if cursor < weight {
+                chosen = index;
+                break;
+            }
+            cursor -= weight;
         }
-    }) else {
+        chosen
+    };
+
+    let Some(chosen) = state
+        .campaign_content
+        .as_ref()
+        .and_then(|content| content.events.get(chosen_index))
+        .cloned()
+    else {
         return false;
     };
     apply_event(state, &chosen, context);
