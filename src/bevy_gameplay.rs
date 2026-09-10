@@ -9,7 +9,9 @@ use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
-use crate::game::{build_main_menu, build_navigation_view, time_display, travel_to, GameAction, MenuEntry};
+use crate::game::{
+    build_main_menu, build_navigation_view, time_display, travel_to, GameAction, MenuEntry,
+};
 use crate::input::InputEvent;
 use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
 
