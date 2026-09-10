@@ -26,10 +26,12 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ### v0.49.x: Ratatui to Bevy migration (in progress)
 - Established the Bevy application foundation as an opt-in graphical runtime while retaining the existing Ratatui frontend for the incremental migration.
 - Added a dedicated Bevy application module and kept engine/bootstrap concerns separate from gameplay state and rules.
+- Added a reusable Bevy presentation layer with shared screen/panel/label primitives, choice buttons, health-style gauges, centralized visual theme constants, semantic navigation state, and a semantic input queue.
+- Added Bevy keyboard translation for the existing frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
 
 ## Next
 
-Continue v0.49.x with the reusable Bevy presentation, input, and navigation layer, followed by incremental screen migration and the eventual Ratatui/crossterm removal.
+Continue v0.49.x with lifecycle and navigation flow migration, then move the world/gameplay and secondary screens onto the reusable Bevy presentation layer before removing Ratatui/crossterm.
 
 ## Longer-term direction
 
