@@ -10,6 +10,9 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added a dedicated Bevy application module and kept engine/bootstrap concerns separate from gameplay state and rules.
 - Added a reusable Bevy presentation layer with shared screen/panel/label primitives, choice buttons, health-style gauges, centralized visual theme constants, semantic navigation state, and a semantic input queue.
 - Added Bevy keyboard translation for the existing frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
+- Migrated lifecycle flows for starting, loading, character creation, death, inheritance, and quit confirmation to Bevy.
+- Migrated the primary gameplay/world dashboard and world navigation/travel flow to Bevy while continuing to reuse authoritative gameplay rules.
+- Migrated character, reputation, journal, inventory, quest, meditation, and history screens to Bevy, including nested detail/result flows and journal entry editing.
 =======
 - Persisted runtime-generated event definitions separately from authored campaign events so procedural event progression survives save/load.
 - Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
@@ -19,7 +22,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Continue v0.49.x with lifecycle and navigation flow migration, then move the world/gameplay and secondary screens onto the reusable Bevy presentation layer before removing Ratatui/crossterm.
+Continue v0.49.x with combat migration, then migrate the developer console before removing the remaining Ratatui/crossterm runtime dependencies and completing the platform/documentation integration.
 
 ## Longer-term direction
 
