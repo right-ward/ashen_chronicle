@@ -182,11 +182,7 @@ fn record_input(
             }
             InputEvent::Confirm => {
                 records_state.selected = navigation.selected;
-                activate(
-                    &mut lifecycle,
-                    &mut navigation,
-                    &mut records_state,
-                );
+                activate(&mut lifecycle, &mut navigation, &mut records_state);
             }
             InputEvent::Cancel => cancel(&mut navigation, &mut records_state),
             _ => {}
@@ -541,11 +537,7 @@ fn render_header(commands: &mut Commands, title: &str, subtitle: impl Into<Strin
     panel
 }
 
-fn render_character_general(
-    commands: &mut Commands,
-    view: &CharacterSheetView,
-    selected: usize,
-) {
+fn render_character_general(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
     let panel = render_header(
         commands,
         "CHARACTER",
@@ -628,11 +620,7 @@ fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetVie
     bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to character");
 }
 
-fn render_character_journal(
-    commands: &mut Commands,
-    view: &CharacterSheetView,
-    selected: usize,
-) {
+fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
     let panel = render_header(commands, "CHARACTER · JOURNAL", "Recorded personal notes.");
     if view.notes.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "The journal is empty.");
@@ -713,11 +701,7 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
 fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) {
     let panel = render_header(commands, "QUEST LOG", view.character.display_name());
     if view.quests.is_empty() {
-        bevy_presentation::spawn_muted_label(
-            commands,
-            panel,
-            "No quests have been recorded yet.",
-        );
+        bevy_presentation::spawn_muted_label(commands, panel, "No quests have been recorded yet.");
     } else {
         for (index, quest) in view.quests.iter().enumerate() {
             let marker = if selected == index { "▶ " } else { "" };
@@ -791,11 +775,7 @@ fn render_meditation(
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     }
-    bevy_presentation::spawn_muted_label(
-        commands,
-        panel,
-        "Choose when to end your meditation.",
-    );
+    bevy_presentation::spawn_muted_label(commands, panel, "Choose when to end your meditation.");
     for (index, target) in view.targets.iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };
         bevy_presentation::spawn_choice_button(
@@ -820,11 +800,7 @@ fn render_meditation_result(
         "The result of your rest.",
     );
     let Some(result) = result else {
-        bevy_presentation::spawn_muted_label(
-            commands,
-            panel,
-            "No meditation result is available.",
-        );
+        bevy_presentation::spawn_muted_label(commands, panel, "No meditation result is available.");
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     };
@@ -928,11 +904,7 @@ fn render_journal_entry(
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Continue");
         return;
     }
-    bevy_presentation::spawn_muted_label(
-        commands,
-        panel,
-        "Type a note. Backspace edits it.",
-    );
+    bevy_presentation::spawn_muted_label(commands, panel, "Type a note. Backspace edits it.");
     bevy_presentation::spawn_label(
         commands,
         panel,
@@ -944,12 +916,7 @@ fn render_journal_entry(
     );
     for (index, label) in ["Record note", "Cancel"].into_iter().enumerate() {
         let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(
-            commands,
-            panel,
-            index,
-            format!("{marker}{label}"),
-        );
+        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
     }
 }
 
