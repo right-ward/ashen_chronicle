@@ -185,7 +185,7 @@ jobs:
     name: Build ${{ matrix.platform }} ${{ matrix.arch }}
     if: |
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-      (github.event_name == 'workflow_dispatch' && matrix.dispatch_target == inputs.target)
+      github.event_name == 'workflow_dispatch'
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
@@ -248,6 +248,7 @@ jobs:
 
     steps:
       - name: Checkout source
+        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
@@ -283,37 +284,39 @@ jobs:
           fi
 
       - name: Set up Rust
+        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
         with:
           toolchain: stable
           cache: true
 
       - name: Set up Android SDK
-        if: matrix.platform == 'android'
+        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'android'
         uses: android-actions/setup-android@v4.0.1
         with:
           packages: platform-tools
 
       - name: Install Android NDK
-        if: matrix.platform == 'android'
+        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'android'
         shell: bash
         run: |
           sdkmanager --install "ndk;27.3.13750724"
 
       - name: Configure Linux cross compiler
-        if: matrix.platform == 'linux' && matrix.arch == 'aarch64'
+        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'linux' && matrix.arch == 'aarch64'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Configure Windows build environment
-        if: matrix.platform == 'windows'
+        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'windows'
         uses: ilammy/msvc-dev-cmd@v1.13.0
         with:
           arch: ${{ matrix.arch == 'aarch64' && 'amd64_arm64' || 'amd64' }}
 
       - name: Build release binary
+        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -381,6 +384,7 @@ jobs:
           cargo build --release --target "$TARGET" 2>&1 | tee -a build.log
 
       - name: Package release archive
+        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -414,6 +418,7 @@ jobs:
           echo "Created $release_name.$ARCHIVE_EXT" | tee -a build.log
 
       - name: Upload release archive
+        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions/upload-artifact@v7.0.1
         with:
           name: release-${{ matrix.platform }}-${{ matrix.arch }}
@@ -423,7 +428,7 @@ jobs:
           archive: false
 
       - name: Archive build log
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target)
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -442,7 +447,7 @@ jobs:
           tar caf "build-log-${BUILD_PLATFORM}-${ARCH}.tar.xz" build-log.txt
 
       - name: Upload build log
-        if: always()
+        if: always() && (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target)
         uses: actions/upload-artifact@v7.0.1
         with:
           name: build-log-${{ matrix.platform }}-${{ matrix.arch }}

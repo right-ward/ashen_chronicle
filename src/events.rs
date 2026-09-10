@@ -22,32 +22,54 @@ impl<'a> EventContext<'a> {
 }
 
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
-    let Some(chosen) = ({
-        let Some(events) = state
-            .campaign_content
-            .as_ref()
-            .map(|content| content.events.clone())
-        else {
+    let chance_roll = next_random_roll(state) % 100;
+    let candidate_indices = {
+        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
             return false;
         };
-        let chance_roll = next_random_roll(state) % 100;
-        let candidates: Vec<&EventContent> = events
+        events
             .iter()
-            .filter(|event| event.trigger == context.trigger)
-            .filter(|event| matches_conditions(event.conditions.as_ref(), state, context))
-            .filter(|event| event_is_off_cooldown(state, &event.id))
-            .filter(|event| event.chance_percent.unwrap_or(100) as u64 > chance_roll)
-            .collect();
-        if candidates.is_empty() {
-            None
-        } else {
-            Some(
-                weighted_pick(&candidates, next_random_roll(state))
-                    .unwrap_or(candidates[0])
-                    .clone(),
-            )
+            .enumerate()
+            .filter(|(_, event)| event.trigger == context.trigger)
+            .filter(|(_, event)| matches_conditions(event.conditions.as_ref(), state, context))
+            .filter(|(_, event)| event_is_off_cooldown(state, &event.id))
+            .filter(|(_, event)| event.chance_percent.unwrap_or(100) as u64 > chance_roll)
+            .map(|(index, _)| index)
+            .collect::<Vec<_>>()
+    };
+
+    if candidate_indices.is_empty() {
+        return false;
+    }
+
+    let weight_roll = next_random_roll(state);
+    let chosen_index = {
+        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
+            return false;
+        };
+        let total_weight = candidate_indices
+            .iter()
+            .map(|&index| events[index].weight.max(1) as u64)
+            .sum::<u64>();
+        let mut cursor = weight_roll % total_weight;
+        let mut chosen = candidate_indices[0];
+        for &index in &candidate_indices {
+            let weight = events[index].weight.max(1) as u64;
+            if cursor < weight {
+                chosen = index;
+                break;
+            }
+            cursor -= weight;
         }
-    }) else {
+        chosen
+    };
+
+    let Some(chosen) = state
+        .campaign_content
+        .as_ref()
+        .and_then(|content| content.events.get(chosen_index))
+        .cloned()
+    else {
         return false;
     };
     apply_event(state, &chosen, context);
@@ -260,7 +282,10 @@ fn apply_effect(
         } => {
             let mut condition = Condition::new(name.clone(), *remaining, *penalty);
             condition.bonus = *bonus;
-            state.character.conditions.push(condition);
+            crate::game::state_effects::add_or_refresh_condition(
+                &mut state.character.conditions,
+                condition,
+            );
             outcomes.push(format!("Gained {}.", name));
         }
     }
@@ -450,5 +475,38 @@ mod tests {
         assert!(!event_is_off_cooldown(&state, "test.event"));
         state.character.turn = 3;
         assert!(event_is_off_cooldown(&state, "test.event"));
+    }
+
+    #[test]
+    fn add_condition_event_refreshes_existing_condition() {
+        let mut state = test_state();
+        state
+            .character
+            .conditions
+            .push(Condition::new("Wounded", 2, -1));
+        let event = EventContent {
+            id: "event.condition".into(),
+            trigger: "travel_arrival".into(),
+            weight: 1,
+            chance_percent: Some(100),
+            cooldown_turns: None,
+            conditions: None,
+            effects: vec![EventEffectContent::AddCondition {
+                name: "Wounded".into(),
+                remaining: 5,
+                penalty: -2,
+                bonus: 1,
+            }],
+        };
+        let context = EventContext::for_travel_arrival("Ashen Gate", false, false);
+
+        apply_event(&mut state, &event, &context);
+
+        assert_eq!(state.character.conditions.len(), 1);
+        let condition = &state.character.conditions[0];
+        assert_eq!(condition.name, "Wounded");
+        assert_eq!(condition.remaining, 5);
+        assert_eq!(condition.penalty, -2);
+        assert_eq!(condition.bonus, 1);
     }
 }
