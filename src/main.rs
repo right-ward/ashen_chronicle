@@ -1,6 +1,8 @@
 #[cfg(feature = "bevy")]
 mod bevy_app;
 #[cfg(feature = "bevy")]
+mod bevy_lifecycle;
+#[cfg(feature = "bevy")]
 mod bevy_presentation;
 mod content;
 mod events;
