@@ -176,6 +176,11 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
             q.completed
                 && (q.content_id.starts_with(QUEST_PREFIX)
                     || q.content_id.starts_with(EVOLUTION_QUEST_PREFIX))
+                && !state
+                    .world
+                    .completed_quest_ids
+                    .iter()
+                    .any(|completed_id| completed_id == &q.content_id)
         })
         .map(|q| (q.content_id.clone(), q.target_location_id, q.faction_id))
         .collect::<Vec<_>>();
@@ -193,6 +198,14 @@ pub fn evolve_generated_world(state: &mut GameState) -> usize {
             faction.memory.push(format!(
                 "[world evolution] {name} became safer after {quest_id} was completed."
             ));
+        }
+        if !state
+            .world
+            .completed_quest_ids
+            .iter()
+            .any(|completed_id| completed_id == &quest_id)
+        {
+            state.world.completed_quest_ids.push(quest_id.clone());
         }
         create_follow_up(state, &quest_id, faction_id, location_id);
     }
@@ -487,6 +500,37 @@ mod tests {
             .iter()
             .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
         assert_eq!(evolve_generated_world(&mut state), 0);
+        assert!(state
+            .world
+            .completed_quest_ids
+            .iter()
+            .any(|id| id == &state.quests[index].content_id));
+    }
+
+    #[test]
+    fn resolved_evolution_quest_is_not_reprocessed_even_if_location_becomes_dangerous_again() {
+        let mut state = prepared_state();
+        populate_generated_opportunities(&mut state);
+        let index = state
+            .quests
+            .iter()
+            .position(|q| q.content_id.starts_with(QUEST_PREFIX))
+            .expect("generated quest");
+        let location_id = state.quests[index].target_location_id;
+        state
+            .world
+            .location_by_id_mut(location_id)
+            .unwrap()
+            .dangerous = true;
+        state.quests[index].completed = true;
+        assert_eq!(evolve_generated_world(&mut state), 1);
+        state
+            .world
+            .location_by_id_mut(location_id)
+            .unwrap()
+            .dangerous = true;
+        assert_eq!(evolve_generated_world(&mut state), 0);
+        assert!(state.world.location_by_id(location_id).unwrap().dangerous);
     }
 
     #[test]
@@ -511,5 +555,10 @@ mod tests {
             .quests
             .iter()
             .any(|q| q.content_id.starts_with(EVOLUTION_QUEST_PREFIX)));
+        assert!(restored
+            .world
+            .completed_quest_ids
+            .iter()
+            .any(|id| id == &state.quests[index].content_id));
     }
 }
