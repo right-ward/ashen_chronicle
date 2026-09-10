@@ -65,4 +65,8 @@ pub fn run() -> std::io::Result<()> {
     runtime::main_loop(&mut state, &mut save_path)
 }
 
+pub(crate) use actions::travel_to;
+pub(crate) use menu::{build_main_menu, GameAction, MenuEntry};
+pub(crate) use navigation::build_view as build_navigation_view;
+pub(crate) use time::time_display;
 pub(crate) use world::validate_loaded_state;
