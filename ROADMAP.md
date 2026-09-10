@@ -5,35 +5,21 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-
-### v0.48.1: procedural content and emerging world
-- Added deterministic procedural generation primitives for regional themes, climates, prosperity, danger, population, resources, and tags.
-- Added deterministic location characteristics derived from surrounding regional context, including location kinds, population, resources, danger, and tags.
-- Added deterministic generated location names, context-driven factions, and NPCs using reusable name/content pools.
-- Populated generated settlements and other populated locations with runtime-valid NPCs assigned to context-matched generated factions while preserving authored entities.
-- Made generated entity population idempotent across repeated campaign bootstrap calls and covered deterministic generation with focused tests.
-- Generated deterministic faction relationships from shared resources, danger, prosperity, and environmental differences, recording rivalry, alliance, trade, influence, or dependency in persistent faction memory.
-- Integrated relationship generation into generated-world bootstrap and covered deterministic, idempotent, valid, and serialization-preserving relationship state.
-- Integrated authored campaign NPCs and factions as deterministic anchors in generated regions without replacing their authored identities, faction assignments, locations, or quest references.
-- Allowed authored factions to participate in the same deterministic generated relationship system as generated factions, while retaining authored-authored relationships unchanged.
-- Covered authored anchor placement, authored quest reference integrity, cross-authored/generated relationships, and deterministic integration with focused tests.
-- Hardened gameplay and persistence with negative Insight XP handling, persistent deterministic event RNG, bounded history, save-size/decompression limits, mod path confinement, and save serialization without cloning the full GameState.
-- Generated persistent quests from faction relationships and dangerous locations, using existing quest objectives and NPC/faction runtime references.
-- Generated deterministic travel events from the same world relationships and dangerous locations, reusing the existing event trigger/cooldown/history flow.
-- Added consequence-driven world evolution: completing generated opportunities can pacify dangerous locations, record persistent faction memory, and create deterministic follow-up opportunities without regenerating the world graph.
-- Covered generated opportunities, valid references, evolution, serialization, and time-driven consequence propagation with focused tests.
-
 ### v0.49.x: Ratatui to Bevy migration (in progress)
 - Established the Bevy application foundation as an opt-in graphical runtime while retaining the existing Ratatui frontend for the incremental migration.
 - Added a dedicated Bevy application module and kept engine/bootstrap concerns separate from gameplay state and rules.
+- Added a reusable Bevy presentation layer with shared screen/panel/label primitives, choice buttons, health-style gauges, centralized visual theme constants, semantic navigation state, and a semantic input queue.
+- Added Bevy keyboard translation for the existing frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
+=======
 - Persisted runtime-generated event definitions separately from authored campaign events so procedural event progression survives save/load.
 - Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
 - Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
 - Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
 
+
 ## Next
 
-Continue v0.49.x with the reusable Bevy presentation, input, and navigation layer, followed by incremental screen migration and the eventual Ratatui/crossterm removal.
+Continue v0.49.x with lifecycle and navigation flow migration, then move the world/gameplay and secondary screens onto the reusable Bevy presentation layer before removing Ratatui/crossterm.
 
 ## Longer-term direction
 
