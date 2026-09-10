@@ -1,12 +1,11 @@
-//! Bevy application foundation for the graphical frontend.
+//! Bevy application bootstrap for the graphical frontend.
 //!
-//! This module owns engine/bootstrap concerns. Gameplay state and rules remain
-//! in the existing frontend-independent game modules and are integrated here
-//! incrementally by later v0.49.x migration issues.
+//! Engine setup stays here; lifecycle and gameplay behavior remain in their
+//! frontend-independent systems and Bevy adapters.
 
 use bevy::prelude::*;
 
-use crate::bevy_presentation;
+use crate::{bevy_lifecycle, bevy_presentation};
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
@@ -24,22 +23,12 @@ pub(crate) fn run() {
         ..default()
     }));
     bevy_presentation::install(&mut app);
+    bevy_lifecycle::install(&mut app);
     app.add_systems(Startup, setup).run();
 }
 
 fn setup(mut commands: Commands) {
     commands.spawn(Camera2d);
-    let screen = bevy_presentation::spawn_screen(&mut commands, WINDOW_TITLE);
-    let panel = bevy_presentation::spawn_panel(&mut commands, screen);
-    bevy_presentation::spawn_muted_label(
-        &mut commands,
-        panel,
-        "The graphical frontend is ready for incremental screen migration.",
-    );
-    bevy_presentation::spawn_gauge(&mut commands, panel, 7, 10);
-    bevy_presentation::spawn_choice_button(&mut commands, panel, 0, "Continue");
-    bevy_presentation::spawn_choice_button(&mut commands, panel, 1, "Open Character");
-    bevy_presentation::spawn_choice_button(&mut commands, panel, 2, "Open Inventory");
 }
 
 #[cfg(test)]
