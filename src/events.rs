@@ -22,15 +22,12 @@ impl<'a> EventContext<'a> {
 }
 
 pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool {
+    let chance_roll = next_random_roll(state) % 100;
+    let weight_roll = next_random_roll(state);
     let Some(chosen) = ({
-        let Some(events) = state
-            .campaign_content
-            .as_ref()
-            .map(|content| content.events.clone())
-        else {
+        let Some(events) = state.campaign_content.as_ref().map(|content| &content.events) else {
             return false;
         };
-        let chance_roll = next_random_roll(state) % 100;
         let candidates: Vec<&EventContent> = events
             .iter()
             .filter(|event| event.trigger == context.trigger)
@@ -41,11 +38,9 @@ pub fn trigger_event(state: &mut GameState, context: &EventContext<'_>) -> bool 
         if candidates.is_empty() {
             None
         } else {
-            Some(
-                weighted_pick(&candidates, next_random_roll(state))
-                    .unwrap_or(candidates[0])
-                    .clone(),
-            )
+            weighted_pick(&candidates, weight_roll)
+                .or_else(|| candidates.first().copied())
+                .cloned()
         }
     }) else {
         return false;
@@ -260,7 +255,10 @@ fn apply_effect(
         } => {
             let mut condition = Condition::new(name.clone(), *remaining, *penalty);
             condition.bonus = *bonus;
-            state.character.conditions.push(condition);
+            crate::game::state_effects::add_or_refresh_condition(
+                &mut state.character.conditions,
+                condition,
+            );
             outcomes.push(format!("Gained {}.", name));
         }
     }
@@ -450,5 +448,38 @@ mod tests {
         assert!(!event_is_off_cooldown(&state, "test.event"));
         state.character.turn = 3;
         assert!(event_is_off_cooldown(&state, "test.event"));
+    }
+
+    #[test]
+    fn add_condition_event_refreshes_existing_condition() {
+        let mut state = test_state();
+        state
+            .character
+            .conditions
+            .push(Condition::new("Wounded", 2, -1));
+        let event = EventContent {
+            id: "event.condition".into(),
+            trigger: "travel_arrival".into(),
+            weight: 1,
+            chance_percent: Some(100),
+            cooldown_turns: None,
+            conditions: None,
+            effects: vec![EventEffectContent::AddCondition {
+                name: "Wounded".into(),
+                remaining: 5,
+                penalty: -2,
+                bonus: 1,
+            }],
+        };
+        let context = EventContext::for_travel_arrival("Ashen Gate", false, false);
+
+        apply_event(&mut state, &event, &context);
+
+        assert_eq!(state.character.conditions.len(), 1);
+        let condition = &state.character.conditions[0];
+        assert_eq!(condition.name, "Wounded");
+        assert_eq!(condition.remaining, 5);
+        assert_eq!(condition.penalty, -2);
+        assert_eq!(condition.bonus, 1);
     }
 }
