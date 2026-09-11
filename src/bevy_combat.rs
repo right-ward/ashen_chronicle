@@ -44,6 +44,10 @@ impl CombatState {
         self.selected = 0;
         self.dirty = true;
     }
+
+    fn action_count(&self) -> usize {
+        self.encounter.as_ref().map(|_| 3).unwrap_or(0)
+    }
 }
 
 pub(crate) fn install(app: &mut App) {
@@ -79,29 +83,39 @@ fn combat_input(
     let events = std::mem::take(&mut input_queue.0);
     for event in events {
         match event {
-            InputEvent::Up => move_selection(&mut combat_state, &mut navigation, -1),
-            InputEvent::Down => move_selection(&mut combat_state, &mut navigation, 1),
+            InputEvent::Up | InputEvent::Character('k') => {
+                move_selection(&mut combat_state, &mut navigation, -1)
+            }
+            InputEvent::Down | InputEvent::Character('j') => {
+                move_selection(&mut combat_state, &mut navigation, 1)
+            }
             InputEvent::Home => set_selection(&mut combat_state, &mut navigation, 0),
             InputEvent::End => {
                 let last = combat_state.action_count().saturating_sub(1);
                 set_selection(&mut combat_state, &mut navigation, last);
             }
-            InputEvent::Confirm => {
-                let step = {
-                    let Some(session) = lifecycle.session.as_mut() else {
-                        continue;
-                    };
-                    let Some(encounter) = combat_state.encounter.as_mut() else {
-                        continue;
-                    };
-                    combat::resolve_action(
-                        &mut session.state,
-                        encounter,
-                        combat_state.selected,
-                    )
+            InputEvent::Character('1')
+            | InputEvent::Character('2')
+            | InputEvent::Character('3') => {
+                let selected = match event {
+                    InputEvent::Character('1') => 0,
+                    InputEvent::Character('2') => 1,
+                    _ => 2,
                 };
-                apply_step(&mut lifecycle, &mut combat_state, &mut navigation, step);
+                set_selection(&mut combat_state, &mut navigation, selected);
+                activate_current_selection(
+                    &mut lifecycle,
+                    &mut combat_state,
+                    &mut navigation,
+                    true,
+                );
             }
+            InputEvent::Confirm => activate_current_selection(
+                &mut lifecycle,
+                &mut combat_state,
+                &mut navigation,
+                true,
+            ),
             InputEvent::Cancel => {}
             _ => {}
         }
@@ -139,30 +153,60 @@ fn set_selection(
     combat_state.dirty = true;
 }
 
-fn apply_step(
+fn activate_current_selection(
     lifecycle: &mut LifecycleState,
+    combat_state: &mut CombatState,
+    navigation: &mut NavigationState,
+    execute: bool,
+) {
+    match combat_state.phase {
+        Some(CombatScreenPhase::Active) if execute => {
+            let step = {
+                let Some(session) = lifecycle.session.as_mut() else {
+                    return;
+                };
+                let Some(encounter) = combat_state.encounter.as_mut() else {
+                    return;
+                };
+                combat::resolve_action(&mut session.state, encounter, combat_state.selected)
+            };
+            apply_step(combat_state, navigation, step);
+        }
+        Some(CombatScreenPhase::Result) => {
+            let outcome = combat_state
+                .result
+                .as_ref()
+                .map(|result| result.result_title == "Defeat")
+                .unwrap_or(false);
+            combat_state.clear();
+            navigation.return_screen = None;
+            if outcome {
+                lifecycle.phase = LifecyclePhase::Death;
+                lifecycle.selected = 0;
+                lifecycle.mark_dirty();
+            } else {
+                navigation.current_screen = Some(ScreenId::Gameplay);
+                navigation.selected = 0;
+            }
+        }
+        _ => {}
+    }
+}
+
+fn apply_step(
     combat_state: &mut CombatState,
     navigation: &mut NavigationState,
     step: CombatStep,
 ) {
     match step {
         CombatStep::Continue => combat_state.dirty = true,
-        CombatStep::Result { view, outcome } => {
+        CombatStep::Result { view, .. } => {
             combat_state.result = Some(view);
             combat_state.phase = Some(CombatScreenPhase::Result);
             combat_state.selected = 0;
             navigation.selected = 0;
-            if outcome == CombatResult::Defeat {
-                lifecycle.message = None;
-            }
             combat_state.dirty = true;
         }
-    }
-}
-
-impl CombatState {
-    fn action_count(&self) -> usize {
-        self.encounter.as_ref().map(|_| 3).unwrap_or(0)
     }
 }
 
@@ -250,7 +294,7 @@ fn render_if_active(
             bevy_presentation::spawn_muted_label(
                 &mut commands,
                 actions,
-                "Choose an action. Arrow keys, 1-3, and Enter also work.",
+                "Choose an action. Arrow keys, j/k, 1-3, and Enter also work.",
             );
             for (index, action) in view.actions.iter().enumerate() {
                 let label = if index == combat_state.selected {
