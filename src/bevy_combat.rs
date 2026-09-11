@@ -5,9 +5,10 @@
 
 use bevy::prelude::*;
 
-use crate::bevy_gameplay::GameplayState;
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
-use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
+use crate::bevy_presentation::{
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+};
 use crate::game::combat::{self, CombatEncounter, CombatResult, CombatStep};
 use crate::input::InputEvent;
 use crate::presentation::CombatResultView;
@@ -50,7 +51,10 @@ pub(crate) fn install(app: &mut App) {
         .add_systems(Update, (combat_input, render_if_active).chain());
 }
 
-pub(crate) fn begin(state: &mut crate::model::GameState, combat_state: &mut CombatState) -> Result<(), String> {
+pub(crate) fn begin(
+    state: &mut crate::model::GameState,
+    combat_state: &mut CombatState,
+) -> Result<(), String> {
     let encounter = combat::start_encounter(state).map_err(|error| error.to_string())?;
     combat_state.reset(encounter);
     Ok(())
@@ -83,9 +87,20 @@ fn combat_input(
                 set_selection(&mut combat_state, &mut navigation, last);
             }
             InputEvent::Confirm => {
-                if let Some(session) = lifecycle.session.as_mut() {
-                    activate_selection(&mut lifecycle, &mut combat_state, &mut navigation, &mut session.state);
-                }
+                let step = {
+                    let Some(session) = lifecycle.session.as_mut() else {
+                        continue;
+                    };
+                    let Some(encounter) = combat_state.encounter.as_mut() else {
+                        continue;
+                    };
+                    combat::resolve_action(
+                        &mut session.state,
+                        encounter,
+                        combat_state.selected,
+                    )
+                };
+                apply_step(&mut lifecycle, &mut combat_state, &mut navigation, step);
             }
             InputEvent::Cancel => {}
             _ => {}
@@ -93,7 +108,11 @@ fn combat_input(
     }
 }
 
-fn move_selection(combat_state: &mut CombatState, navigation: &mut NavigationState, direction: isize) {
+fn move_selection(
+    combat_state: &mut CombatState,
+    navigation: &mut NavigationState,
+    direction: isize,
+) {
     if combat_state.phase != Some(CombatScreenPhase::Active) {
         return;
     }
@@ -101,12 +120,17 @@ fn move_selection(combat_state: &mut CombatState, navigation: &mut NavigationSta
     if count == 0 {
         return;
     }
-    combat_state.selected = (combat_state.selected as isize + direction).rem_euclid(count as isize) as usize;
+    combat_state.selected =
+        (combat_state.selected as isize + direction).rem_euclid(count as isize) as usize;
     navigation.selected = combat_state.selected;
     combat_state.dirty = true;
 }
 
-fn set_selection(combat_state: &mut CombatState, navigation: &mut NavigationState, selected: usize) {
+fn set_selection(
+    combat_state: &mut CombatState,
+    navigation: &mut NavigationState,
+    selected: usize,
+) {
     if combat_state.phase != Some(CombatScreenPhase::Active) || combat_state.action_count() == 0 {
         return;
     }
@@ -115,58 +139,30 @@ fn set_selection(combat_state: &mut CombatState, navigation: &mut NavigationStat
     combat_state.dirty = true;
 }
 
-fn activate_selection(
+fn apply_step(
     lifecycle: &mut LifecycleState,
     combat_state: &mut CombatState,
     navigation: &mut NavigationState,
-    state: &mut crate::model::GameState,
+    step: CombatStep,
 ) {
-    match combat_state.phase {
-        Some(CombatScreenPhase::Active) => {
-            let Some(encounter) = combat_state.encounter.as_mut() else {
-                return;
-            };
-            match combat::resolve_action(state, encounter, combat_state.selected) {
-                CombatStep::Continue => combat_state.dirty = true,
-                CombatStep::Result { view, outcome } => {
-                    combat_state.result = Some(view);
-                    combat_state.phase = Some(CombatScreenPhase::Result);
-                    combat_state.selected = 0;
-                    navigation.selected = 0;
-                    if outcome == CombatResult::Defeat {
-                        lifecycle.message = None;
-                    }
-                    combat_state.dirty = true;
-                }
+    match step {
+        CombatStep::Continue => combat_state.dirty = true,
+        CombatStep::Result { view, outcome } => {
+            combat_state.result = Some(view);
+            combat_state.phase = Some(CombatScreenPhase::Result);
+            combat_state.selected = 0;
+            navigation.selected = 0;
+            if outcome == CombatResult::Defeat {
+                lifecycle.message = None;
             }
+            combat_state.dirty = true;
         }
-        Some(CombatScreenPhase::Result) => {
-            let outcome = combat_state
-                .result
-                .as_ref()
-                .map(|result| result.result_title.as_str())
-                .unwrap_or_default();
-            combat_state.clear();
-            navigation.return_screen = None;
-            if outcome == "Defeat" {
-                lifecycle.phase = LifecyclePhase::Death;
-                lifecycle.selected = 0;
-                lifecycle.mark_dirty();
-            } else {
-                navigation.current_screen = Some(ScreenId::Gameplay);
-                navigation.selected = 0;
-            }
-        }
-        None => {}
     }
 }
 
 impl CombatState {
     fn action_count(&self) -> usize {
-        self.encounter
-            .as_ref()
-            .map(|_| 3)
-            .unwrap_or(0)
+        self.encounter.as_ref().map(|_| 3).unwrap_or(0)
     }
 }
 
@@ -202,7 +198,12 @@ fn render_if_active(
     bevy_presentation::spawn_label(
         &mut commands,
         actors,
-        format!("{} · Turn {} · {}", view.character.display_name(), view.turn, view.location_name),
+        format!(
+            "{} · Turn {} · {}",
+            view.character.display_name(),
+            view.turn,
+            view.location_name
+        ),
     );
     bevy_presentation::spawn_muted_label(
         &mut commands,
@@ -262,8 +263,16 @@ fn render_if_active(
         }
         Some(CombatScreenPhase::Result) => {
             if let Some(result) = &combat_state.result {
-                bevy_presentation::spawn_label(&mut commands, actions, result.result_title.clone());
-                bevy_presentation::spawn_muted_label(&mut commands, actions, result.result_note.clone());
+                bevy_presentation::spawn_label(
+                    &mut commands,
+                    actions,
+                    result.result_title.clone(),
+                );
+                bevy_presentation::spawn_muted_label(
+                    &mut commands,
+                    actions,
+                    result.result_note.clone(),
+                );
             }
             bevy_presentation::spawn_choice_button(&mut commands, actions, 0, "Continue");
         }
