@@ -80,7 +80,8 @@ pub(crate) fn start_encounter(state: &mut GameState) -> Result<CombatEncounter, 
         trophy_name,
         events: vec![format!(
             "{} engages the threat at {}.",
-            character_name, location_name_for_message(state)
+            character_name,
+            location_name_for_message(state)
         )],
     })
 }
@@ -187,10 +188,7 @@ pub(crate) fn resolve_action(
     CombatStep::Continue
 }
 
-pub(crate) fn build_combat_view(
-    state: &GameState,
-    encounter: &CombatEncounter,
-) -> CombatView {
+pub(crate) fn build_combat_view(state: &GameState, encounter: &CombatEncounter) -> CombatView {
     CombatView {
         character: character_view(state),
         player_condition: active_condition(state).map(str::to_string),
@@ -203,7 +201,11 @@ pub(crate) fn build_combat_view(
         location_name: encounter.location_name.clone(),
         turn: state.character.turn,
         events: encounter.events.clone(),
-        actions: vec!["Attack".to_string(), "Guard".to_string(), "Flee".to_string()],
+        actions: vec![
+            "Attack".to_string(),
+            "Guard".to_string(),
+            "Flee".to_string(),
+        ],
     }
 }
 

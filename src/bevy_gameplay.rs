@@ -114,9 +114,7 @@ fn move_selection(
     };
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
-        GameplayScreen::Navigation => {
-            navigation::build_view(&session.state).destinations.len() + 1
-        }
+        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
     };
     if count == 0 {
         return;
@@ -138,9 +136,7 @@ fn move_selection_to_end(
     };
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
-        GameplayScreen::Navigation => {
-            navigation::build_view(&session.state).destinations.len() + 1
-        }
+        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
     };
     if count > 0 {
         gameplay.selected = count - 1;
