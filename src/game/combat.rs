@@ -52,7 +52,7 @@ pub(crate) enum CombatResult {
 pub(crate) enum CombatStep {
     Continue,
     Result {
-        view: CombatResultView,
+        view: Box<CombatResultView>,
         outcome: CombatResult,
     },
 }
@@ -167,13 +167,13 @@ pub(crate) fn resolve_action(
             ));
             trim_combat_events(&mut encounter.events);
             return CombatStep::Result {
-                view: build_result_view(
+                view: Box::new(build_result_view(
                     state,
                     encounter,
                     &encounter.location_name,
                     "Fled",
                     "The threat remains.",
-                ),
+                )),
                 outcome: CombatResult::Fled,
             };
         }
@@ -256,13 +256,13 @@ fn finish_victory(state: &mut GameState, encounter: &mut CombatEncounter) -> Com
         .push("The threat is broken. The place is quieter now.".to_string());
     trim_combat_events(&mut encounter.events);
     CombatStep::Result {
-        view: build_result_view(
+        view: Box::new(build_result_view(
             state,
             encounter,
             &encounter.location_name,
             "Victory",
             &result_note,
-        ),
+        )),
         outcome: CombatResult::Victory,
     }
 }
@@ -278,13 +278,13 @@ fn finish_defeat(state: &mut GameState, encounter: &mut CombatEncounter) -> Comb
     encounter.events.push("You were overwhelmed.".to_string());
     trim_combat_events(&mut encounter.events);
     CombatStep::Result {
-        view: build_result_view(
+        view: Box::new(build_result_view(
             state,
             encounter,
             &location_name,
             "Defeat",
             "You were overwhelmed.",
-        ),
+        )),
         outcome: CombatResult::Defeat,
     }
 }
