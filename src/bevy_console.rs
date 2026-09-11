@@ -2,7 +2,9 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
 use crate::bevy_lifecycle::LifecycleState;
-use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
+use crate::bevy_presentation::{
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+};
 use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
 use crate::presentation::{ConsoleScrollView, ConsoleView};
@@ -23,11 +25,10 @@ impl Default for BevyConsoleState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<BevyConsoleState>()
-        .add_systems(
-            Update,
-            (open_shortcut, text_input, console_input, render_if_active).chain(),
-        );
+    app.init_resource::<BevyConsoleState>().add_systems(
+        Update,
+        (open_shortcut, text_input, console_input, render_if_active).chain(),
+    );
 }
 
 fn open_shortcut(
@@ -92,11 +93,13 @@ fn console_input(
             InputEvent::Confirm => {
                 if state.console.is_autocomplete() {
                     state.console.accept_completion();
-                } else if let Err(error) = state.console.execute_line(
-                    &mut session.state,
-                    &session.save_path,
-                ) {
-                    state.console.output_error(&format!("Command failed: {error}"));
+                } else if let Err(error) = state
+                    .console
+                    .execute_line(&mut session.state, &session.save_path)
+                {
+                    state
+                        .console
+                        .output_error(&format!("Command failed: {error}"));
                 }
                 if state.console.should_exit() {
                     crate::game::console::bootstrap_after_console(&mut session.state);
@@ -196,13 +199,7 @@ fn render(commands: &mut Commands, view: &ConsoleView) {
         let start = view
             .completion_scroll
             .min(view.candidates.len().saturating_sub(visible));
-        for (index, candidate) in view
-            .candidates
-            .iter()
-            .enumerate()
-            .skip(start)
-            .take(visible)
-        {
+        for (index, candidate) in view.candidates.iter().enumerate().skip(start).take(visible) {
             let marker = if index == view.selected { ">" } else { " " };
             bevy_presentation::spawn_label(
                 commands,

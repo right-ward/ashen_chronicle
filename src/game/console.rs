@@ -29,8 +29,12 @@ pub(crate) struct ConsoleSession {
 impl Default for ConsoleSession {
     fn default() -> Self {
         let mut state = console_ui::ConsoleState::default();
-        state.output.push("Ashen Chronicle developer console".into());
-        state.output.push("help for commands | Tab completion | Esc closes".into());
+        state
+            .output
+            .push("Ashen Chronicle developer console".into());
+        state
+            .output
+            .push("help for commands | Tab completion | Esc closes".into());
         Self { state }
     }
 }
@@ -109,7 +113,11 @@ impl ConsoleSession {
         self.state.completion_scroll = 0;
     }
 
-    pub(crate) fn execute_line(&mut self, state: &mut GameState, save_path: &Path) -> io::Result<()> {
+    pub(crate) fn execute_line(
+        &mut self,
+        state: &mut GameState,
+        save_path: &Path,
+    ) -> io::Result<()> {
         commands::execute_line(state, save_path, &mut self.state)
     }
 
