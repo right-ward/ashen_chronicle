@@ -2,6 +2,7 @@ pub(crate) mod actions;
 pub(crate) mod character;
 pub(crate) mod combat;
 pub(crate) mod console;
+pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
