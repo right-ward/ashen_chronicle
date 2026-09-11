@@ -4,7 +4,9 @@ mod commands;
 mod console_ui;
 
 use crate::game::world;
-use crate::input::{self, InputEvent};
+#[cfg(not(feature = "bevy"))]
+use crate::input;
+use crate::input::InputEvent;
 use crate::model::GameState;
 use crate::presentation::ConsoleView;
 #[cfg(not(feature = "bevy"))]
@@ -27,12 +29,8 @@ pub(crate) struct ConsoleSession {
 impl Default for ConsoleSession {
     fn default() -> Self {
         let mut state = console_ui::ConsoleState::default();
-        state
-            .output
-            .push("Ashen Chronicle developer console".into());
-        state
-            .output
-            .push("help for commands | Tab completion | Esc closes".into());
+        state.output.push("Ashen Chronicle developer console".into());
+        state.output.push("help for commands | Tab completion | Esc closes".into());
         Self { state }
     }
 }
@@ -81,16 +79,16 @@ impl ConsoleSession {
         self.state.autocomplete
     }
 
-    pub(crate) fn start_completion(&mut self, game_state: &GameState) -> bool {
+    pub(crate) fn start_completion(&mut self, game_state: &GameState) {
         console_ui::refresh_completion(&mut self.state, game_state);
         if self.state.candidates.is_empty() {
-            return false;
+            self.state.autocomplete = false;
+            return;
         }
         self.state.autocomplete = true;
         self.state.selected = 0;
         self.state.completion_scroll = 0;
         console_ui::keep_completion_selection_visible(&mut self.state, 8);
-        true
     }
 
     pub(crate) fn select_previous_completion(&mut self) {
@@ -105,6 +103,12 @@ impl ConsoleSession {
         console_ui::accept_completion(&mut self.state);
     }
 
+    pub(crate) fn cancel_completion(&mut self) {
+        self.state.autocomplete = false;
+        self.state.candidates.clear();
+        self.state.completion_scroll = 0;
+    }
+
     pub(crate) fn execute_line(&mut self, state: &mut GameState, save_path: &Path) -> io::Result<()> {
         commands::execute_line(state, save_path, &mut self.state)
     }
@@ -113,56 +117,11 @@ impl ConsoleSession {
         self.state.exit
     }
 
-    pub(crate) fn bootstrap(&mut self, state: &mut GameState) {
-        world::bootstrap_campaign_content(state);
-        self.state.exit = false;
+    pub(crate) fn output_error(&mut self, message: &str) {
+        self.state.output.push(message.to_string());
     }
 }
 
-pub(crate) fn execute_line(
-    state: &mut GameState,
-    save_path: &Path,
-    console: &mut ConsoleSession,
-) -> io::Result<()> {
-    console.execute_line(state, save_path)
-}
-
-pub(crate) fn accept_completion(console: &mut ConsoleSession) {
-    console.accept_completion();
-}
-
-pub(crate) fn refresh_completion(console: &mut ConsoleSession, state: &GameState) {
-    console.start_completion(state);
-}
-
-pub(crate) fn keep_completion_selection_visible(_console: &mut ConsoleSession, _visible: usize) {}
-pub(crate) fn select_previous(console: &mut ConsoleSession) {
-    console.select_previous_completion();
-}
-pub(crate) fn select_next(console: &mut ConsoleSession) {
-    console.select_next_completion();
-}
-pub(crate) fn edit_input(console: &mut ConsoleSession, key: InputEvent) {
-    console.edit(key);
-}
-pub(crate) fn history_previous(console: &mut ConsoleSession) {
-    console.history_previous();
-}
-pub(crate) fn history_next(console: &mut ConsoleSession) {
-    console.history_next();
-}
-pub(crate) fn scroll_up(console: &mut ConsoleSession, amount: usize) {
-    console.scroll_up(amount);
-}
-pub(crate) fn scroll_down(console: &mut ConsoleSession, amount: usize) {
-    console.scroll_down(amount);
-}
-pub(crate) fn jump_home(console: &mut ConsoleSession) {
-    console.jump_home();
-}
-pub(crate) fn jump_end(console: &mut ConsoleSession) {
-    console.jump_end();
-}
 pub(crate) fn bootstrap_after_console(state: &mut GameState) {
     world::bootstrap_campaign_content(state);
 }
@@ -174,7 +133,7 @@ pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Resul
     let restore = restore_game_screen();
 
     if result.is_ok() {
-        world::bootstrap_campaign_content(state);
+        bootstrap_after_console(state);
     }
 
     match (result, restore) {
@@ -196,7 +155,6 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
         let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
         terminal.clear()?;
         let mut console = ConsoleSession::default();
-        console.output_bootstrap();
 
         loop {
             let view = console.view();
@@ -226,11 +184,7 @@ fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()
                         return Ok(());
                     }
                 }
-                InputEvent::Tab => {
-                    if console.start_completion(state) {
-                        continue;
-                    }
-                }
+                InputEvent::Tab => console.start_completion(state),
                 InputEvent::Up => console.history_previous(),
                 InputEvent::Down => console.history_next(),
                 InputEvent::Home => console.jump_home(),
@@ -264,16 +218,4 @@ fn restore_game_screen() -> io::Result<()> {
         cursor::Hide
     )?;
     Ok(())
-}
-
-impl ConsoleSession {
-    #[cfg(not(feature = "bevy"))]
-    fn output_bootstrap(&mut self) {}
-
-    #[cfg(not(feature = "bevy"))]
-    fn cancel_completion(&mut self) {
-        self.state.autocomplete = false;
-        self.state.candidates.clear();
-        self.state.completion_scroll = 0;
-    }
 }
