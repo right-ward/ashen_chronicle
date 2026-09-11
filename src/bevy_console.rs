@@ -2,27 +2,24 @@ use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
 use crate::bevy_lifecycle::LifecycleState;
-use crate::bevy_presentation::{self, BevyScreenRoot, ConsoleInputQueue, NavigationState, ScreenId};
-use crate::game::console::{self, ConsoleState, ScrollPosition};
+use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
+use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
+use crate::presentation::ConsoleScrollView;
 
 #[derive(Resource)]
 pub(crate) struct BevyConsoleState {
-    pub(crate) console: ConsoleState,
+    pub(crate) console: ConsoleSession,
     dirty: bool,
 }
 
 impl Default for BevyConsoleState {
     fn default() -> Self {
-        Self { console: new_console_state(), dirty: true }
+        Self {
+            console: ConsoleSession::default(),
+            dirty: true,
+        }
     }
-}
-
-fn new_console_state() -> ConsoleState {
-    let mut console = ConsoleState::default();
-    console.output.push("Ashen Chronicle developer console".into());
-    console.output.push("help for commands | Tab completion | Esc closes".into());
-    console
 }
 
 pub(crate) fn install(app: &mut App) {
@@ -35,16 +32,13 @@ fn text_input(
     navigation: Res<NavigationState>,
     mut state: ResMut<BevyConsoleState>,
 ) {
-    if navigation.current_screen != Some(ScreenId::Console) || state.console.autocomplete {
+    if navigation.current_screen != Some(ScreenId::Console) || state.console.is_autocomplete() {
         return;
     }
     for event in keyboard.read() {
         if let Some(text) = &event.text {
-            for character in text.chars().filter(|character| !character.is_control()) {
-                state.console.input.push(character);
-                state.console.history_index = None;
-                state.dirty = true;
-            }
+            state.console.push_text(text);
+            state.dirty = true;
         }
     }
 }
@@ -53,90 +47,87 @@ fn console_input(
     mut state: ResMut<BevyConsoleState>,
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
-    mut input_queue: ResMut<ConsoleInputQueue>,
+    mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if navigation.current_screen != Some(ScreenId::Console) || input_queue.0.is_empty() {
         return;
     }
     let events = std::mem::take(&mut input_queue.0);
     let Some(session) = lifecycle.session.as_mut() else {
-        navigation.current_screen = navigation.return_screen.take();
-        state.dirty = true;
+        leave_console(&mut state, &mut navigation);
         return;
     };
 
     for event in events {
         match event {
             InputEvent::Cancel => {
-                console::bootstrap_after_console(&mut session.state);
-                leave_console(&mut state, &mut navigation);
-                break;
+                if state.console.is_autocomplete() {
+                    state.console.cancel_completion();
+                    state.dirty = true;
+                } else {
+                    crate::game::console::bootstrap_after_console(&mut session.state);
+                    leave_console(&mut state, &mut navigation);
+                    break;
+                }
             }
             InputEvent::Confirm => {
-                if state.console.autocomplete {
-                    console::accept_completion(&mut state.console);
-                } else if let Err(error) = console::execute_line(
+                if state.console.is_autocomplete() {
+                    state.console.accept_completion();
+                } else if let Err(error) = state.console.execute_line(
                     &mut session.state,
                     &session.save_path,
-                    &mut state.console,
                 ) {
-                    state.console.output.push(format!("Command failed: {error}"));
+                    state.console.output_error(&format!("Command failed: {error}"));
                 }
-                if state.console.exit {
-                    console::bootstrap_after_console(&mut session.state);
+                if state.console.should_exit() {
+                    crate::game::console::bootstrap_after_console(&mut session.state);
                     leave_console(&mut state, &mut navigation);
                     break;
                 }
                 state.dirty = true;
             }
             InputEvent::Tab => {
-                if state.console.autocomplete {
-                    console::accept_completion(&mut state.console);
+                if state.console.is_autocomplete() {
+                    state.console.accept_completion();
                 } else {
-                    console::refresh_completion(&mut state.console, &session.state);
-                    if !state.console.candidates.is_empty() {
-                        state.console.autocomplete = true;
-                        state.console.selected = 0;
-                        state.console.completion_scroll = 0;
-                        console::keep_completion_selection_visible(&mut state.console, 8);
-                    }
+                    state.console.start_completion(&session.state);
                 }
                 state.dirty = true;
             }
             InputEvent::Up => {
-                if state.console.autocomplete {
-                    console::select_previous(&mut state.console);
+                if state.console.is_autocomplete() {
+                    state.console.select_previous_completion();
                 } else {
-                    console::history_previous(&mut state.console);
+                    state.console.history_previous();
                 }
                 state.dirty = true;
             }
             InputEvent::Down => {
-                if state.console.autocomplete {
-                    console::select_next(&mut state.console);
+                if state.console.is_autocomplete() {
+                    state.console.select_next_completion();
                 } else {
-                    console::history_next(&mut state.console);
+                    state.console.history_next();
                 }
                 state.dirty = true;
             }
             InputEvent::Home => {
-                console::jump_home(&mut state.console);
+                state.console.jump_home();
                 state.dirty = true;
             }
             InputEvent::End => {
-                console::jump_end(&mut state.console);
+                state.console.jump_end();
                 state.dirty = true;
             }
             InputEvent::PageUp => {
-                console::scroll_up(&mut state.console, 6);
+                state.console.scroll_up(6);
                 state.dirty = true;
             }
             InputEvent::PageDown => {
-                console::scroll_down(&mut state.console, 6);
+                state.console.scroll_down(6);
                 state.dirty = true;
             }
             InputEvent::Backspace => {
-                console::edit_input(&mut state.console, InputEvent::Backspace);
+                state.console.edit(InputEvent::Backspace);
                 state.dirty = true;
             }
             InputEvent::Delete | InputEvent::Character(_) => {}
@@ -147,7 +138,7 @@ fn console_input(
 fn leave_console(state: &mut BevyConsoleState, navigation: &mut NavigationState) {
     navigation.current_screen = navigation.return_screen.take().or(Some(ScreenId::Gameplay));
     navigation.selected = 0;
-    state.console = new_console_state();
+    state.console = ConsoleSession::default();
     state.dirty = true;
 }
 
@@ -163,41 +154,60 @@ fn render_if_active(
     for root in &roots {
         commands.entity(root).despawn();
     }
-    render(&mut commands, &state.console);
+    let view = state.console.view();
+    render(&mut commands, &view);
     state.dirty = false;
 }
 
-fn render(commands: &mut Commands, console_state: &ConsoleState) {
+fn render(commands: &mut Commands, view: &crate::presentation::ConsoleView) {
     let root = bevy_presentation::spawn_screen(commands, "DEVELOPER CONSOLE");
     let panel = bevy_presentation::spawn_panel(commands, root);
-    bevy_presentation::spawn_muted_label(commands, panel, "Enter commands directly. Esc closes the console.");
-    for line in visible_output(console_state) {
+    bevy_presentation::spawn_muted_label(
+        commands,
+        panel,
+        "Enter commands directly. Esc closes the console.",
+    );
+    for line in visible_output(view) {
         bevy_presentation::spawn_label(commands, panel, line);
     }
-    bevy_presentation::spawn_label(commands, panel, format!("> {}", console_state.input));
-    if console_state.autocomplete && !console_state.candidates.is_empty() {
+    bevy_presentation::spawn_label(commands, panel, format!("> {}", view.input));
+    if view.autocomplete && !view.candidates.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "Completions:");
-        let visible = console_state.candidates.len().min(8);
-        let start = console_state.completion_scroll.min(console_state.candidates.len().saturating_sub(visible));
-        for (index, candidate) in console_state.candidates.iter().enumerate().skip(start).take(visible) {
-            let marker = if index == console_state.selected { ">" } else { " " };
-            bevy_presentation::spawn_label(commands, panel, format!("{marker} {} — {}", candidate.value, candidate.hint));
+        let visible = view.candidates.len().min(8);
+        let start = view
+            .completion_scroll
+            .min(view.candidates.len().saturating_sub(visible));
+        for (index, candidate) in view
+            .candidates
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(visible)
+        {
+            let marker = if index == view.selected { ">" } else { " " };
+            bevy_presentation::spawn_label(
+                commands,
+                panel,
+                format!("{marker} {} — {}", candidate.value, candidate.hint),
+            );
         }
     }
 }
 
-fn visible_output(console_state: &ConsoleState) -> Vec<String> {
+fn visible_output(view: &crate::presentation::ConsoleView) -> Vec<String> {
     const VISIBLE_LINES: usize = 24;
-    if console_state.output.len() <= VISIBLE_LINES {
-        return console_state.output.clone();
+    if view.output.len() <= VISIBLE_LINES {
+        return view.output.clone();
     }
-    match console_state.scroll {
-        ScrollPosition::Follow | ScrollPosition::Offset(0) => console_state.output[console_state.output.len() - VISIBLE_LINES..].to_vec(),
-        ScrollPosition::Offset(offset) => {
-            let end = console_state.output.len().saturating_sub(offset);
-            let start = end.saturating_sub(VISIBLE_LINES);
-            console_state.output[start..end].to_vec()
+    match view.scroll {
+        ConsoleScrollView::Follow | ConsoleScrollView::Offset(0) => {
+            view.output[view.output.len() - VISIBLE_LINES..].to_vec()
         }
-        ScrollPosition::Home => console_state.output[..VISIBLE_LINES].to_vec(),
+        ConsoleScrollView::Offset(offset) => {
+            let end = view.output.len().saturating_sub(offset);
+            let start = end.saturating_sub(VISIBLE_LINES);
+            view.output[start..end].to_vec()
+        }
+        ConsoleScrollView::Home => view.output[..VISIBLE_LINES].to_vec(),
     }
 }
