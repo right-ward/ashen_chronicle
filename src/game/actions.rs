@@ -98,7 +98,7 @@ fn character_view(state: &GameState) -> CharacterView {
     }
 }
 
-fn build_meditation_view(state: &GameState) -> MeditationView {
+pub(crate) fn build_meditation_view(state: &GameState) -> MeditationView {
     let location_id = state.character.location_id;
     let active_threat_here = state.threat.active
         && state
@@ -119,6 +119,52 @@ fn build_meditation_view(state: &GameState) -> MeditationView {
             })
             .collect(),
     }
+}
+
+pub(crate) fn meditate_to_target(
+    state: &mut GameState,
+    save_path: &Path,
+    selection: usize,
+) -> std::io::Result<MeditationResultView> {
+    let view = build_meditation_view(state);
+    if !view.safe_to_meditate || selection >= MEDITATION_TARGETS.len() {
+        return Err(std::io::Error::new(
+            std::io::ErrorKind::InvalidInput,
+            view.unavailable_message
+                .unwrap_or_else(|| "That meditation target is unavailable.".to_string()),
+        ));
+    }
+
+    let target_slot = MEDITATION_TARGETS[selection].0;
+    let current_slot = state.world.time_points % 12;
+    let portions = ((target_slot + 12 - current_slot) % 12).max(1);
+
+    let healing = portions as i32 + state.character.effective_endurance();
+    state_effects::advance_time(state, portions);
+    state.character.turn += 1;
+    state.character.heal(healing);
+    state_effects::remove_condition(&mut state.character.conditions, "Exhausted");
+    let mut rested = Condition::new("Well-rested", 3, 0);
+    rested.bonus = 1;
+    add_or_refresh_condition(&mut state.character.conditions, rested);
+    let character_name = state.character.display_name();
+    let target_label = view.targets[selection].label.clone();
+    state.world.record_history(
+        state.character.turn,
+        format!(
+            "{} meditated until {} and recovered.",
+            character_name, target_label
+        ),
+    );
+    save_game(save_path, state)?;
+
+    Ok(MeditationResultView {
+        ending_time: crate::game::time::time_display(state.world.time_points, state.world.day),
+        portions,
+        hp_recovered: healing,
+        exhausted_removed: true,
+        well_rested_applied: true,
+    })
 }
 
 pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std::io::Result<()> {
@@ -146,36 +192,8 @@ pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std:
     let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
         return Ok(());
     };
-    let target_slot = MEDITATION_TARGETS[selection].0;
-    let current_slot = state.world.time_points % 12;
-    let portions = ((target_slot + 12 - current_slot) % 12).max(1);
+    let result = meditate_to_target(state, save_path, selection)?;
 
-    let healing = portions as i32 + state.character.effective_endurance();
-    state_effects::advance_time(state, portions);
-    state.character.turn += 1;
-    state.character.heal(healing);
-    state_effects::remove_condition(&mut state.character.conditions, "Exhausted");
-    let mut rested = Condition::new("Well-rested", 3, 0);
-    rested.bonus = 1;
-    add_or_refresh_condition(&mut state.character.conditions, rested);
-    let character_name = state.character.display_name();
-    let target_label = view.targets[selection].label.clone();
-    state.world.record_history(
-        state.character.turn,
-        format!(
-            "{} meditated until {} and recovered.",
-            character_name, target_label
-        ),
-    );
-    save_game(save_path, state)?;
-
-    let result = MeditationResultView {
-        ending_time: crate::game::time::time_display(state.world.time_points, state.world.day),
-        portions,
-        hp_recovered: healing,
-        exhausted_removed: true,
-        well_rested_applied: true,
-    };
     let mut result_lines = vec![
         "Your breathing steadies as you meditate.".to_string(),
         String::new(),

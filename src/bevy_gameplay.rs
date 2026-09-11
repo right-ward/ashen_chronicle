@@ -49,7 +49,10 @@ fn gameplay_input(
     mut navigation_state: ResMut<NavigationState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete || lifecycle.session.is_none() {
+    if lifecycle.phase != LifecyclePhase::Complete
+        || lifecycle.session.is_none()
+        || navigation_state.current_screen != Some(ScreenId::Gameplay)
+    {
         return;
     }
     if input_queue.0.is_empty() {
@@ -61,19 +64,25 @@ fn gameplay_input(
         match event {
             InputEvent::Up => move_selection(&mut gameplay, &mut navigation_state, -1, &lifecycle),
             InputEvent::Down => move_selection(&mut gameplay, &mut navigation_state, 1, &lifecycle),
+            InputEvent::Home => {
+                gameplay.selected = 0;
+                gameplay.dirty = true;
+            }
+            InputEvent::End => {
+                move_selection_to_end(&mut gameplay, &mut navigation_state, &lifecycle)
+            }
             InputEvent::Cancel => {
                 if gameplay.screen == GameplayScreen::Navigation {
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
                     gameplay.message = None;
                     gameplay.dirty = true;
+                    navigation_state.selected = 0;
                 } else {
                     lifecycle.phase = LifecyclePhase::QuitConfirm;
                     lifecycle.selected = 1;
                     lifecycle.mark_dirty();
                 }
-                navigation_state.current_screen = Some(ScreenId::Gameplay);
-                navigation_state.selected = gameplay.selected;
             }
             InputEvent::Confirm => {
                 activate_selection(&mut lifecycle, &mut gameplay, &mut navigation_state);
@@ -110,6 +119,31 @@ fn move_selection(
     gameplay.dirty = true;
 }
 
+fn move_selection_to_end(
+    gameplay: &mut GameplayState,
+    navigation_state: &mut NavigationState,
+    lifecycle: &LifecycleState,
+) {
+    let Some(session) = lifecycle.session.as_ref() else {
+        return;
+    };
+    let count = match gameplay.screen {
+        GameplayScreen::Dashboard => menu_entries(session).len(),
+        GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
+    };
+    if count > 0 {
+        gameplay.selected = count - 1;
+        navigation_state.selected = gameplay.selected;
+        gameplay.dirty = true;
+    }
+}
+
+fn open_dedicated_screen(navigation_state: &mut NavigationState, screen: ScreenId) {
+    navigation_state.return_screen = Some(ScreenId::Gameplay);
+    navigation_state.current_screen = Some(screen);
+    navigation_state.selected = 0;
+}
+
 fn activate_selection(
     lifecycle: &mut LifecycleState,
     gameplay: &mut GameplayState,
@@ -131,11 +165,30 @@ fn activate_selection(
                     gameplay.selected = 0;
                     gameplay.message = None;
                     gameplay.dirty = true;
+                    navigation_state.selected = 0;
                 }
                 menu::GameAction::Quit => {
                     lifecycle.phase = LifecyclePhase::QuitConfirm;
                     lifecycle.selected = 1;
                     lifecycle.mark_dirty();
+                }
+                menu::GameAction::CharacterSheet => {
+                    open_dedicated_screen(navigation_state, ScreenId::Character);
+                }
+                menu::GameAction::Inventory => {
+                    open_dedicated_screen(navigation_state, ScreenId::Inventory);
+                }
+                menu::GameAction::QuestLog => {
+                    open_dedicated_screen(navigation_state, ScreenId::Quests);
+                }
+                menu::GameAction::Meditate => {
+                    open_dedicated_screen(navigation_state, ScreenId::Meditation);
+                }
+                menu::GameAction::History => {
+                    open_dedicated_screen(navigation_state, ScreenId::History);
+                }
+                menu::GameAction::Journal => {
+                    open_dedicated_screen(navigation_state, ScreenId::Journal);
                 }
                 _ => {
                     gameplay.message = Some(format!(
@@ -153,13 +206,14 @@ fn activate_selection(
                 gameplay.selected = 0;
                 gameplay.message = None;
                 gameplay.dirty = true;
+                navigation_state.selected = 0;
                 return;
             }
             if let Some(destination) = view.destinations.get(gameplay.selected) {
                 let old_turn = session.state.character.turn;
                 let target_id = destination.id;
                 if actions::travel_to(&mut session.state, target_id).is_ok() {
-                    let mut message = session
+                    let message = session
                         .state
                         .world
                         .history
@@ -174,7 +228,7 @@ fn activate_selection(
                     }
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
-                    gameplay.message = message.take();
+                    gameplay.message = message;
                     gameplay.dirty = true;
                 }
             }
@@ -191,7 +245,10 @@ fn render_if_active(
     mut navigation_state: ResMut<NavigationState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete || lifecycle.session.is_none() {
+    if lifecycle.phase != LifecyclePhase::Complete
+        || lifecycle.session.is_none()
+        || navigation_state.current_screen != Some(ScreenId::Gameplay)
+    {
         return;
     }
     if !gameplay.dirty {

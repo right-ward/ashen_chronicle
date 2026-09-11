@@ -54,6 +54,7 @@ pub enum ScreenId {
     Quests,
     Meditation,
     History,
+    Journal,
     Combat,
     Console,
 }
@@ -224,10 +225,10 @@ fn keyboard_to_semantic_input(
     ];
     for (key, event) in mappings {
         if keyboard.just_pressed(key) {
-            if navigation.current_screen == Some(ScreenId::Gameplay) {
-                gameplay_queue.0.push(event);
-            } else {
+            if navigation.current_screen == Some(ScreenId::Lifecycle) {
                 lifecycle_queue.0.push(event);
+            } else {
+                gameplay_queue.0.push(event);
             }
         }
     }
@@ -245,10 +246,10 @@ fn choice_button_input(
     for (interaction, choice) in &mut interaction_query {
         if *interaction == Interaction::Pressed {
             navigation.selected = choice.index;
-            if navigation.current_screen == Some(ScreenId::Gameplay) {
-                gameplay_queue.0.push(InputEvent::Confirm);
-            } else {
+            if navigation.current_screen == Some(ScreenId::Lifecycle) {
                 lifecycle_queue.0.push(InputEvent::Confirm);
+            } else {
+                gameplay_queue.0.push(InputEvent::Confirm);
             }
         }
     }
@@ -270,6 +271,7 @@ mod tests {
     fn screen_ids_cover_migrated_frontend_domains() {
         assert_ne!(ScreenId::Lifecycle, ScreenId::Gameplay);
         assert_ne!(ScreenId::Inventory, ScreenId::Quests);
+        assert_ne!(ScreenId::History, ScreenId::Journal);
         assert_ne!(ScreenId::Combat, ScreenId::Console);
     }
 

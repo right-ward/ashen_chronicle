@@ -5,7 +5,9 @@
 
 use bevy::prelude::*;
 
-use crate::{bevy_gameplay, bevy_lifecycle, bevy_presentation};
+use crate::{
+    bevy_gameplay, bevy_lifecycle, bevy_navigation_bridge, bevy_presentation, bevy_records,
+};
 
 const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
@@ -25,6 +27,8 @@ pub(crate) fn run() {
     bevy_presentation::install(&mut app);
     bevy_lifecycle::install(&mut app);
     bevy_gameplay::install(&mut app);
+    bevy_navigation_bridge::install(&mut app);
+    bevy_records::install(&mut app);
     app.add_systems(Startup, setup).run();
 }
 

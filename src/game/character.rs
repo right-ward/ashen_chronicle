@@ -54,7 +54,7 @@ pub(crate) fn character_sheet(state: &GameState) -> std::io::Result<()> {
     }
 }
 
-fn build_character_sheet_view(state: &GameState) -> CharacterSheetView {
+pub(crate) fn build_character_sheet_view(state: &GameState) -> CharacterSheetView {
     let character = &state.character;
     CharacterSheetView {
         character: CharacterView {
