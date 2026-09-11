@@ -18,17 +18,21 @@ The project should prefer clear responsibility boundaries over splitting modules
 ## High-level layers
 
 ```text
-Application / Game Flow
+Application / Game Flow (Bevy)
+        │
+        ├── Lifecycle / Navigation / Screen orchestration
+        ├── Presentation adapters
+        └── Semantic input
         │
         ▼
-Runtime & Dispatch
+Gameplay Systems
         │
         ├── Gameplay Actions
         ├── Gameplay Interactions
         ├── Character Progression
         ├── Legacy / Death
         ├── Combat
-        ├── Lifecycle / Screens
+        ├── Console Commands
         └── World / Bootstrap
         │
         ▼
@@ -52,44 +56,52 @@ The current codebase has been progressively decomposed from large modules into r
 
 ```text
 src/
-├── main.rs
-├── game.rs                 # top-level game entry / compatibility facade
+├── main.rs                  # Bevy application entry point
+├── bevy_app.rs              # Bevy app/bootstrap configuration
+├── bevy_presentation.rs     # shared Bevy UI primitives and semantic input routing
+├── bevy_lifecycle.rs        # start/load/creation/quit/death lifecycle orchestration
+├── bevy_gameplay.rs         # gameplay dashboard and world navigation
+├── bevy_records.rs          # character/inventory/quest/meditation/history/journal screens
+├── bevy_combat.rs           # combat presentation and interaction
+├── bevy_console.rs          # developer-console presentation and input
+├── game.rs                  # gameplay module facade
 ├── game/
-│   ├── runtime.rs          # gameplay loop and turn flow
-│   ├── dispatcher.rs       # GameAction dispatch
-│   ├── actions.rs          # core gameplay actions and action-specific logic
-│   ├── character.rs        # character progression and character-sheet presentation
-│   ├── interactions.rs     # NPC dialogue, quest interaction, faction memory/reputation
-│   ├── legacy.rs           # death, corpses, previous-life recovery, legacy item presentation
-│   ├── lifecycle.rs        # start/load/creation/quit/death lifecycle flows
-│   ├── combat.rs           # combat encounter processing
-│   ├── console.rs          # developer-console lifecycle and terminal integration
-│   ├── console_ui.rs       # console interaction state, view construction, and terminal rendering
-│   └── world.rs            # world bootstrap and loaded-state validation
-├── presentation.rs         # frontend-independent presentation/view models
-├── content.rs              # content module facade
+│   ├── actions.rs           # core gameplay actions and renderer-neutral action logic
+│   ├── character.rs         # character progression and presentation adapters
+│   ├── interactions.rs      # NPC dialogue, quest interaction, faction memory/reputation
+│   ├── legacy.rs            # death, corpses, previous-life recovery
+│   ├── combat.rs             # combat encounter processing and result view construction
+│   ├── console.rs           # developer-console session/state boundary
+│   ├── console_ui.rs        # renderer-neutral console interaction state and view construction
+│   ├── menu.rs              # gameplay action definitions
+│   ├── navigation.rs        # renderer-neutral world navigation views/rules
+│   ├── quests.rs             # quest state and progression rules
+│   ├── records.rs            # renderer-neutral record views and mutations
+│   ├── state_effects.rs      # shared state-effect helpers
+│   ├── time.rs               # time calculations and display values
+│   └── world.rs              # world bootstrap and loaded-state validation
+├── presentation.rs          # frontend-independent presentation/view models
+├── content.rs               # content module facade
 ├── content/
-│   ├── definitions.rs      # schemas and validation definitions
-│   ├── loader.rs           # base/mod loading and merging
-│   └── seeding.rs          # content-to-world translation
-├── events.rs               # event runtime
-├── model.rs                # shared game-state and entity models
-├── persistence.rs          # save/load and migrations
-├── input.rs                # frontend-neutral interaction events
-├── ui.rs                   # terminal UI facade and state bridge
-├── ui_impl.rs              # ratatui/crossterm implementation
-└── ui_components.rs        # reusable terminal UI rendering primitives
+│   ├── definitions.rs       # schemas and validation definitions
+│   ├── loader.rs            # base/mod loading and merging
+│   └── seeding.rs           # content-to-world translation
+├── events.rs                # event runtime
+├── model.rs                 # shared game-state and entity models
+├── persistence.rs           # save/load and migrations
+├── input.rs                 # frontend-neutral semantic interaction events
+└── rng.rs                   # deterministic/random generation helpers
 ```
 
 The exact module list may evolve, but new modules should represent meaningful responsibilities rather than arbitrary slices of large files.
 
 ## Game flow
 
-`main.rs` starts the application. `game.rs` provides the top-level game entry point. The runtime owns the main loop and coordinates turn lifecycle, while the dispatcher maps player-selected actions to their implementations.
+`main.rs` starts the Bevy application. Bevy lifecycle systems own start/load/creation/quit/death presentation and navigation. The gameplay adapter owns the dashboard and world-navigation interaction, while dedicated Bevy adapters own records, combat, and console screens.
 
-Gameplay actions operate on the model and relevant systems. Character progression owns experience gain, level advancement, and character-sheet presentation. Gameplay interactions own NPC dialogue, quest offering/turn-in, faction memory/reputation updates, and NPC availability. Legacy gameplay owns character death, corpse creation, corpse recovery, and previous-life item recovery. Combat is isolated from general action handling. Lifecycle logic owns start/load/creation/quit/death flows. World/bootstrap logic owns world initialization and validation. Presentation renders the current state and contextual results. The developer console owns its command/session lifecycle while exposing renderer-neutral console data to its terminal renderer.
+Gameplay systems operate on the authoritative model and expose renderer-neutral view data where a frontend needs it. Character progression owns experience gain, level advancement, and character-sheet data. Gameplay interactions own NPC dialogue, quest offering/turn-in, faction memory/reputation updates, and NPC availability. Legacy gameplay owns character death, corpse creation, corpse recovery, and previous-life item recovery. Combat is isolated from general action handling. World/bootstrap logic owns world initialization and validation. Persistence serializes and restores state. The developer console owns command/session state while Bevy owns its rendering and input presentation.
 
-This keeps the main runtime readable without duplicating state-management logic across screen and action code.
+This keeps frontend orchestration separate from simulation rules without maintaining a parallel terminal game loop.
 
 ## State ownership
 
@@ -140,19 +152,17 @@ Campaign content itself is runtime data and should not be redundantly embedded i
 
 ## Presentation architecture
 
-Presentation consumes authoritative state and produces frontend-independent view data before any terminal- or GUI-specific rendering occurs. The root `presentation.rs` module contains shared view models expressed only through domain-neutral owned data such as strings, scalars, and collections; it does not depend on ratatui, crossterm, or gameplay actions. Screen and gameplay modules are responsible for constructing these models from authoritative state, while frontend renderers decide how the models are visually represented.
+Presentation consumes authoritative state and produces frontend-independent view data before frontend-specific rendering occurs. The root `presentation.rs` module contains shared view models expressed only through domain-neutral owned data such as strings, scalars, and collections; it does not depend on Bevy, ratatui, crossterm, or gameplay actions.
 
-Lifecycle screens use `ScreenView` and `ChoiceView`, death details use `DeathView`, corpse recovery uses `RemainsView` and `RemainsResultView`, and the developer console is rendered from `ConsoleView`. These models keep the data required by the renderer out of terminal-specific implementations.
+Bevy modules translate those view models into UI nodes and semantic input. `bevy_presentation.rs` owns reusable visual primitives, navigation state, and conversion from Bevy keyboard/button interaction into `InputEvent` values. Gameplay and record/combat/console adapters consume these semantic events rather than engine-specific keyboard values in their gameplay rules.
 
-The terminal UI is split between the `ui.rs` facade, the `ui_impl.rs` ratatui/crossterm implementation, and `ui_components.rs` reusable terminal rendering primitives. Components such as compact-layout detection, bottom-panel sizing, panel construction, scrolling text, message panels, health gauges, frame clearing, and shared layout spacing belong in `ui_components.rs` so screen migrations can reuse consistent behavior without copying renderer details.
+The developer console keeps its command editing, history, completion, scrolling, and view construction in `game/console_ui.rs` and `game/console.rs`; Bevy renders that `ConsoleView` without coupling the command state to a renderer.
 
-The terminal interface uses ratatui and supports responsive layouts for narrow and wide terminals. Lifecycle screens remain separate from the gameplay dashboard so start, load, character creation, quit, and death do not unnecessarily render gameplay underneath them.
+The terminal frontend has been removed. Ratatui/crossterm are no longer application dependencies, and there is no parallel terminal screen or renderer layer in the shipped application.
 
-The `input.rs` boundary translates terminal keyboard values into semantic `InputEvent` values before game-facing interaction code consumes them. A graphical frontend can provide equivalent events without exposing keyboard or crossterm details upstream.
+Character-sheet presentation is owned by the character module because it is directly tied to character progression state rather than a general action dispatcher.
 
-Character-sheet presentation is owned by the character module because it is directly tied to character progression state rather than the general action dispatcher.
-
-Legacy mechanics remain independent from lifecycle screens: `legacy.rs` owns death/corpse state changes and recovery data construction, while `lifecycle.rs` coordinates the death flow itself.
+Legacy mechanics remain independent from lifecycle presentation: `legacy.rs` owns death/corpse state changes and recovery data construction, while Bevy lifecycle systems coordinate the death flow.
 
 See [`systems/ui.md`](systems/ui.md) for details.
 
@@ -168,10 +178,10 @@ In particular:
 - World/bootstrap code should not depend on gameplay action implementations merely to perform world initialization.
 - Actions should not duplicate combat, interaction, progression, legacy, presentation, or persistence logic that already has a dedicated owner.
 - Gameplay interactions may use action-owned turn/progression helpers where those helpers are still shared gameplay infrastructure, but interaction-specific rules belong in `interactions.rs`.
-- Legacy mechanics should remain independent from lifecycle screens and own only death, corpse, and previous-life recovery responsibilities.
+- Legacy mechanics should remain independent from lifecycle presentation and own only death, corpse, and previous-life recovery responsibilities.
 - Character progression should remain independent from world/bootstrap and persistence implementation details.
 - Shared models should remain focused on state and domain representation rather than becoming a catch-all service module.
-- Terminal screens should use shared UI primitives rather than duplicate generic panel, gauge, scrolling, and responsive-layout behavior.
+- Bevy frontend systems should consume renderer-neutral views and semantic input rather than embed gameplay rules or persistence decisions.
 
 ## Compatibility and refactoring
 
