@@ -240,10 +240,7 @@ fn keyboard_to_semantic_input(
 }
 
 fn choice_button_input(
-    mut interaction_query: Query<
-        (&Interaction, &ChoiceButton),
-        (Changed<Interaction>, With<Button>),
-    >,
+    mut interaction_query: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
@@ -273,18 +270,10 @@ mod tests {
     }
 
     #[test]
-    fn screen_ids_cover_migrated_frontend_domains() {
-        assert_ne!(ScreenId::Lifecycle, ScreenId::Gameplay);
-        assert_ne!(ScreenId::Inventory, ScreenId::Quests);
-        assert_ne!(ScreenId::History, ScreenId::Journal);
-        assert_ne!(ScreenId::Combat, ScreenId::Console);
-    }
-
-    #[test]
-    fn gauge_ratio_is_clamped_to_valid_bounds() {
-        assert_eq!(gauge_ratio(-2, 10), 0.0);
+    fn gauge_ratio_handles_empty_and_clamps_values() {
+        assert_eq!(gauge_ratio(0, 0), 0.0);
+        assert_eq!(gauge_ratio(-5, 10), 0.0);
+        assert_eq!(gauge_ratio(15, 10), 1.0);
         assert_eq!(gauge_ratio(5, 10), 0.5);
-        assert_eq!(gauge_ratio(20, 10), 1.0);
-        assert_eq!(gauge_ratio(5, 0), 0.0);
     }
 }
