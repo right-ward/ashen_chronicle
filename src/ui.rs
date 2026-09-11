@@ -15,11 +15,7 @@ pub(crate) fn choose_screen_view(_view: &ChoiceView) -> std::io::Result<Option<u
     Ok(None)
 }
 
-pub fn set_menu_screen(
-    _title: impl Into<String>,
-    _subtitle: Option<String>,
-    _art: Option<String>,
-) {
+pub fn set_menu_screen(_title: impl Into<String>, _subtitle: Option<String>, _art: Option<String>) {
 }
 
 pub fn line(_text: &str) {}
