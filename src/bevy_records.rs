@@ -896,7 +896,7 @@ fn render_journal_entry(
         "JOURNAL ENTRY",
         match parent {
             JournalParent::Gameplay => state.character.display_name(),
-            JournalParent::Character => "Character journal",
+            JournalParent::Character => "Character journal".to_string(),
         },
     );
     if let Some(message) = message {
