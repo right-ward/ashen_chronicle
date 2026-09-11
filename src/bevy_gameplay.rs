@@ -5,6 +5,7 @@
 
 use bevy::prelude::*;
 
+use crate::bevy_combat::CombatState;
 use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
@@ -47,6 +48,7 @@ fn gameplay_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
     mut navigation_state: ResMut<NavigationState>,
+    mut combat_state: ResMut<CombatState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -85,7 +87,12 @@ fn gameplay_input(
                 }
             }
             InputEvent::Confirm => {
-                activate_selection(&mut lifecycle, &mut gameplay, &mut navigation_state);
+                activate_selection(
+                    &mut lifecycle,
+                    &mut gameplay,
+                    &mut navigation_state,
+                    &mut combat_state,
+                );
             }
             _ => {}
         }
@@ -148,6 +155,7 @@ fn activate_selection(
     lifecycle: &mut LifecycleState,
     gameplay: &mut GameplayState,
     navigation_state: &mut NavigationState,
+    combat_state: &mut CombatState,
 ) {
     let Some(session) = lifecycle.session.as_mut() else {
         return;
@@ -166,6 +174,19 @@ fn activate_selection(
                     gameplay.message = None;
                     gameplay.dirty = true;
                     navigation_state.selected = 0;
+                }
+                menu::GameAction::InvestigateThreat => {
+                    match crate::bevy_combat::begin(&mut session.state, combat_state) {
+                        Ok(()) => {
+                            navigation_state.return_screen = Some(ScreenId::Gameplay);
+                            navigation_state.current_screen = Some(ScreenId::Combat);
+                            navigation_state.selected = 0;
+                        }
+                        Err(message) => {
+                            gameplay.message = Some(message);
+                            gameplay.dirty = true;
+                        }
+                    }
                 }
                 menu::GameAction::Quit => {
                     lifecycle.phase = LifecyclePhase::QuitConfirm;
@@ -234,15 +255,16 @@ fn activate_selection(
             }
         }
     }
-    navigation_state.current_screen = Some(ScreenId::Gameplay);
-    navigation_state.selected = gameplay.selected;
+    if navigation_state.current_screen == Some(ScreenId::Gameplay) {
+        navigation_state.selected = gameplay.selected;
+    }
 }
 
 fn render_if_active(
     mut commands: Commands,
     lifecycle: ResMut<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
-    mut navigation_state: ResMut<NavigationState>,
+    navigation_state: ResMut<NavigationState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -277,8 +299,6 @@ fn render_if_active(
             gameplay.selected,
         ),
     }
-    navigation_state.current_screen = Some(ScreenId::Gameplay);
-    navigation_state.selected = gameplay.selected;
     gameplay.dirty = false;
 }
 

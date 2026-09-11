@@ -1,6 +1,8 @@
 #[cfg(feature = "bevy")]
 mod bevy_app;
 #[cfg(feature = "bevy")]
+mod bevy_combat;
+#[cfg(feature = "bevy")]
 mod bevy_gameplay;
 #[cfg(feature = "bevy")]
 mod bevy_lifecycle;
