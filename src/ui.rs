@@ -8,10 +8,9 @@ pub(crate) mod components {
 use crate::presentation::{ChoiceView, ScreenView};
 use std::sync::{Mutex, OnceLock};
 
-pub(crate) use ui_impl::{
-    draw_combat_screen, key_logging_enabled, read_key, set_console_input_active, set_key_logging,
-    take_key_log,
-};
+pub(crate) use ui_impl::{draw_combat_screen, key_logging_enabled, read_key, set_key_logging};
+#[cfg(not(feature = "bevy"))]
+pub(crate) use ui_impl::{set_console_input_active, take_key_log};
 pub use ui_impl::{Dashboard, UiGuard};
 
 #[derive(Default)]

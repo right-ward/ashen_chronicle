@@ -2,7 +2,7 @@ pub(crate) mod actions;
 pub(crate) mod character;
 pub(crate) mod combat;
 mod combat_screen;
-mod console;
+pub(crate) mod console;
 mod dispatcher;
 pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]

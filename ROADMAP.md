@@ -14,6 +14,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Migrated the primary gameplay/world dashboard and world navigation/travel flow to Bevy while continuing to reuse authoritative gameplay rules.
 - Migrated character, reputation, journal, inventory, quest, meditation, and history screens to Bevy, including nested detail/result flows and journal entry editing.
 - Migrated combat presentation and interaction to Bevy while keeping combat resolution, state changes, outcomes, and reward handling in the authoritative game combat system.
+- Migrated the developer console frontend to Bevy while reusing the existing command execution, completion, history, scrolling, save, output, and close behavior.
 - Persisted runtime-generated event definitions separately from authored campaign events so procedural event progression survives save/load.
 - Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
 - Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
@@ -21,7 +22,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Continue v0.49.x by migrating the developer console, then remove the remaining Ratatui/crossterm runtime dependencies and complete the platform/documentation integration.
+Complete the Ratatui/crossterm removal and final Bevy cutover, then verify platform readiness, compatibility, tests, and documentation for the v0.49.x release.
 
 ## Longer-term direction
 
