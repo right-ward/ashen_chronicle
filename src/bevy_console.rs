@@ -199,7 +199,13 @@ fn render(commands: &mut Commands, view: &ConsoleView) {
         let start = view
             .completion_scroll
             .min(view.candidates.len().saturating_sub(visible));
-        for (index, candidate) in view.candidates.iter().enumerate().skip(start).take(visible) {
+        for (index, candidate) in view
+            .candidates
+            .iter()
+            .enumerate()
+            .skip(start)
+            .take(visible)
+        {
             let marker = if index == view.selected { ">" } else { " " };
             bevy_presentation::spawn_label(
                 commands,
