@@ -107,7 +107,11 @@ fn combat_input(
                 activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
             }
             InputEvent::Confirm => {
-                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation)
+                if combat_state.phase == Some(CombatScreenPhase::Active) {
+                    let last = combat_state.action_count().saturating_sub(1);
+                    combat_state.selected = navigation.selected.min(last);
+                }
+                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
             }
             InputEvent::Cancel => {}
             _ => {}
@@ -185,7 +189,11 @@ fn activate_current_selection(
     }
 }
 
-fn apply_step(combat_state: &mut CombatState, navigation: &mut NavigationState, step: CombatStep) {
+fn apply_step(
+    combat_state: &mut CombatState,
+    navigation: &mut NavigationState,
+    step: CombatStep,
+) {
     match step {
         CombatStep::Continue => combat_state.dirty = true,
         CombatStep::Result { view, .. } => {
@@ -295,7 +303,11 @@ fn render_if_active(
         }
         Some(CombatScreenPhase::Result) => {
             if let Some(result) = &combat_state.result {
-                bevy_presentation::spawn_label(&mut commands, actions, result.result_title.clone());
+                bevy_presentation::spawn_label(
+                    &mut commands,
+                    actions,
+                    result.result_title.clone(),
+                );
                 bevy_presentation::spawn_muted_label(
                     &mut commands,
                     actions,
