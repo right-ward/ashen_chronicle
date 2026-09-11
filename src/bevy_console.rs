@@ -5,7 +5,7 @@ use crate::bevy_lifecycle::LifecycleState;
 use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
 use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
-use crate::presentation::ConsoleScrollView;
+use crate::presentation::{ConsoleScrollView, ConsoleView};
 
 #[derive(Resource)]
 pub(crate) struct BevyConsoleState {
@@ -159,7 +159,7 @@ fn render_if_active(
     state.dirty = false;
 }
 
-fn render(commands: &mut Commands, view: &crate::presentation::ConsoleView) {
+fn render(commands: &mut Commands, view: &ConsoleView) {
     let root = bevy_presentation::spawn_screen(commands, "DEVELOPER CONSOLE");
     let panel = bevy_presentation::spawn_panel(commands, root);
     bevy_presentation::spawn_muted_label(
@@ -194,7 +194,7 @@ fn render(commands: &mut Commands, view: &crate::presentation::ConsoleView) {
     }
 }
 
-fn visible_output(view: &crate::presentation::ConsoleView) -> Vec<String> {
+fn visible_output(view: &ConsoleView) -> Vec<String> {
     const VISIBLE_LINES: usize = 24;
     if view.output.len() <= VISIBLE_LINES {
         return view.output.clone();
