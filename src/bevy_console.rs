@@ -153,6 +153,7 @@ fn console_input(
                 state.dirty = true;
             }
             InputEvent::Delete | InputEvent::Character(_) => {}
+            InputEvent::Other => {}
         }
     }
 }
