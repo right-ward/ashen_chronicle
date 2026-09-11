@@ -5,7 +5,6 @@ pub(crate) mod console;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
-pub(crate) mod lifecycle;
 pub(crate) mod menu;
 pub(crate) mod navigation;
 pub(crate) mod quests;
