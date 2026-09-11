@@ -1,17 +1,7 @@
-use super::{character, combat_screen, interactions, legacy, state_effects};
+use super::{character, interactions, legacy, state_effects};
 use crate::model::{EntityId, GameState, Item};
 use crate::presentation::{CharacterView, CombatResultView, CombatView, CombatantView};
-use crate::ui::pause;
 use std::fmt;
-
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub(crate) struct CombatEncounter {
@@ -378,29 +368,4 @@ fn location_name_for_message(state: &GameState) -> String {
         .location_by_id(state.character.location_id)
         .map(|location| location.name.clone())
         .unwrap_or_else(|| "unknown location".to_string())
-}
-
-pub(crate) fn investigate_threat(state: &mut GameState) -> std::io::Result<()> {
-    let mut encounter = match start_encounter(state) {
-        Ok(encounter) => encounter,
-        Err(error) => {
-            println!("{error}");
-            pause();
-            return Ok(());
-        }
-    };
-
-    loop {
-        let view = build_combat_view(state, &encounter);
-        let action = combat_screen::choose_action(&view)?;
-        match resolve_action(state, &mut encounter, action) {
-            CombatStep::Continue => {}
-            CombatStep::Result { view, .. } => {
-                combat_screen::show_result(&view)?;
-                combat_screen::wait_for_key()?;
-                break;
-            }
-        }
-    }
-    Ok(())
 }

@@ -1,33 +1,43 @@
 # UI System
 
-The UI is a keyboard-driven ratatui terminal interface designed to remain usable across wide desktop terminals and narrow mobile portrait terminals.
+The shipped frontend is Bevy. The UI layer is built around renderer-neutral presentation views and semantic interaction events so gameplay systems do not depend on GUI details.
 
 ## Screen architecture
 
-The game uses dedicated screen flows for start, save selection, character creation, gameplay, quit, and death. Menu screens do not render the gameplay dashboard underneath them.
+The Bevy frontend uses dedicated screen flows for start, save selection, character creation, gameplay, navigation, records, combat, developer console, quit, and death. `NavigationState` tracks the active screen and return destination so nested views can return to the correct parent.
 
-Start flow explicitly exposes `New Game`, `Load Game`, and `Quit`. Load is shown only when a compatible save exists. Quit and death flows remain non-destructive.
+Lifecycle screens are owned by `bevy_lifecycle.rs`. Gameplay and world navigation are owned by `bevy_gameplay.rs`. Character, inventory, quest, meditation, history, and journal flows are owned by `bevy_records.rs`. Combat is owned by `bevy_combat.rs`, and the developer console is owned by `bevy_console.rs`.
 
-## Gameplay dashboard
+## Presentation boundary
 
-The main dashboard presents state and current-turn results without accumulating stale output. Location atmosphere and scene art belong to the Location panel, while action outcomes are presented through a short-lived Result panel.
+`presentation.rs` contains frontend-independent view models. These models carry domain data such as strings, numbers, identifiers, and collections without depending on Bevy or any terminal UI library.
 
-Combat exposes player and enemy health through ratatui `LineGauge` widgets. Redundant debug information and repeated state summaries were removed from the always-visible layout.
-
-## Responsive behavior
-
-Layout switches to compact rendering for narrow or tall terminals. Prompt overlays use available screen space efficiently, and longer option lists can scroll instead of overflowing small displays.
+Bevy presentation adapters turn those views into UI nodes. Shared node construction, visual theme constants, screen roots, panels, labels, choice buttons, gauges, navigation state, and semantic input routing live in `bevy_presentation.rs`.
 
 ## Input
 
-Interaction uses raw-mode keyboard input with arrows, Enter, Esc, and number shortcuts. Pause prompts use single-key confirmation. Prompts and confirmations are docked into a reserved bottom panel so they do not obscure the main dashboard.
+Native Bevy keyboard and button interaction is translated into the semantic `InputEvent` model in `input.rs`. Gameplay and screen systems consume these semantic events rather than Bevy-specific keyboard types except where text entry requires native `KeyboardInput` text data.
 
-## Visual content
+Arrow keys, Home/End, Page Up/Page Down, Enter, Escape, Tab, Backspace, Delete, and selected number/vim-style shortcuts remain available where each screen supports them. UI buttons produce the same semantic confirmation events as keyboard input.
 
-ASCII portraits, location art, item illustrations, and screen-specific dark artwork are optional. Text-only fallback remains available when visual assets are missing.
+## Gameplay and results
 
-The general UI style is monochrome except for contextual combat health fills.
+The gameplay dashboard presents the current world context, recent history, player health, available actions, and short-lived action messages. World navigation is a dedicated state within the gameplay flow.
+
+Combat presents player/enemy status, encounter events, action choices, and result details through Bevy nodes while the authoritative combat system continues to own resolution and state mutation.
+
+Record screens present character data, inventory details, quests, meditation choices/results, history entries/details, and journal editing. Results stay on-screen until the user advances or returns to the parent flow.
+
+## Developer console
+
+The developer console uses renderer-neutral `ConsoleView` data. Command editing, history navigation, completion candidates, scrolling, and command execution state remain in the game console modules; `bevy_console.rs` is responsible for graphical presentation and input handling.
+
+The console opens from the gameplay flow and closes back to gameplay without a terminal-mode transition.
+
+## Visual design
+
+The shared Bevy presentation layer uses a restrained dark theme, panels, labels, selected-choice indicators, and health gauges. Text remains the primary presentation medium, with optional world/location artwork represented by view data where available.
 
 ## Design direction
 
-Keep screen responsibilities separate from gameplay mechanics. New UI work should improve readability and responsive behavior without reintroducing persistent clutter or overlapping modal layouts.
+Keep screen responsibilities separate from gameplay mechanics. New UI work should reuse frontend-neutral view models and semantic input events rather than introducing renderer-specific dependencies into gameplay rules. Avoid maintaining parallel terminal and graphical implementations.

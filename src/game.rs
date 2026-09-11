@@ -1,24 +1,18 @@
 pub(crate) mod actions;
 pub(crate) mod character;
 pub(crate) mod combat;
-mod combat_screen;
 pub(crate) mod console;
-mod dispatcher;
 pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
-pub(crate) mod lifecycle;
 pub(crate) mod menu;
 pub(crate) mod navigation;
 pub(crate) mod quests;
 pub(crate) mod records;
-pub(crate) mod runtime;
 pub(crate) mod state_effects;
 pub(crate) mod time;
-// Made world public so procedural_authored.rs can use its functions
 pub mod world;
-mod world_screen;
 
 mod interactions {
     pub(crate) use super::interactions_core::*;
@@ -54,15 +48,6 @@ mod interactions {
             }
         }
     }
-}
-
-pub fn run() -> std::io::Result<()> {
-    let _ui = crate::ui::init()?;
-    let Some((mut state, mut save_path)) = lifecycle::start_screen()? else {
-        return Ok(());
-    };
-    world::bootstrap_campaign_content(&mut state);
-    runtime::main_loop(&mut state, &mut save_path)
 }
 
 pub(crate) use world::validate_loaded_state;
