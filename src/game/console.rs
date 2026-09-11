@@ -4,21 +4,9 @@ mod commands;
 mod console_ui;
 
 use crate::game::world;
-#[cfg(not(feature = "bevy"))]
-use crate::input;
 use crate::input::InputEvent;
 use crate::model::GameState;
 use crate::presentation::ConsoleView;
-#[cfg(not(feature = "bevy"))]
-use crossterm::cursor;
-#[cfg(not(feature = "bevy"))]
-use crossterm::execute;
-#[cfg(not(feature = "bevy"))]
-use crossterm::terminal::{Clear, ClearType, EnterAlternateScreen, LeaveAlternateScreen};
-#[cfg(not(feature = "bevy"))]
-use ratatui::backend::CrosstermBackend;
-#[cfg(not(feature = "bevy"))]
-use ratatui::Terminal;
 use std::io;
 use std::path::Path;
 
@@ -108,9 +96,7 @@ impl ConsoleSession {
     }
 
     pub(crate) fn cancel_completion(&mut self) {
-        self.state.autocomplete = false;
-        self.state.candidates.clear();
-        self.state.completion_scroll = 0;
+        console_ui::cancel_completion(&mut self.state);
     }
 
     pub(crate) fn execute_line(
@@ -134,96 +120,6 @@ pub(crate) fn bootstrap_after_console(state: &mut GameState) {
     world::bootstrap_campaign_content(state);
 }
 
-#[cfg(not(feature = "bevy"))]
-pub(crate) fn open_console(state: &mut GameState, save_path: &Path) -> io::Result<()> {
-    enter_console_screen()?;
-    let result = run_console_session(state, save_path);
-    let restore = restore_game_screen();
-
-    if result.is_ok() {
-        bootstrap_after_console(state);
-    }
-
-    match (result, restore) {
-        (Err(error), _) => Err(error),
-        (Ok(()), Err(error)) => Err(error),
-        (Ok(()), Ok(())) => Ok(()),
-    }
-}
-
-#[cfg(feature = "bevy")]
 pub(crate) fn open_console(_state: &mut GameState, _save_path: &Path) -> io::Result<()> {
-    Ok(())
-}
-
-#[cfg(not(feature = "bevy"))]
-fn run_console_session(state: &mut GameState, save_path: &Path) -> io::Result<()> {
-    crate::ui::set_console_input_active(true);
-    let result = (|| -> io::Result<()> {
-        let mut terminal = Terminal::new(CrosstermBackend::new(io::stdout()))?;
-        terminal.clear()?;
-        let mut console = ConsoleSession::default();
-
-        loop {
-            let view = console.view();
-            console_ui::draw_console(&mut terminal, &view)?;
-            let key = input::read()?;
-
-            if console.is_autocomplete() {
-                match key {
-                    InputEvent::Up => console.select_previous_completion(),
-                    InputEvent::Down => console.select_next_completion(),
-                    InputEvent::Confirm => console.accept_completion(),
-                    InputEvent::Cancel => console.cancel_completion(),
-                    InputEvent::Tab => {}
-                    _ => {
-                        console.cancel_completion();
-                        console.edit(key);
-                    }
-                }
-                continue;
-            }
-
-            match key {
-                InputEvent::Cancel => return Ok(()),
-                InputEvent::Confirm => {
-                    console.execute_line(state, save_path)?;
-                    if console.should_exit() {
-                        return Ok(());
-                    }
-                }
-                InputEvent::Tab => console.start_completion(state),
-                InputEvent::Up => console.history_previous(),
-                InputEvent::Down => console.history_next(),
-                InputEvent::Home => console.jump_home(),
-                InputEvent::End => console.jump_end(),
-                InputEvent::PageUp => console.scroll_up(6),
-                InputEvent::PageDown => console.scroll_down(6),
-                _ => console.edit(key),
-            }
-        }
-    })();
-    crate::ui::set_console_input_active(false);
-    result
-}
-
-#[cfg(not(feature = "bevy"))]
-fn enter_console_screen() -> io::Result<()> {
-    let mut stdout = io::stdout();
-    execute!(stdout, LeaveAlternateScreen, cursor::Show)?;
-    execute!(stdout, Clear(ClearType::All), cursor::MoveTo(0, 0))?;
-    Ok(())
-}
-
-#[cfg(not(feature = "bevy"))]
-fn restore_game_screen() -> io::Result<()> {
-    let mut stdout = io::stdout();
-    execute!(
-        stdout,
-        Clear(ClearType::All),
-        cursor::MoveTo(0, 0),
-        EnterAlternateScreen,
-        cursor::Hide
-    )?;
     Ok(())
 }
