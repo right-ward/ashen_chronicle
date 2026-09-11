@@ -282,16 +282,33 @@ fn render_if_active(
 
     let actions = bevy_presentation::spawn_panel(&mut commands, root);
     for (index, action) in view.actions.iter().enumerate() {
-        bevy_presentation::spawn_choice_button(&mut commands, actions, index, format!("{}: {}", index + 1, action));
+        bevy_presentation::spawn_choice_button(
+            &mut commands,
+            actions,
+            index,
+            format!("{}: {}", index + 1, action),
+        );
     }
     if combat_state.phase == Some(CombatScreenPhase::Result) {
         if let Some(result) = combat_state.result.as_ref() {
             bevy_presentation::spawn_label(&mut commands, actions, result.result_title.clone());
-            bevy_presentation::spawn_muted_label(&mut commands, actions, result.result_note.clone());
-            bevy_presentation::spawn_muted_label(&mut commands, actions, "Press Enter to continue.");
+            bevy_presentation::spawn_muted_label(
+                &mut commands,
+                actions,
+                result.result_note.clone(),
+            );
+            bevy_presentation::spawn_muted_label(
+                &mut commands,
+                actions,
+                "Press Enter to continue.",
+            );
         }
     } else {
-        bevy_presentation::spawn_muted_label(&mut commands, actions, "Select an action with arrows or 1–3, then press Enter.");
+        bevy_presentation::spawn_muted_label(
+            &mut commands,
+            actions,
+            "Select an action with arrows or 1–3, then press Enter.",
+        );
     }
 
     combat_state.dirty = false;
