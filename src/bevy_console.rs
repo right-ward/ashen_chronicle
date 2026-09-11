@@ -24,7 +24,26 @@ impl Default for BevyConsoleState {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<BevyConsoleState>()
-        .add_systems(Update, (text_input, console_input, render_if_active).chain());
+        .add_systems(
+            Update,
+            (open_shortcut, text_input, console_input, render_if_active).chain(),
+        );
+}
+
+fn open_shortcut(
+    keyboard: Res<ButtonInput<KeyCode>>,
+    lifecycle: Res<LifecycleState>,
+    mut navigation: ResMut<NavigationState>,
+) {
+    if lifecycle.phase == crate::bevy_lifecycle::LifecyclePhase::Complete
+        && lifecycle.session.is_some()
+        && navigation.current_screen == Some(ScreenId::Gameplay)
+        && keyboard.just_pressed(KeyCode::Slash)
+    {
+        navigation.return_screen = Some(ScreenId::Gameplay);
+        navigation.current_screen = Some(ScreenId::Console);
+        navigation.selected = 0;
+    }
 }
 
 fn text_input(
