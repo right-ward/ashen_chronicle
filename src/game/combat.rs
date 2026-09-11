@@ -191,7 +191,11 @@ pub(crate) fn build_combat_view(state: &GameState, encounter: &CombatEncounter) 
         location_name: encounter.location_name.clone(),
         turn: state.character.turn,
         events: encounter.events.clone(),
-        actions: vec!["Attack".to_string(), "Guard".to_string(), "Flee".to_string()],
+        actions: vec![
+            "Attack".to_string(),
+            "Guard".to_string(),
+            "Flee".to_string(),
+        ],
     }
 }
 
