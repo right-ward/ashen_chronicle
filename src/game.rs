@@ -1,6 +1,6 @@
 pub(crate) mod actions;
 pub(crate) mod character;
-mod combat;
+pub(crate) mod combat;
 mod combat_screen;
 mod console;
 mod dispatcher;
@@ -8,7 +8,7 @@ pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]
 mod interactions_core;
 mod legacy;
-mod lifecycle;
+pub(crate) mod lifecycle;
 pub(crate) mod menu;
 pub(crate) mod navigation;
 pub(crate) mod quests;
