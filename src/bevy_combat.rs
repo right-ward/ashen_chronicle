@@ -9,7 +9,7 @@ use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
-use crate::game::combat::{self, CombatEncounter, CombatResult, CombatStep};
+use crate::game::combat::{self, CombatEncounter, CombatStep};
 use crate::input::InputEvent;
 use crate::presentation::CombatResultView;
 
@@ -94,28 +94,21 @@ fn combat_input(
                 let last = combat_state.action_count().saturating_sub(1);
                 set_selection(&mut combat_state, &mut navigation, last);
             }
-            InputEvent::Character('1')
-            | InputEvent::Character('2')
-            | InputEvent::Character('3') => {
-                let selected = match event {
-                    InputEvent::Character('1') => 0,
-                    InputEvent::Character('2') => 1,
-                    _ => 2,
-                };
-                set_selection(&mut combat_state, &mut navigation, selected);
-                activate_current_selection(
-                    &mut lifecycle,
-                    &mut combat_state,
-                    &mut navigation,
-                    true,
-                );
+            InputEvent::Character('1') => {
+                set_selection(&mut combat_state, &mut navigation, 0);
+                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
             }
-            InputEvent::Confirm => activate_current_selection(
-                &mut lifecycle,
-                &mut combat_state,
-                &mut navigation,
-                true,
-            ),
+            InputEvent::Character('2') => {
+                set_selection(&mut combat_state, &mut navigation, 1);
+                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
+            }
+            InputEvent::Character('3') => {
+                set_selection(&mut combat_state, &mut navigation, 2);
+                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
+            }
+            InputEvent::Confirm => {
+                activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation)
+            }
             InputEvent::Cancel => {}
             _ => {}
         }
@@ -157,10 +150,9 @@ fn activate_current_selection(
     lifecycle: &mut LifecycleState,
     combat_state: &mut CombatState,
     navigation: &mut NavigationState,
-    execute: bool,
 ) {
     match combat_state.phase {
-        Some(CombatScreenPhase::Active) if execute => {
+        Some(CombatScreenPhase::Active) => {
             let step = {
                 let Some(session) = lifecycle.session.as_mut() else {
                     return;
@@ -173,14 +165,14 @@ fn activate_current_selection(
             apply_step(combat_state, navigation, step);
         }
         Some(CombatScreenPhase::Result) => {
-            let outcome = combat_state
+            let defeated = combat_state
                 .result
                 .as_ref()
                 .map(|result| result.result_title == "Defeat")
                 .unwrap_or(false);
             combat_state.clear();
             navigation.return_screen = None;
-            if outcome {
+            if defeated {
                 lifecycle.phase = LifecyclePhase::Death;
                 lifecycle.selected = 0;
                 lifecycle.mark_dirty();
@@ -189,7 +181,7 @@ fn activate_current_selection(
                 navigation.selected = 0;
             }
         }
-        _ => {}
+        None => {}
     }
 }
 
