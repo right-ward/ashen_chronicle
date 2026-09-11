@@ -193,7 +193,7 @@ fn apply_step(combat_state: &mut CombatState, navigation: &mut NavigationState, 
     match step {
         CombatStep::Continue => combat_state.dirty = true,
         CombatStep::Result { view, .. } => {
-            combat_state.result = Some(view);
+            combat_state.result = Some(*view);
             combat_state.phase = Some(CombatScreenPhase::Result);
             combat_state.selected = 0;
             navigation.selected = 0;
@@ -281,34 +281,17 @@ fn render_if_active(
     }
 
     let actions = bevy_presentation::spawn_panel(&mut commands, root);
-    match combat_state.phase {
-        Some(CombatScreenPhase::Active) => {
-            bevy_presentation::spawn_muted_label(
-                &mut commands,
-                actions,
-                "Choose an action. Arrow keys, j/k, 1-3, and Enter also work.",
-            );
-            for (index, action) in view.actions.iter().enumerate() {
-                let label = if index == combat_state.selected {
-                    format!("▶ {}. {action}", index + 1)
-                } else {
-                    format!("{}. {action}", index + 1)
-                };
-                bevy_presentation::spawn_choice_button(&mut commands, actions, index, label);
-            }
+    for (index, action) in view.actions.iter().enumerate() {
+        bevy_presentation::spawn_choice_button(&mut commands, actions, index, format!("{}: {}", index + 1, action));
+    }
+    if combat_state.phase == Some(CombatScreenPhase::Result) {
+        if let Some(result) = combat_state.result.as_ref() {
+            bevy_presentation::spawn_label(&mut commands, actions, result.result_title.clone());
+            bevy_presentation::spawn_muted_label(&mut commands, actions, result.result_note.clone());
+            bevy_presentation::spawn_muted_label(&mut commands, actions, "Press Enter to continue.");
         }
-        Some(CombatScreenPhase::Result) => {
-            if let Some(result) = &combat_state.result {
-                bevy_presentation::spawn_label(&mut commands, actions, result.result_title.clone());
-                bevy_presentation::spawn_muted_label(
-                    &mut commands,
-                    actions,
-                    result.result_note.clone(),
-                );
-            }
-            bevy_presentation::spawn_choice_button(&mut commands, actions, 0, "Continue");
-        }
-        None => {}
+    } else {
+        bevy_presentation::spawn_muted_label(&mut commands, actions, "Select an action with arrows or 1–3, then press Enter.");
     }
 
     combat_state.dirty = false;
