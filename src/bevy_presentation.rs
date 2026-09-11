@@ -222,6 +222,11 @@ fn keyboard_to_semantic_input(
         (KeyCode::Tab, InputEvent::Tab),
         (KeyCode::Backspace, InputEvent::Backspace),
         (KeyCode::Delete, InputEvent::Delete),
+        (KeyCode::KeyJ, InputEvent::Character('j')),
+        (KeyCode::KeyK, InputEvent::Character('k')),
+        (KeyCode::Digit1, InputEvent::Character('1')),
+        (KeyCode::Digit2, InputEvent::Character('2')),
+        (KeyCode::Digit3, InputEvent::Character('3')),
     ];
     for (key, event) in mappings {
         if keyboard.just_pressed(key) {
