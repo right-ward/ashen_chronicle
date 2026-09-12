@@ -119,4 +119,3 @@ pub(crate) fn record_journal_note(state: &mut GameState, note: &str) -> bool {
     );
     true
 }
-

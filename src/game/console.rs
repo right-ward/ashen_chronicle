@@ -119,4 +119,3 @@ impl ConsoleSession {
 pub(crate) fn bootstrap_after_console(state: &mut GameState) {
     world::bootstrap_campaign_content(state);
 }
-
