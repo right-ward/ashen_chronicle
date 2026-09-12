@@ -167,51 +167,6 @@ pub(crate) fn meditate_to_target(
     })
 }
 
-pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std::io::Result<()> {
-    let view = build_meditation_view(state);
-    if !view.safe_to_meditate {
-        set_menu_screen("Meditation", view.unavailable_message.clone(), None);
-        let _ = choose_from_list("Meditation", &["Back".to_string()], None)?;
-        return Ok(());
-    }
-
-    set_menu_screen(
-        "Meditation",
-        Some(format!(
-            "You settle into stillness.\nCurrent time:\n{}\n\nChoose when to end your meditation.",
-            view.current_time
-        )),
-        None,
-    );
-
-    let options: Vec<String> = view
-        .targets
-        .iter()
-        .map(|target| target.label.clone())
-        .collect();
-    let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
-        return Ok(());
-    };
-    let result = meditate_to_target(state, save_path, selection)?;
-
-    let mut result_lines = vec![
-        "Your breathing steadies as you meditate.".to_string(),
-        String::new(),
-        result.ending_time.clone(),
-        format!("Time meditated: {} portion(s)", result.portions),
-        format!("HP recovered: {}", result.hp_recovered),
-    ];
-    if result.exhausted_removed {
-        result_lines.extend([String::new(), "Exhausted is removed.".to_string()]);
-    }
-    if result.well_rested_applied {
-        result_lines.push("Well-rested is applied.".to_string());
-    }
-    set_menu_screen("Meditation — Complete", Some(result_lines.join("\n")), None);
-    let _ = choose_from_list("Meditation result", &["Back".to_string()], None)?;
-    Ok(())
-}
-
 #[cfg(test)]
 mod tests {
     use super::MEDITATION_TARGETS;
