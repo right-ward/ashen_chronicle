@@ -24,7 +24,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Removed the obsolete terminal UI compatibility façade and the terminal-only `logkeys` developer command; gameplay modules no longer depend on the legacy presentation layer.
 - Restored player-facing progression feedback in Bevy, including interactive level-up attribute selection and quest reward details for gained/consumed items and reputation changes.
 - Made Bevy the required runtime dependency instead of retaining an obsolete optional feature gate now that the terminal frontend has been removed.
-- Fixed Android ARMv7 release cross-compilation by explicitly wiring cc-rs to the NDK's `armv7a-linux-androideabi24-clang++` compiler.
+- Fixed Android ARMv7 release cross-compilation by explicitly wiring cc-rs to the NDK's `armv7a-linux-androideabi24-clang` and `armv7a-linux-androideabi24-clang++` compilers.
 
 ## Next
 
