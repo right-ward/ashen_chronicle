@@ -9,12 +9,6 @@ use std::sync::atomic::{AtomicBool, Ordering};
 
 static KEY_LOGGING_ENABLED: AtomicBool = AtomicBool::new(false);
 
-pub(crate) fn show_screen_view(_view: &ScreenView) {}
-
-pub(crate) fn choose_screen_view(_view: &ChoiceView) -> std::io::Result<Option<usize>> {
-    Ok(None)
-}
-
 pub fn set_menu_screen(_title: impl Into<String>, _subtitle: Option<String>, _art: Option<String>) {
 }
 
