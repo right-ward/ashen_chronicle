@@ -351,3 +351,159 @@ pub(crate) fn update_faction_memory_for_location(
         remember_faction(state, faction_id, memory.clone());
     }
 }
+
+pub(crate) fn build_talk_view_for_bevy(state: &GameState) -> TalkView {
+    build_talk_view(state)
+}
+
+pub(crate) fn build_conversation_view_for_bevy(
+    state: &GameState,
+    npc_index: usize,
+) -> Option<ConversationView> {
+    if npc_index >= state.npcs.len() {
+        None
+    } else {
+        Some(build_conversation_view(state, npc_index))
+    }
+}
+
+pub(crate) fn perform_conversation_choice(
+    state: &mut GameState,
+    npc_id: EntityId,
+    choice: usize,
+) -> Vec<String> {
+    let Some(npc_index) = npc_index_by_id(state, npc_id) else {
+        return vec!["That person can no longer be found.".to_string()];
+    };
+    let view = build_conversation_view(state, npc_index);
+    let npc_name = view.npc.display_name();
+    if !view.available {
+        return view
+            .unavailable_message
+            .into_iter()
+            .collect::<Vec<_>>();
+    }
+
+    let quest_indices: Vec<usize> = state
+        .quests
+        .iter()
+        .enumerate()
+        .filter(|(_, quest)| quest.giver_npc_id == npc_id)
+        .map(|(index, _)| index)
+        .collect();
+    if quest_indices.is_empty() && view.options.len() <= 2 {
+        return vec![format!("{} has little to say.", npc_name)];
+    }
+
+    let mut messages = Vec::new();
+    match choice {
+        0 => {
+            let mut found_offer = false;
+            for quest_index in quest_indices {
+                let (key, title, description, faction_id, offered, completed) = {
+                    let quest = &state.quests[quest_index];
+                    (
+                        quest_key(quest),
+                        quest.title.clone(),
+                        quest.description.clone(),
+                        quest.faction_id,
+                        quest.offered,
+                        quest.completed,
+                    )
+                };
+                if state
+                    .world
+                    .completed_quest_ids
+                    .iter()
+                    .any(|known| known == &key)
+                    || completed
+                {
+                    continue;
+                }
+                found_offer = true;
+                if offered {
+                    messages.push(format!(
+                        "{} says: 'You already agreed to help with {}.'",
+                        npc_name, title
+                    ));
+                } else {
+                    if let Some(quest) = state.quests.get_mut(quest_index) {
+                        quest.offered = true;
+                    }
+                    quests::sync_objectives(state, quest_index);
+                    messages.push(format!("{} says: '{}'", npc_name, description));
+                    messages.extend(quests::objective_summary(state, quest_index));
+                    remember_npc(state, npc_id, format!("offered the quest {}", title));
+                    remember_faction(
+                        state,
+                        faction_id,
+                        format!("{} offered the quest {}.", npc_name, title),
+                    );
+                }
+            }
+            if !found_offer {
+                messages.push(format!(
+                    "{} has no work for you. Whatever was asked here has already been done.",
+                    npc_name
+                ));
+            }
+        }
+        1 => {
+            let mut handled = false;
+            for quest_index in quest_indices {
+                let (key, title, offered, completed) = {
+                    let quest = &state.quests[quest_index];
+                    (
+                        quest_key(quest),
+                        quest.title.clone(),
+                        quest.offered,
+                        quest.completed,
+                    )
+                };
+                if state
+                    .world
+                    .completed_quest_ids
+                    .iter()
+                    .any(|known| known == &key)
+                    || completed
+                {
+                    continue;
+                }
+                if !offered {
+                    messages.push(format!(
+                        "{} does not know what you are talking about. You have not accepted any work from them.",
+                        npc_name
+                    ));
+                    handled = true;
+                    continue;
+                }
+                handled = true;
+                if quests::try_complete(state, quest_index) {
+                    messages.push(format!("Quest complete: {}", title));
+                } else {
+                    messages.push(format!(
+                        "{} looks at you expectantly. The work is not finished yet:",
+                        npc_name
+                    ));
+                    messages.extend(quests::objective_summary(state, quest_index));
+                    messages.push(format!("Quest: {}", title));
+                }
+            }
+            if !handled {
+                messages.push(format!("{} has no unfinished deed to hear about.", npc_name));
+            }
+        }
+        2 if view.options.len() > 2 => {
+            if let Some(memory) = view.memory {
+                messages.push(format!(
+                    "{} searches your face, then recalls: {}",
+                    npc_name, memory
+                ));
+            }
+        }
+        _ => return messages,
+    }
+    state_effects::advance_time(state, 1);
+    messages.push("Time passes.".to_string());
+    messages
+}
