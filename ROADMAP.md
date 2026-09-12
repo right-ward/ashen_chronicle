@@ -11,6 +11,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Added Bevy keyboard translation for the frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
 - Migrated lifecycle flows for starting, loading, character creation, death, inheritance, and quit confirmation to Bevy.
 - Migrated the primary gameplay/world dashboard and world navigation/travel flow to Bevy while continuing to reuse authoritative gameplay rules.
+- Migrated NPC dialogue and remains recovery into dedicated Bevy interaction screens while keeping dialogue, quest interaction, corpse recovery, and related state changes in the authoritative game modules.
 - Migrated character, reputation, journal, inventory, quest, meditation, and history screens to Bevy, including nested detail/result flows and journal entry editing.
 - Migrated combat presentation and interaction to Bevy while keeping combat resolution, state changes, outcomes, and reward handling in the authoritative game combat system.
 - Migrated the developer console frontend to Bevy while retaining renderer-neutral command state, completion, history, scrolling, save, output, and close behavior.
@@ -19,10 +20,12 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
 - Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
 - Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
+- Removed migration-only `InputEvent::Other` and unused shared `ScrollViewport` compatibility types from the frontend boundary.
+- Removed the obsolete terminal UI compatibility façade and the terminal-only `logkeys` developer command; gameplay modules no longer depend on the legacy presentation layer.
 
 ## Next
 
-Verify the complete Bevy game flow, persistence and save compatibility, frontend-neutral tests and navigation, supported platform targets through CI, and the final documentation/version metadata for the v0.49.x release.
+Complete CI validation of the Bevy application and supported platform targets, verify save compatibility and full gameplay/navigation flow through the normal release workflow, then finalize the v0.49.0 release metadata and historical roadmap entry.
 
 ## Longer-term direction
 

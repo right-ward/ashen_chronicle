@@ -4,8 +4,8 @@ pub(crate) mod combat;
 pub(crate) mod console;
 pub(crate) mod history_screen;
 #[path = "game/interactions.rs"]
-mod interactions_core;
-mod legacy;
+pub(crate) mod interactions_core;
+pub(crate) mod legacy;
 pub(crate) mod menu;
 pub(crate) mod navigation;
 pub(crate) mod quests;
@@ -14,7 +14,7 @@ pub(crate) mod state_effects;
 pub(crate) mod time;
 pub mod world;
 
-mod interactions {
+pub(crate) mod interactions {
     pub(crate) use super::interactions_core::*;
 
     use crate::model::{GameState, Item};

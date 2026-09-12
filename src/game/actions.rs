@@ -4,17 +4,7 @@ use crate::persistence::save_game;
 use crate::presentation::{
     CharacterView, MeditationResultView, MeditationTargetView, MeditationView,
 };
-use crate::ui::{choose_from_list, narrate, set_menu_screen};
 use std::path::Path;
-
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
 
 const MEDITATION_TARGETS: [(u32, &str); 8] = [
     (2, "Dawn"),
@@ -33,16 +23,10 @@ pub(crate) fn travel_to(
 ) -> std::io::Result<()> {
     let current_location = match state.world.location_by_id(state.character.location_id) {
         Some(location) => location.clone(),
-        None => {
-            println!("You are lost in a location that no longer exists.");
-            crate::ui::pause();
-            return Ok(());
-        }
+        None => return Ok(()),
     };
 
     if !current_location.exits.contains(&target_id) {
-        println!("That route is not available from here.");
-        crate::ui::pause();
         return Ok(());
     }
 
@@ -68,7 +52,6 @@ pub(crate) fn travel_to(
         format!("{} traveled to {}.", character_name, location_name),
     );
     crate::game::quests::sync_active_quests(state);
-    println!("You travel to {}.", location_name);
     let dangerous = location.as_ref().map(|loc| loc.dangerous).unwrap_or(false);
     let context = crate::events::EventContext::for_travel_arrival(
         &location_name,
@@ -83,7 +66,6 @@ pub(crate) fn travel_to(
                 format!("{} stirs", location.name),
                 "The air is tense. Something here is still awake.".to_string(),
             );
-            narrate("This place is dangerous.");
         }
     }
     Ok(())
@@ -165,51 +147,6 @@ pub(crate) fn meditate_to_target(
         exhausted_removed: true,
         well_rested_applied: true,
     })
-}
-
-pub(crate) fn meditate_and_save(state: &mut GameState, save_path: &Path) -> std::io::Result<()> {
-    let view = build_meditation_view(state);
-    if !view.safe_to_meditate {
-        set_menu_screen("Meditation", view.unavailable_message.clone(), None);
-        let _ = choose_from_list("Meditation", &["Back".to_string()], None)?;
-        return Ok(());
-    }
-
-    set_menu_screen(
-        "Meditation",
-        Some(format!(
-            "You settle into stillness.\nCurrent time:\n{}\n\nChoose when to end your meditation.",
-            view.current_time
-        )),
-        None,
-    );
-
-    let options: Vec<String> = view
-        .targets
-        .iter()
-        .map(|target| target.label.clone())
-        .collect();
-    let Some(selection) = choose_from_list("Stop meditation at", &options, Some("Cancel"))? else {
-        return Ok(());
-    };
-    let result = meditate_to_target(state, save_path, selection)?;
-
-    let mut result_lines = vec![
-        "Your breathing steadies as you meditate.".to_string(),
-        String::new(),
-        result.ending_time.clone(),
-        format!("Time meditated: {} portion(s)", result.portions),
-        format!("HP recovered: {}", result.hp_recovered),
-    ];
-    if result.exhausted_removed {
-        result_lines.extend([String::new(), "Exhausted is removed.".to_string()]);
-    }
-    if result.well_rested_applied {
-        result_lines.push("Well-rested is applied.".to_string());
-    }
-    set_menu_screen("Meditation — Complete", Some(result_lines.join("\n")), None);
-    let _ = choose_from_list("Meditation result", &["Back".to_string()], None)?;
-    Ok(())
 }
 
 #[cfg(test)]

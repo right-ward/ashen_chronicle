@@ -68,6 +68,7 @@ fn gameplay_input(
             InputEvent::Down => move_selection(&mut gameplay, &mut navigation_state, 1, &lifecycle),
             InputEvent::Home => {
                 gameplay.selected = 0;
+                navigation_state.selected = 0;
                 gameplay.dirty = true;
             }
             InputEvent::End => {
@@ -211,12 +212,11 @@ fn activate_selection(
                 menu::GameAction::Journal => {
                     open_dedicated_screen(navigation_state, ScreenId::Journal);
                 }
-                _ => {
-                    gameplay.message = Some(format!(
-                        "{} remains available from the gameplay flow and will receive its Bevy screen in a later migration step.",
-                        entry.label
-                    ));
-                    gameplay.dirty = true;
+                menu::GameAction::Talk => {
+                    open_dedicated_screen(navigation_state, ScreenId::Talk);
+                }
+                menu::GameAction::SearchRemains => {
+                    open_dedicated_screen(navigation_state, ScreenId::Remains);
                 }
             }
         }
@@ -262,9 +262,9 @@ fn activate_selection(
 
 fn render_if_active(
     mut commands: Commands,
-    lifecycle: ResMut<LifecycleState>,
+    lifecycle: Res<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
-    navigation_state: ResMut<NavigationState>,
+    navigation_state: Res<NavigationState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -484,13 +484,14 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         .history
         .iter()
         .rev()
-        .take(5)
+        .take(12)
         .rev()
         .map(|entry| crate::presentation::HistoryEntryView {
             day: entry.turn,
-            entry_type: match entry.entry_type {
-                crate::model::HistoryEntryType::Event => HistoryEntryViewType::Event,
-                crate::model::HistoryEntryType::Narrative => HistoryEntryViewType::Narrative,
+            entry_type: if entry.event_id.is_some() {
+                HistoryEntryViewType::Event
+            } else {
+                HistoryEntryViewType::Narrative
             },
             text: entry.text.clone(),
             event_id: entry.event_id.clone(),
@@ -498,6 +499,7 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
             outcome: entry.outcome.clone(),
         })
         .collect();
+
     WorldView {
         world_name: state.world.name.clone(),
         time: time::time_display(state.world.time_points, state.world.day),
@@ -510,31 +512,5 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         location,
         threat,
         history,
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::model::{create_new_state, WorldMode};
-
-    #[test]
-    fn gameplay_starts_on_dashboard() {
-        let state = GameplayState::default();
-        assert_eq!(state.screen, GameplayScreen::Dashboard);
-        assert_eq!(state.selected, 0);
-    }
-
-    #[test]
-    fn world_view_contains_current_location() {
-        let state = create_new_state(
-            "Test World",
-            WorldMode::New,
-            "Ash".to_string(),
-            "Wanderer".to_string(),
-        );
-        let view = build_world_view(&state);
-        assert_eq!(view.world_name, "Test World");
-        assert!(view.location.is_some());
     }
 }

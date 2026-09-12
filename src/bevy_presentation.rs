@@ -29,9 +29,6 @@ pub struct TextContent;
 #[derive(Component)]
 pub struct GaugeFill;
 
-#[derive(Component)]
-pub struct ScrollViewport;
-
 #[derive(Resource, Default)]
 pub struct SemanticInputQueue(pub Vec<InputEvent>);
 
@@ -55,6 +52,10 @@ pub enum ScreenId {
     Meditation,
     History,
     Journal,
+    Talk,
+    Conversation,
+    Remains,
+    RemainsResult,
     Combat,
     Console,
 }
@@ -246,14 +247,20 @@ fn choice_button_input(
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
     for (interaction, choice) in &mut interaction_query {
-        if *interaction == Interaction::Pressed {
-            navigation.selected = choice.index;
-            if navigation.current_screen == Some(ScreenId::Lifecycle) {
-                lifecycle_queue.0.push(InputEvent::Confirm);
-            } else {
-                gameplay_queue.0.push(InputEvent::Confirm);
-            }
+        if *interaction != Interaction::Pressed {
+            continue;
         }
+        navigation.selected = choice.index;
+        let queue = if navigation.current_screen == Some(ScreenId::Lifecycle) {
+            &mut lifecycle_queue.0
+        } else {
+            &mut gameplay_queue.0
+        };
+        queue.push(InputEvent::Home);
+        for _ in 0..choice.index {
+            queue.push(InputEvent::Down);
+        }
+        queue.push(InputEvent::Confirm);
     }
 }
 
@@ -267,6 +274,27 @@ mod tests {
         assert_eq!(state.current_screen, None);
         assert_eq!(state.return_screen, None);
         assert_eq!(state.selected, 0);
+    }
+
+    #[test]
+    fn screen_ids_cover_all_bevy_frontends() {
+        let screens = [
+            ScreenId::Lifecycle,
+            ScreenId::Gameplay,
+            ScreenId::Character,
+            ScreenId::Inventory,
+            ScreenId::Quests,
+            ScreenId::Meditation,
+            ScreenId::History,
+            ScreenId::Journal,
+            ScreenId::Talk,
+            ScreenId::Conversation,
+            ScreenId::Remains,
+            ScreenId::RemainsResult,
+            ScreenId::Combat,
+            ScreenId::Console,
+        ];
+        assert_eq!(screens.len(), 14);
     }
 
     #[test]

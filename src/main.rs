@@ -7,6 +7,8 @@ mod bevy_console;
 #[cfg(feature = "bevy")]
 mod bevy_gameplay;
 #[cfg(feature = "bevy")]
+mod bevy_interactions;
+#[cfg(feature = "bevy")]
 mod bevy_lifecycle;
 #[cfg(feature = "bevy")]
 mod bevy_navigation_bridge;
@@ -28,7 +30,6 @@ pub mod procedural_entities;
 pub mod procedural_opportunities;
 pub mod procedural_relationships;
 mod rng;
-pub mod ui;
 
 fn main() {
     bevy_app::run();

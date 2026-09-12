@@ -119,7 +119,3 @@ impl ConsoleSession {
 pub(crate) fn bootstrap_after_console(state: &mut GameState) {
     world::bootstrap_campaign_content(state);
 }
-
-pub(crate) fn open_console(_state: &mut GameState, _save_path: &Path) -> io::Result<()> {
-    Ok(())
-}

@@ -17,5 +17,4 @@ pub(crate) enum InputEvent {
     Character(char),
     Backspace,
     Delete,
-    Other,
 }

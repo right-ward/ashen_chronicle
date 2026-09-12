@@ -252,14 +252,6 @@ pub(crate) struct ScreenView {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct ChoiceView {
-    pub screen: ScreenView,
-    pub prompt: String,
-    pub options: Vec<String>,
-    pub back_label: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct DeathView {
     pub screen: ScreenView,
     pub character: CharacterView,
@@ -325,12 +317,12 @@ pub(crate) struct ConsoleView {
 #[cfg(test)]
 mod tests {
     use super::{
-        CharacterSheetView, CharacterView, ChoiceView, CombatResultView, CombatView, CombatantView,
+        CharacterSheetView, CharacterView, CombatResultView, CombatView, CombatantView,
         ConditionView, ConsoleScrollView, ConsoleView, ConversationView, DeathView, FactionView,
         HistoryEntryView, HistoryEntryViewType, HistoryView, InventoryDetailView, InventoryView,
         ItemView, LocationView, MeditationResultView, MeditationTargetView, MeditationView,
         NavigationView, NpcView, QuestLogView, QuestObjectiveView, QuestView, RemainsResultView,
-        RemainsView, ScreenView, TalkView, ThreatView, WorldView,
+        RemainsView, ScreenView, TalkView, WorldView,
     };
 
     #[test]
@@ -391,12 +383,6 @@ mod tests {
             art: Some("art".to_string()),
             body: vec!["line".to_string()],
         };
-        let choice = ChoiceView {
-            screen: screen.clone(),
-            prompt: "Choose".to_string(),
-            options: vec!["One".to_string()],
-            back_label: Some("Back".to_string()),
-        };
         let _death = DeathView {
             screen: screen.clone(),
             character: CharacterView {
@@ -432,7 +418,6 @@ mod tests {
             autocomplete: false,
         };
 
-        assert_eq!(choice.options, vec!["One".to_string()]);
         assert_eq!(console.input, "help");
     }
 
@@ -455,11 +440,6 @@ mod tests {
             description: "A broken road marker.".to_string(),
             region_name: "North".to_string(),
             dangerous: true,
-        };
-        #[allow(unused_variables)]
-        let threat = ThreatView {
-            label: "Marauders stir".to_string(),
-            description: "Someone is watching the road.".to_string(),
         };
         let history_entry = HistoryEntryView {
             day: 4,

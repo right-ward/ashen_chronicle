@@ -185,22 +185,6 @@ fn event_is_off_cooldown(state: &GameState, event_id: &str) -> bool {
         .unwrap_or(true)
 }
 
-fn weighted_pick<'a>(events: &[&'a EventContent], roll: u64) -> Option<&'a EventContent> {
-    let total_weight: u64 = events.iter().map(|event| event.weight.max(1) as u64).sum();
-    if total_weight == 0 {
-        return None;
-    }
-    let mut cursor = roll % total_weight;
-    for event in events {
-        let weight = event.weight.max(1) as u64;
-        if cursor < weight {
-            return Some(event);
-        }
-        cursor -= weight;
-    }
-    events.last().copied()
-}
-
 fn next_random_roll(state: &mut GameState) -> u64 {
     let mut rng = DeterministicRng::from_state(state.rng_state);
     let roll = rng.next_u64();
@@ -260,7 +244,6 @@ fn apply_effect(
     match effect {
         EventEffectContent::Message { text } => {
             let rendered = render_text(text, state, context);
-            crate::ui::line(&rendered);
             outcomes.push(rendered);
         }
         EventEffectContent::History { text } => {
@@ -270,7 +253,7 @@ fn apply_effect(
                 .record_history(state.character.turn, rendered.clone());
             outcomes.push(rendered);
         }
-        EventEffectContent::Pause => crate::ui::pause(),
+        EventEffectContent::Pause => {}
         EventEffectContent::Heal { amount } => {
             state.character.heal(*amount);
             outcomes.push(format!("Recovered {} HP.", amount));
@@ -331,32 +314,6 @@ mod tests {
         let night = EventContext::for_travel_arrival("Ashen Gate", false, true);
         assert!(!matches_conditions(Some(&condition), &state, &day));
         assert!(matches_conditions(Some(&condition), &state, &night));
-    }
-
-    #[test]
-    fn weighted_pick_respects_weight_boundaries() {
-        let first = EventContent {
-            id: "first".into(),
-            trigger: "test".into(),
-            weight: 1,
-            chance_percent: Some(100),
-            cooldown_turns: None,
-            conditions: None,
-            effects: vec![],
-        };
-        let second = EventContent {
-            id: "second".into(),
-            trigger: "test".into(),
-            weight: 3,
-            chance_percent: Some(100),
-            cooldown_turns: None,
-            conditions: None,
-            effects: vec![],
-        };
-        let events = vec![&first, &second];
-        assert_eq!(weighted_pick(&events, 0).unwrap().id, "first");
-        assert_eq!(weighted_pick(&events, 1).unwrap().id, "second");
-        assert_eq!(weighted_pick(&events, 3).unwrap().id, "second");
     }
 
     #[test]
