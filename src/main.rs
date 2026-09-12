@@ -1,22 +1,12 @@
-#[cfg(feature = "bevy")]
 mod bevy_app;
-#[cfg(feature = "bevy")]
 mod bevy_combat;
-#[cfg(feature = "bevy")]
 mod bevy_console;
-#[cfg(feature = "bevy")]
 mod bevy_feedback;
-#[cfg(feature = "bevy")]
 mod bevy_gameplay;
-#[cfg(feature = "bevy")]
 mod bevy_interactions;
-#[cfg(feature = "bevy")]
 mod bevy_lifecycle;
-#[cfg(feature = "bevy")]
 mod bevy_navigation_bridge;
-#[cfg(feature = "bevy")]
 mod bevy_presentation;
-#[cfg(feature = "bevy")]
 mod bevy_records;
 mod content;
 mod events;
