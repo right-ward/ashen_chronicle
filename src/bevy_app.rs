@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 
 use crate::{
-    bevy_combat, bevy_console, bevy_gameplay, bevy_interactions, bevy_lifecycle,
+    bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_interactions, bevy_lifecycle,
     bevy_navigation_bridge, bevy_presentation, bevy_records,
 };
 
@@ -33,6 +33,7 @@ pub(crate) fn run() {
     bevy_navigation_bridge::install(&mut app);
     bevy_records::install(&mut app);
     bevy_interactions::install(&mut app);
+    bevy_feedback::install(&mut app);
     app.add_systems(Startup, setup).run();
 }
 

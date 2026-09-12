@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-### v0.49.x: Bevy graphical frontend (terminal removal complete; final verification pending)
+### v0.49.1: Bevy player feedback restoration
 - Established Bevy as the default and shipped graphical runtime while keeping gameplay rules and presentation models independent of the frontend.
 - Added a reusable Bevy presentation layer with shared screen/panel/label primitives, choice buttons, health-style gauges, centralized visual theme constants, semantic navigation state, and a semantic input queue.
 - Added Bevy keyboard translation for the frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
@@ -22,10 +22,11 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
 - Removed migration-only `InputEvent::Other` and unused shared `ScrollViewport` compatibility types from the frontend boundary.
 - Removed the obsolete terminal UI compatibility façade and the terminal-only `logkeys` developer command; gameplay modules no longer depend on the legacy presentation layer.
+- Restored player-facing progression feedback in Bevy, including interactive level-up attribute selection and quest reward details for gained/consumed items and reputation changes.
 
 ## Next
 
-Complete CI validation of the Bevy application and supported platform targets, verify save compatibility and full gameplay/navigation flow through the normal release workflow, then finalize the v0.49.0 release metadata and historical roadmap entry.
+Complete CI validation of the Bevy application and supported platform targets, verify save compatibility and full gameplay/navigation flow through the normal release workflow, then finalize the v0.49.1 release metadata and historical roadmap entry.
 
 ## Longer-term direction
 
