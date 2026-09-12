@@ -4,7 +4,7 @@ use crate::persistence::save_game;
 use crate::presentation::{
     CharacterView, MeditationResultView, MeditationTargetView, MeditationView,
 };
-use crate::ui::{choose_from_list, narrate, set_menu_screen};
+use crate::ui::narrate;
 use std::path::Path;
 
 macro_rules! println {

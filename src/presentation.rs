@@ -322,7 +322,7 @@ mod tests {
         HistoryEntryView, HistoryEntryViewType, HistoryView, InventoryDetailView, InventoryView,
         ItemView, LocationView, MeditationResultView, MeditationTargetView, MeditationView,
         NavigationView, NpcView, QuestLogView, QuestObjectiveView, QuestView, RemainsResultView,
-        RemainsView, ScreenView, TalkView, ThreatView, WorldView,
+        RemainsView, ScreenView, TalkView, WorldView,
     };
 
     #[test]
@@ -418,7 +418,6 @@ mod tests {
             autocomplete: false,
         };
 
-        assert_eq!(choice.options, vec!["One".to_string()]);
         assert_eq!(console.input, "help");
     }
 

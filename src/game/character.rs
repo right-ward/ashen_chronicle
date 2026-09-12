@@ -2,7 +2,7 @@ use crate::model::GameState;
 use crate::presentation::{
     AttributesView, CharacterSheetView, CharacterView, ConditionView, FactionView,
 };
-use crate::ui::{choose_from_list, set_menu_screen};
+use crate::ui::choose_from_list;
 
 macro_rules! println {
     () => {

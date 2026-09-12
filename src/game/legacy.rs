@@ -1,9 +1,6 @@
 use crate::game::{character, interactions, state_effects};
 use crate::model::{Corpse, GameState, Item};
-use crate::presentation::{
-    ItemView, RemainsEntryView, RemainsResultView, RemainsView, ScreenView,
-};
-use crate::ui::{narrate, pause};
+use crate::presentation::{ItemView, RemainsEntryView, RemainsResultView, RemainsView};
 use std::mem;
 use std::time::{SystemTime, UNIX_EPOCH};
 

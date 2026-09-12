@@ -1,8 +1,5 @@
-use crate::game::actions;
 use crate::model::GameState;
 use crate::presentation::{LocationView, NavigationView};
-use crate::ui::{choose_from_list, set_menu_screen};
-use std::io;
 
 pub(crate) fn build_view(state: &GameState) -> NavigationView {
     let Some(current_location) = state.world.location_by_id(state.character.location_id) else {

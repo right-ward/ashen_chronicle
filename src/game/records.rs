@@ -4,7 +4,6 @@ use crate::presentation::{
     CharacterView, InventoryDetailView, InventoryView, ItemView, QuestLogView, QuestObjectiveView,
     QuestView,
 };
-use crate::ui::{choose_from_list, narrate, prompt, set_menu_screen};
 
 fn character_view(state: &GameState) -> CharacterView {
     CharacterView {

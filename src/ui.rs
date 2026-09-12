@@ -4,7 +4,6 @@
 //! terminal rendering or input handling; migrated Bevy systems own presentation
 //! and semantic input directly.
 
-use crate::presentation::ScreenView;
 use std::sync::atomic::{AtomicBool, Ordering};
 
 static KEY_LOGGING_ENABLED: AtomicBool = AtomicBool::new(false);

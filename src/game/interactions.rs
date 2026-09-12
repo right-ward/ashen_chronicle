@@ -1,16 +1,6 @@
 use crate::game::{quests, state_effects};
 use crate::model::{EntityId, Faction, GameState, Quest};
 use crate::presentation::{ConversationView, NpcView, TalkView};
-use crate::ui::{choose_from_list, pause, set_menu_screen};
-
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
 
 pub(crate) fn npc_ids_at_location(state: &GameState, location_id: EntityId) -> Vec<EntityId> {
     state
