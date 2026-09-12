@@ -5,6 +5,8 @@ mod bevy_combat;
 #[cfg(feature = "bevy")]
 mod bevy_console;
 #[cfg(feature = "bevy")]
+mod bevy_feedback;
+#[cfg(feature = "bevy")]
 mod bevy_gameplay;
 #[cfg(feature = "bevy")]
 mod bevy_interactions;

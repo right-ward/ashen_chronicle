@@ -58,6 +58,7 @@ pub enum ScreenId {
     RemainsResult,
     Combat,
     Console,
+    Feedback,
 }
 
 pub fn install(app: &mut App) {
@@ -293,8 +294,9 @@ mod tests {
             ScreenId::RemainsResult,
             ScreenId::Combat,
             ScreenId::Console,
+            ScreenId::Feedback,
         ];
-        assert_eq!(screens.len(), 14);
+        assert_eq!(screens.len(), 15);
     }
 
     #[test]
