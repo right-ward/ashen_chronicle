@@ -1,7 +1,5 @@
 use crate::game::character;
-use crate::game::legacy;
 use crate::model::{EntityId, GameState, Item, QuestObjective, QuestObjectiveKind};
-use crate::ui::line;
 
 fn quest_key(state: &GameState, quest_index: usize) -> Option<String> {
     state.quests.get(quest_index).map(|quest| {
@@ -260,15 +258,7 @@ pub(crate) fn try_complete(state: &mut GameState, quest_index: usize) -> bool {
         description: format!("A token earned by completing {}.", title),
     };
     state.character.inventory.push(reward.clone());
-    legacy::notify_item_gain(state, &reward);
-
-    line(&format!("\nQuest complete: {}", title));
-    for item in consumed {
-        line(&format!("  Quest item consumed: {}", item.name));
-    }
-    line(&format!("  Reward: {}", reward.name));
     character::gain_experience(state, 25);
-    line("  Reputation: +5 with the associated faction");
     true
 }
 

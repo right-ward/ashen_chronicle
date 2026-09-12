@@ -4,17 +4,7 @@ use crate::persistence::save_game;
 use crate::presentation::{
     CharacterView, MeditationResultView, MeditationTargetView, MeditationView,
 };
-use crate::ui::narrate;
 use std::path::Path;
-
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
 
 const MEDITATION_TARGETS: [(u32, &str); 8] = [
     (2, "Dawn"),
@@ -33,16 +23,10 @@ pub(crate) fn travel_to(
 ) -> std::io::Result<()> {
     let current_location = match state.world.location_by_id(state.character.location_id) {
         Some(location) => location.clone(),
-        None => {
-            println!("You are lost in a location that no longer exists.");
-            crate::ui::pause();
-            return Ok(());
-        }
+        None => return Ok(()),
     };
 
     if !current_location.exits.contains(&target_id) {
-        println!("That route is not available from here.");
-        crate::ui::pause();
         return Ok(());
     }
 
@@ -68,7 +52,6 @@ pub(crate) fn travel_to(
         format!("{} traveled to {}.", character_name, location_name),
     );
     crate::game::quests::sync_active_quests(state);
-    println!("You travel to {}.", location_name);
     let dangerous = location.as_ref().map(|loc| loc.dangerous).unwrap_or(false);
     let context = crate::events::EventContext::for_travel_arrival(
         &location_name,
@@ -83,7 +66,6 @@ pub(crate) fn travel_to(
                 format!("{} stirs", location.name),
                 "The air is tense. Something here is still awake.".to_string(),
             );
-            narrate("This place is dangerous.");
         }
     }
     Ok(())

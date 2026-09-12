@@ -4,15 +4,6 @@ use crate::presentation::{ItemView, RemainsEntryView, RemainsResultView, Remains
 use std::mem;
 use std::time::{SystemTime, UNIX_EPOCH};
 
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
-
 fn item_view(item: &Item) -> ItemView {
     ItemView {
         id: item.id,
@@ -160,19 +151,6 @@ pub(crate) fn search_remains_for_bevy(
     Ok(result_view)
 }
 
-pub(crate) fn notify_item_gain(state: &GameState, item: &Item) {
-    println!("You gain: {}", item.name);
-    println!("{}", item.description);
-    if let Some(art) = state
-        .campaign_content
-        .as_ref()
-        .and_then(|content| content.item_art_for(&item.name))
-    {
-        println!("");
-        println!("{}", art);
-    }
-}
-
 fn remains_experience(effective_insight: i32) -> u32 {
     (5 + effective_insight).max(0) as u32
 }
@@ -197,7 +175,6 @@ pub(crate) fn mark_character_dead(state: &mut GameState, cause: String, location
     state.character.alive = false;
     state.character.hp = 0;
     let corpse = create_corpse(state, cause.clone());
-    let dropped_count = corpse.inventory.len();
     state.corpses.push(corpse.clone());
     if let Some(location) = state.world.location_by_id_mut(corpse.location_id) {
         if !location.corpse_ids.contains(&corpse.id) {
@@ -214,9 +191,6 @@ pub(crate) fn mark_character_dead(state: &mut GameState, cause: String, location
         corpse.location_id,
         format!("{} died at {}.", character_name, location_name),
     );
-    if dropped_count > 0 {
-        println!("{} item(s) were left behind.", dropped_count);
-    }
 }
 
 fn create_corpse(state: &mut GameState, epitaph: String) -> Corpse {

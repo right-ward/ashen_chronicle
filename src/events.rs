@@ -244,7 +244,6 @@ fn apply_effect(
     match effect {
         EventEffectContent::Message { text } => {
             let rendered = render_text(text, state, context);
-            crate::ui::line(&rendered);
             outcomes.push(rendered);
         }
         EventEffectContent::History { text } => {
@@ -254,7 +253,7 @@ fn apply_effect(
                 .record_history(state.character.turn, rendered.clone());
             outcomes.push(rendered);
         }
-        EventEffectContent::Pause => crate::ui::pause(),
+        EventEffectContent::Pause => {}
         EventEffectContent::Heal { amount } => {
             state.character.heal(*amount);
             outcomes.push(format!("Recovered {} HP.", amount));

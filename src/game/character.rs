@@ -2,16 +2,6 @@ use crate::model::GameState;
 use crate::presentation::{
     AttributesView, CharacterSheetView, CharacterView, ConditionView, FactionView,
 };
-use crate::ui::choose_from_list;
-
-macro_rules! println {
-    () => {
-        crate::ui::line("");
-    };
-    ($($arg:tt)*) => {
-        crate::ui::line(&format!($($arg)*))
-    };
-}
 
 pub(crate) fn gain_experience(state: &mut GameState, amount: u32) {
     state.character.experience += amount;
@@ -22,22 +12,6 @@ pub(crate) fn gain_experience(state: &mut GameState, amount: u32) {
         }
         state.character.experience -= threshold;
         state.character.level += 1;
-        println!(
-            "\nYou have grown stronger. You reached level {}.",
-            state.character.level
-        );
-        let options = vec![
-            "Might (+1 attack)".to_string(),
-            "Insight (+1 search/recovery)".to_string(),
-            "Endurance (+1 meditation healing)".to_string(),
-        ];
-        if let Ok(Some(choice)) = choose_from_list("Choose a new strength", &options, None) {
-            match choice {
-                0 => state.character.attributes.might += 1,
-                1 => state.character.attributes.insight += 1,
-                _ => state.character.attributes.endurance += 1,
-            }
-        }
     }
 }
 

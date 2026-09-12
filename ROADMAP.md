@@ -21,6 +21,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 - Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
 - Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
 - Removed migration-only `InputEvent::Other` and unused shared `ScrollViewport` compatibility types from the frontend boundary.
+- Removed the obsolete terminal UI compatibility façade and the terminal-only `logkeys` developer command; gameplay modules no longer depend on the legacy presentation layer.
 
 ## Next
 

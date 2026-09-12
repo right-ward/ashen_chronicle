@@ -30,7 +30,6 @@ pub mod procedural_entities;
 pub mod procedural_opportunities;
 pub mod procedural_relationships;
 mod rng;
-pub mod ui;
 
 fn main() {
     bevy_app::run();
