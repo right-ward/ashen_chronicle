@@ -548,3 +548,24 @@ src/
 - Added consequence-driven world evolution: completing generated opportunities can pacify dangerous locations, record persistent faction memory, and create deterministic follow-up opportunities without regenerating the world graph.
 - Covered generated opportunities, valid references, evolution, serialization, and time-driven consequence propagation with focused tests.
 
+### v0.49.0: Bevy full migration
+- Established Bevy as the default and shipped graphical runtime while keeping gameplay rules and presentation models independent of the frontend.
+- Added a reusable Bevy presentation layer with shared screen/panel/label primitives, choice buttons, health-style gauges, centralized visual theme constants, semantic navigation state, and a semantic input queue.
+- Added Bevy keyboard translation for the frontend-neutral input events and Bevy UI interaction translation without exposing Bevy types to gameplay systems.
+- Migrated lifecycle flows for starting, loading, character creation, death, inheritance, and quit confirmation to Bevy.
+- Migrated the primary gameplay/world dashboard and world navigation/travel flow to Bevy while continuing to reuse authoritative gameplay rules.
+- Migrated NPC dialogue and remains recovery into dedicated Bevy interaction screens while keeping dialogue, quest interaction, corpse recovery, and related state changes in the authoritative game modules.
+- Migrated character, reputation, journal, inventory, quest, meditation, and history screens to Bevy, including nested detail/result flows and journal entry editing.
+- Migrated combat presentation and interaction to Bevy while keeping combat resolution, state changes, outcomes, and reward handling in the authoritative game combat system.
+- Migrated the developer console frontend to Bevy while retaining renderer-neutral command state, completion, history, scrolling, save, output, and close behavior.
+- Removed Ratatui/crossterm dependencies and terminal-only screen, rendering, input, and game-loop modules from the shipped application.
+- Persisted runtime-generated event definitions separately from authored campaign events so procedural event progression survives save/load.
+- Removed per-trigger cloning of the complete campaign event vector while preserving deterministic event selection and RNG sequencing.
+- Routed event-driven condition application through the shared condition refresh semantics to prevent duplicate same-named conditions.
+- Recorded processed procedural world-evolution transitions in structured event history so resolved evolution quests are not reconciled repeatedly on later time advances.
+### v0.49.1: Bevy player feedback restoration
+- Removed migration-only `InputEvent::Other` and unused shared `ScrollViewport` compatibility types from the frontend boundary.
+- Removed the obsolete terminal UI compatibility façade and the terminal-only `logkeys` developer command; gameplay modules no longer depend on the legacy presentation layer.
+- Restored player-facing progression feedback in Bevy, including interactive level-up attribute selection and quest reward details for gained/consumed items and reputation changes.
+- Made Bevy the required runtime dependency instead of retaining an obsolete optional feature gate now that the terminal frontend has been removed.
+
