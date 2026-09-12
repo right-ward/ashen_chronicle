@@ -247,14 +247,20 @@ fn choice_button_input(
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
     for (interaction, choice) in &mut interaction_query {
-        if *interaction == Interaction::Pressed {
-            navigation.selected = choice.index;
-            if navigation.current_screen == Some(ScreenId::Lifecycle) {
-                lifecycle_queue.0.push(InputEvent::Confirm);
-            } else {
-                gameplay_queue.0.push(InputEvent::Confirm);
-            }
+        if *interaction != Interaction::Pressed {
+            continue;
         }
+        navigation.selected = choice.index;
+        let queue = if navigation.current_screen == Some(ScreenId::Lifecycle) {
+            &mut lifecycle_queue.0
+        } else {
+            &mut gameplay_queue.0
+        };
+        queue.push(InputEvent::Home);
+        for _ in 0..choice.index {
+            queue.push(InputEvent::Down);
+        }
+        queue.push(InputEvent::Confirm);
     }
 }
 
