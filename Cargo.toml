@@ -1,5 +1,6 @@
 [package]
 name = "ashen_chronicle"
+
 version = "0.49.1"
 edition = "2021"
 
