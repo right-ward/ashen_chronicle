@@ -18,7 +18,9 @@ use crate::model::GameState;
 
 #[derive(Debug, Clone, PartialEq, Eq)]
 enum FeedbackEntry {
-    LevelUp { level: u32 },
+    LevelUp {
+        level: u32,
+    },
     QuestReward {
         added_items: Vec<(String, String)>,
         consumed_items: Vec<String>,
@@ -43,8 +45,10 @@ pub(crate) struct FeedbackState {
 struct FeedbackOverlay;
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<FeedbackState>()
-        .add_systems(Update, (observe_state_changes, feedback_input, render_if_active).chain());
+    app.init_resource::<FeedbackState>().add_systems(
+        Update,
+        (observe_state_changes, feedback_input, render_if_active).chain(),
+    );
 }
 
 fn observe_state_changes(
@@ -98,7 +102,11 @@ fn observe_state_changes(
         .factions
         .iter()
         .filter_map(|faction| {
-            let previous = feedback.last_factions.get(&faction.name).copied().unwrap_or(0);
+            let previous = feedback
+                .last_factions
+                .get(&faction.name)
+                .copied()
+                .unwrap_or(0);
             let delta = faction.reputation - previous;
             (delta != 0).then(|| (faction.name.clone(), delta))
         })
@@ -158,7 +166,10 @@ fn feedback_input(
     mut input_queue: ResMut<GameplayInputQueue>,
     mut lifecycle: ResMut<LifecycleState>,
 ) {
-    if !feedback.active || navigation.current_screen != Some(ScreenId::Feedback) || input_queue.0.is_empty() {
+    if !feedback.active
+        || navigation.current_screen != Some(ScreenId::Feedback)
+        || input_queue.0.is_empty()
+    {
         return;
     }
 
@@ -169,18 +180,35 @@ fn feedback_input(
             InputEvent::Down => move_level_selection(&mut feedback, 1),
             InputEvent::Home => set_level_selection(&mut feedback, 0),
             InputEvent::End => set_level_selection(&mut feedback, 2),
-            InputEvent::Character('1') => choose_attribute(&mut lifecycle, &mut feedback, 0, &mut navigation),
-            InputEvent::Character('2') => choose_attribute(&mut lifecycle, &mut feedback, 1, &mut navigation),
-            InputEvent::Character('3') => choose_attribute(&mut lifecycle, &mut feedback, 2, &mut navigation),
+            InputEvent::Character('1') => {
+                choose_attribute(&mut lifecycle, &mut feedback, 0, &mut navigation)
+            }
+            InputEvent::Character('2') => {
+                choose_attribute(&mut lifecycle, &mut feedback, 1, &mut navigation)
+            }
+            InputEvent::Character('3') => {
+                choose_attribute(&mut lifecycle, &mut feedback, 2, &mut navigation)
+            }
             InputEvent::Confirm => {
-                if matches!(feedback.entries.front(), Some(FeedbackEntry::LevelUp { .. })) {
-                    choose_attribute(&mut lifecycle, &mut feedback, feedback.selected, &mut navigation);
+                if matches!(
+                    feedback.entries.front(),
+                    Some(FeedbackEntry::LevelUp { .. })
+                ) {
+                    choose_attribute(
+                        &mut lifecycle,
+                        &mut feedback,
+                        feedback.selected,
+                        &mut navigation,
+                    );
                 } else {
                     dismiss_current(&mut feedback, &mut navigation);
                 }
             }
             InputEvent::Cancel => {
-                if !matches!(feedback.entries.front(), Some(FeedbackEntry::LevelUp { .. })) {
+                if !matches!(
+                    feedback.entries.front(),
+                    Some(FeedbackEntry::LevelUp { .. })
+                ) {
                     dismiss_current(&mut feedback, &mut navigation);
                 }
             }
@@ -190,7 +218,10 @@ fn feedback_input(
 }
 
 fn move_level_selection(feedback: &mut FeedbackState, direction: isize) {
-    if !matches!(feedback.entries.front(), Some(FeedbackEntry::LevelUp { .. })) {
+    if !matches!(
+        feedback.entries.front(),
+        Some(FeedbackEntry::LevelUp { .. })
+    ) {
         return;
     }
     feedback.selected = (feedback.selected as isize + direction).rem_euclid(3) as usize;
@@ -198,7 +229,10 @@ fn move_level_selection(feedback: &mut FeedbackState, direction: isize) {
 }
 
 fn set_level_selection(feedback: &mut FeedbackState, selected: usize) {
-    if !matches!(feedback.entries.front(), Some(FeedbackEntry::LevelUp { .. })) {
+    if !matches!(
+        feedback.entries.front(),
+        Some(FeedbackEntry::LevelUp { .. })
+    ) {
         return;
     }
     feedback.selected = selected.min(2);
@@ -211,7 +245,10 @@ fn choose_attribute(
     choice: usize,
     navigation: &mut NavigationState,
 ) {
-    if !matches!(feedback.entries.front(), Some(FeedbackEntry::LevelUp { .. })) {
+    if !matches!(
+        feedback.entries.front(),
+        Some(FeedbackEntry::LevelUp { .. })
+    ) {
         return;
     }
     let Some(session) = lifecycle.session.as_mut() else {
@@ -335,7 +372,11 @@ fn render_level_up(commands: &mut Commands, parent: Entity, level: u32, selected
         };
         bevy_presentation::spawn_choice_button(commands, parent, index, label);
     }
-    bevy_presentation::spawn_muted_label(commands, parent, "Choose with arrows and Enter, or press 1–3.");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        parent,
+        "Choose with arrows and Enter, or press 1–3.",
+    );
 }
 
 fn render_quest_reward(
@@ -364,7 +405,11 @@ fn render_quest_reward(
     if !reputation_changes.is_empty() {
         bevy_presentation::spawn_muted_label(commands, parent, "Reputation:");
         for (faction, delta) in reputation_changes {
-            bevy_presentation::spawn_muted_label(commands, parent, format!("  {faction} {delta:+}"));
+            bevy_presentation::spawn_muted_label(
+                commands,
+                parent,
+                format!("  {faction} {delta:+}"),
+            );
         }
     }
     bevy_presentation::spawn_muted_label(commands, parent, "Press Enter to continue.");
