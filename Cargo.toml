@@ -4,24 +4,8 @@ name = "ashen_chronicle"
 version = "0.49.1"
 edition = "2021"
 
-[features]
-default = ["bevy"]
-bevy = ["dep:bevy"]
-
-[profile.release]
-codegen-units = 10
-lto = true
-opt-level = "s"
-strip = true
-
-[profile.test]
-inherits = "release"
-codegen-units = 256
-opt-level = 3
-strip = true
-
 [dependencies]
-bevy = { version = "0.19.1", optional = true, default-features = false, features = [
+bevy = { version = "0.19.1", default-features = false, features = [
     "default_app",
     "2d_bevy_render",
     "ui_bevy_render",
@@ -34,3 +18,15 @@ bevy = { version = "0.19.1", optional = true, default-features = false, features
 serde = { version = "1", features = ["derive"] }
 serde_json = "1"
 flate2 = "1.1"
+
+[profile.release]
+codegen-units = 10
+lto = true
+opt-level = "s"
+strip = true
+
+[profile.test]
+inherits = "release"
+codegen-units = 256
+opt-level = 3
+strip = true
