@@ -69,6 +69,8 @@ fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -
         menu::GameAction::Meditate => Some(ScreenId::Meditation),
         menu::GameAction::History => Some(ScreenId::History),
         menu::GameAction::Journal => Some(ScreenId::Journal),
+        menu::GameAction::Talk => Some(ScreenId::Talk),
+        menu::GameAction::SearchRemains => Some(ScreenId::Remains),
         _ => None,
     }
 }
