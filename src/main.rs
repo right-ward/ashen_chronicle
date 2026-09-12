@@ -7,6 +7,8 @@ mod bevy_console;
 #[cfg(feature = "bevy")]
 mod bevy_gameplay;
 #[cfg(feature = "bevy")]
+mod bevy_interactions;
+#[cfg(feature = "bevy")]
 mod bevy_lifecycle;
 #[cfg(feature = "bevy")]
 mod bevy_navigation_bridge;
