@@ -378,10 +378,7 @@ pub(crate) fn perform_conversation_choice(
     let view = build_conversation_view(state, npc_index);
     let npc_name = view.npc.display_name();
     if !view.available {
-        return view
-            .unavailable_message
-            .into_iter()
-            .collect::<Vec<_>>();
+        return view.unavailable_message.into_iter().collect::<Vec<_>>();
     }
 
     let quest_indices: Vec<usize> = state
@@ -490,7 +487,10 @@ pub(crate) fn perform_conversation_choice(
                 }
             }
             if !handled {
-                messages.push(format!("{} has no unfinished deed to hear about.", npc_name));
+                messages.push(format!(
+                    "{} has no unfinished deed to hear about.",
+                    npc_name
+                ));
             }
         }
         2 if view.options.len() > 2 => {

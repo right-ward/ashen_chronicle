@@ -277,7 +277,9 @@ pub(crate) fn search_remains_for_bevy(
             let hidden = Item {
                 id: state.world.allocate_id(),
                 name: "Ashen Note".to_string(),
-                description: "A scrap of writing that might reveal something about the life that ended here.".to_string(),
+                description:
+                    "A scrap of writing that might reveal something about the life that ended here."
+                        .to_string(),
             };
             state.character.inventory.push(hidden.clone());
             Some(hidden)

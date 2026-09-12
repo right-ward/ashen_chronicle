@@ -46,8 +46,10 @@ impl Default for BevyInteractionState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<BevyInteractionState>()
-        .add_systems(Update, (sync_screen, interaction_input, render_if_active).chain());
+    app.init_resource::<BevyInteractionState>().add_systems(
+        Update,
+        (sync_screen, interaction_input, render_if_active).chain(),
+    );
 }
 
 fn is_interaction_screen(screen: Option<ScreenId>) -> bool {
@@ -62,7 +64,9 @@ fn sync_screen(
     navigation: Res<NavigationState>,
     mut state: ResMut<BevyInteractionState>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete || !is_interaction_screen(navigation.current_screen) {
+    if lifecycle.phase != LifecyclePhase::Complete
+        || !is_interaction_screen(navigation.current_screen)
+    {
         return;
     }
     let Some(screen) = navigation.current_screen else {
@@ -92,7 +96,12 @@ fn selection_count(state: &BevyInteractionState, lifecycle: &LifecycleState) -> 
         return 1;
     };
     match state.screen {
-        InteractionScreen::Talk => interactions::build_talk_view_for_bevy(&session.state).npcs.len() + 1,
+        InteractionScreen::Talk => {
+            interactions::build_talk_view_for_bevy(&session.state)
+                .npcs
+                .len()
+                + 1
+        }
         InteractionScreen::Conversation => state
             .npc_id
             .and_then(|npc_id| interactions::npc_index_by_id(&session.state, npc_id))
@@ -101,7 +110,12 @@ fn selection_count(state: &BevyInteractionState, lifecycle: &LifecycleState) -> 
                     .map(|view| view.options.len() + 1)
             })
             .unwrap_or(1),
-        InteractionScreen::Remains => legacy::build_remains_view_for_bevy(&session.state).remains.len() + 1,
+        InteractionScreen::Remains => {
+            legacy::build_remains_view_for_bevy(&session.state)
+                .remains
+                .len()
+                + 1
+        }
         InteractionScreen::RemainsResult => 1,
     }
 }
@@ -199,8 +213,7 @@ fn activate(
                 session.state.character.location_id,
             )
             .get(state.selected)
-            .copied()
-            else {
+            .copied() else {
                 state.message = Some("There is no one here to talk to.".to_string());
                 state.dirty = true;
                 return;
@@ -279,7 +292,9 @@ fn activate(
 
 fn cancel(state: &mut BevyInteractionState, navigation: &mut NavigationState) {
     match state.screen {
-        InteractionScreen::Talk | InteractionScreen::Remains => close_to_gameplay(state, navigation),
+        InteractionScreen::Talk | InteractionScreen::Remains => {
+            close_to_gameplay(state, navigation)
+        }
         InteractionScreen::Conversation => {
             state.screen = InteractionScreen::Talk;
             state.selected = 0;
@@ -299,7 +314,10 @@ fn render_if_active(
     mut state: ResMut<BevyInteractionState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete || !is_interaction_screen(navigation.current_screen) || !state.dirty {
+    if lifecycle.phase != LifecyclePhase::Complete
+        || !is_interaction_screen(navigation.current_screen)
+        || !state.dirty
+    {
         return;
     }
     for root in &roots {
@@ -321,16 +339,25 @@ fn render_if_active(
                 .and_then(|npc_index| {
                     interactions::build_conversation_view_for_bevy(&session.state, npc_index)
                 });
-            render_conversation(&mut commands, view.as_ref(), state.selected, state.message.as_deref());
+            render_conversation(
+                &mut commands,
+                view.as_ref(),
+                state.selected,
+                state.message.as_deref(),
+            );
         }
         InteractionScreen::Remains => {
             let view = legacy::build_remains_view_for_bevy(&session.state);
-            render_remains(&mut commands, &view, state.selected, state.message.as_deref());
+            render_remains(
+                &mut commands,
+                &view,
+                state.selected,
+                state.message.as_deref(),
+            );
         }
-        InteractionScreen::RemainsResult => render_remains_result(
-            &mut commands,
-            state.result.as_ref(),
-        ),
+        InteractionScreen::RemainsResult => {
+            render_remains_result(&mut commands, state.result.as_ref())
+        }
     }
     state.dirty = false;
 }
@@ -352,7 +379,11 @@ fn render_talk(commands: &mut Commands, view: &TalkView, selected: usize) {
         }
     }
     let back_index = view.npcs.len();
-    let label = if selected == back_index { "▶ Back" } else { "Back" };
+    let label = if selected == back_index {
+        "▶ Back"
+    } else {
+        "Back"
+    };
     bevy_presentation::spawn_choice_button(commands, panel, back_index, label);
 }
 
@@ -365,7 +396,11 @@ fn render_conversation(
     let root = bevy_presentation::spawn_screen(commands, "CONVERSATION");
     let panel = bevy_presentation::spawn_panel(commands, root);
     let Some(view) = view else {
-        bevy_presentation::spawn_muted_label(commands, panel, "That person can no longer be found.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "That person can no longer be found.",
+        );
         bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
         return;
     };
@@ -402,12 +437,21 @@ fn render_conversation(
             bevy_presentation::spawn_choice_button(commands, panel, index, label);
         }
         let back_index = view.options.len();
-        let label = if selected == back_index { "▶ Back" } else { "Back" };
+        let label = if selected == back_index {
+            "▶ Back"
+        } else {
+            "Back"
+        };
         bevy_presentation::spawn_choice_button(commands, panel, back_index, label);
     }
 }
 
-fn render_remains(commands: &mut Commands, view: &RemainsView, selected: usize, message: Option<&str>) {
+fn render_remains(
+    commands: &mut Commands,
+    view: &RemainsView,
+    selected: usize,
+    message: Option<&str>,
+) {
     let root = bevy_presentation::spawn_screen(commands, "REMAINS");
     let panel = bevy_presentation::spawn_panel(commands, root);
     bevy_presentation::spawn_muted_label(
@@ -419,7 +463,11 @@ fn render_remains(commands: &mut Commands, view: &RemainsView, selected: usize, 
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
     if view.remains.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, panel, "There are no remains worth searching here.");
+        bevy_presentation::spawn_muted_label(
+            commands,
+            panel,
+            "There are no remains worth searching here.",
+        );
     } else {
         for (index, remains) in view.remains.iter().enumerate() {
             let label = if index == selected {
@@ -431,7 +479,11 @@ fn render_remains(commands: &mut Commands, view: &RemainsView, selected: usize, 
         }
     }
     let back_index = view.remains.len();
-    let label = if selected == back_index { "▶ Back" } else { "Back" };
+    let label = if selected == back_index {
+        "▶ Back"
+    } else {
+        "Back"
+    };
     bevy_presentation::spawn_choice_button(commands, panel, back_index, label);
 }
 
