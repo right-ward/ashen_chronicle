@@ -252,14 +252,6 @@ pub(crate) struct ScreenView {
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
-pub(crate) struct ChoiceView {
-    pub screen: ScreenView,
-    pub prompt: String,
-    pub options: Vec<String>,
-    pub back_label: Option<String>,
-}
-
-#[derive(Debug, Clone, Default, PartialEq, Eq)]
 pub(crate) struct DeathView {
     pub screen: ScreenView,
     pub character: CharacterView,
@@ -455,11 +447,6 @@ mod tests {
             description: "A broken road marker.".to_string(),
             region_name: "North".to_string(),
             dangerous: true,
-        };
-        #[allow(unused_variables)]
-        let threat = ThreatView {
-            label: "Marauders stir".to_string(),
-            description: "Someone is watching the road.".to_string(),
         };
         let history_entry = HistoryEntryView {
             day: 4,
