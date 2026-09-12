@@ -317,7 +317,7 @@ pub(crate) struct ConsoleView {
 #[cfg(test)]
 mod tests {
     use super::{
-        CharacterSheetView, CharacterView, ChoiceView, CombatResultView, CombatView, CombatantView,
+        CharacterSheetView, CharacterView, CombatResultView, CombatView, CombatantView,
         ConditionView, ConsoleScrollView, ConsoleView, ConversationView, DeathView, FactionView,
         HistoryEntryView, HistoryEntryViewType, HistoryView, InventoryDetailView, InventoryView,
         ItemView, LocationView, MeditationResultView, MeditationTargetView, MeditationView,
@@ -382,12 +382,6 @@ mod tests {
             subtitle: Some("Subtitle".to_string()),
             art: Some("art".to_string()),
             body: vec!["line".to_string()],
-        };
-        let choice = ChoiceView {
-            screen: screen.clone(),
-            prompt: "Choose".to_string(),
-            options: vec!["One".to_string()],
-            back_label: Some("Back".to_string()),
         };
         let _death = DeathView {
             screen: screen.clone(),

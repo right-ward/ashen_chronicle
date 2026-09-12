@@ -1,7 +1,7 @@
 use crate::game::{character, interactions, state_effects};
 use crate::model::{Corpse, GameState, Item};
 use crate::presentation::{
-    ChoiceView, ItemView, RemainsEntryView, RemainsResultView, RemainsView, ScreenView,
+    ItemView, RemainsEntryView, RemainsResultView, RemainsView, ScreenView,
 };
 use crate::ui::{narrate, pause};
 use std::mem;
