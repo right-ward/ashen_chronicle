@@ -194,12 +194,8 @@ fn feedback_input(
                     feedback.entries.front(),
                     Some(FeedbackEntry::LevelUp { .. })
                 ) {
-                    choose_attribute(
-                        &mut lifecycle,
-                        &mut feedback,
-                        feedback.selected,
-                        &mut navigation,
-                    );
+                    let selected = feedback.selected;
+                    choose_attribute(&mut lifecycle, &mut feedback, selected, &mut navigation);
                 } else {
                     dismiss_current(&mut feedback, &mut navigation);
                 }
