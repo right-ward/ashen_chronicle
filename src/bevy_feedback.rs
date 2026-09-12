@@ -200,13 +200,13 @@ fn feedback_input(
                     dismiss_current(&mut feedback, &mut navigation);
                 }
             }
-            InputEvent::Cancel => {
+            InputEvent::Cancel
                 if !matches!(
                     feedback.entries.front(),
                     Some(FeedbackEntry::LevelUp { .. })
-                ) {
-                    dismiss_current(&mut feedback, &mut navigation);
-                }
+                ) =>
+            {
+                dismiss_current(&mut feedback, &mut navigation);
             }
             _ => {}
         }
