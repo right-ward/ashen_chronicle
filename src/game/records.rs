@@ -47,57 +47,6 @@ pub(crate) fn build_inventory_detail_view(
     })
 }
 
-pub(crate) fn show_inventory(state: &GameState) -> std::io::Result<()> {
-    let view = build_inventory_view(state);
-    if view.items.is_empty() {
-        set_menu_screen(
-            format!("Inventory — {}", view.character.display_name()),
-            Some("Your pack is empty.".to_string()),
-            None,
-        );
-        let _ = choose_from_list("Inventory", &["Back".to_string()], None)?;
-        return Ok(());
-    }
-
-    let options: Vec<String> = view.items.iter().map(|item| item.name.clone()).collect();
-    loop {
-        set_inventory_screen(&view);
-        let Some(selection) = choose_from_list("Select an item", &options, Some("Back"))? else {
-            return Ok(());
-        };
-        if selection >= view.items.len() {
-            continue;
-        }
-        show_inventory_detail(state, selection)?;
-    }
-}
-
-fn set_inventory_screen(view: &InventoryView) {
-    set_menu_screen(
-        format!("Inventory — {}", view.character.display_name()),
-        Some("Select an item to inspect its details.".to_string()),
-        None,
-    );
-}
-
-fn show_inventory_detail(state: &GameState, selected: usize) -> std::io::Result<()> {
-    let Some(view) = build_inventory_detail_view(state, selected) else {
-        return Ok(());
-    };
-    let description = if view.item.description.trim().is_empty() {
-        "No description is available.".to_string()
-    } else {
-        view.item.description.clone()
-    };
-    let details = format!(
-        "Item {} of {}\n\n{}",
-        view.position, view.total, description
-    );
-    set_menu_screen(view.item.name, Some(details), view.art);
-    let _ = choose_from_list("Item details", &["Back to inventory".to_string()], None)?;
-    Ok(())
-}
-
 fn build_quest_view(quest: &Quest) -> QuestView {
     let status = if quest.completed {
         "COMPLETED"
@@ -150,86 +99,6 @@ pub(crate) fn build_quest_view_for(state: &GameState, quest_index: usize) -> Opt
     Some(build_quest_view(quest))
 }
 
-pub(crate) fn review_quests(state: &GameState) -> std::io::Result<()> {
-    let view = build_quest_log_view(state);
-    if view.quests.is_empty() {
-        set_menu_screen(
-            "Quest Log",
-            Some("No quests have been recorded yet.".to_string()),
-            None,
-        );
-        let _ = crate::ui::choose_from_list("Quest Log", &["Back".to_string()], None)?;
-        return Ok(());
-    }
-
-    let options: Vec<String> = view
-        .quests
-        .iter()
-        .map(|quest| format!("[{}] {}", quest.status, quest.title))
-        .collect();
-    let visible_quest_indices: Vec<usize> = state
-        .quests
-        .iter()
-        .enumerate()
-        .filter(|(_, quest)| quest.offered || quest.completed)
-        .map(|(index, _)| index)
-        .collect();
-
-    loop {
-        set_menu_screen(
-            format!("Quest Log — {}", view.character.display_name()),
-            Some(
-                "ACTIVE = in progress   READY = all objectives complete   COMPLETED = finished"
-                    .to_string(),
-            ),
-            None,
-        );
-        let Some(selection) =
-            crate::ui::choose_from_list("Select a quest", &options, Some("Back"))?
-        else {
-            return Ok(());
-        };
-        let Some(&quest_index) = visible_quest_indices.get(selection) else {
-            continue;
-        };
-        show_quest_detail(state, quest_index)?;
-    }
-}
-
-fn show_quest_detail(state: &GameState, quest_index: usize) -> std::io::Result<()> {
-    let Some(quest) = state.quests.get(quest_index) else {
-        return Ok(());
-    };
-    let view = build_quest_view(quest);
-
-    let mut detail_lines = vec![format!("Status: {}", view.status), String::new()];
-    if !view.description.trim().is_empty() {
-        detail_lines.extend(view.description.lines().map(str::to_string));
-        detail_lines.push(String::new());
-    }
-    detail_lines.push("Objectives".to_string());
-    if view.objectives.is_empty() {
-        detail_lines.push("  No objectives recorded.".to_string());
-    } else {
-        detail_lines.extend(view.objectives.iter().map(|objective| {
-            let marker = if objective.completed { "x" } else { " " };
-            format!(
-                "  [{}] {} ({}/{})",
-                marker, objective.label, objective.progress, objective.required
-            )
-        }));
-    }
-    detail_lines.push(String::new());
-    detail_lines.push(format!(
-        "Reward: {}",
-        view.reward_item_name.as_deref().unwrap_or("—")
-    ));
-
-    set_menu_screen(view.title, Some(detail_lines.join("\n")), None);
-    let _ = crate::ui::choose_from_list("Quest details", &["Back".to_string()], None)?;
-    Ok(())
-}
-
 fn quest_is_ready(quest: &Quest) -> bool {
     !quest.completed
         && !quest.objectives.is_empty()
@@ -251,10 +120,3 @@ pub(crate) fn record_journal_note(state: &mut GameState, note: &str) -> bool {
     true
 }
 
-pub(crate) fn write_note(state: &mut GameState) -> std::io::Result<()> {
-    let note = prompt("Write a journal note: ")?;
-    if record_journal_note(state, &note) {
-        narrate("The journal entry is recorded.");
-    }
-    Ok(())
-}
