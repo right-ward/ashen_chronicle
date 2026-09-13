@@ -2,153 +2,125 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
-pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle";
-pub const DATA_DIRECTORY_NAME: &str = "data";
-pub const MODS_DIRECTORY_NAME: &str = "mods";
-pub const SAVES_DIRECTORY_NAME: &str = "saves";
+const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle";
+const DATA_DIRECTORY_NAME: &str = "data";
+const MODS_DIRECTORY_NAME: &str = "mods";
+const SAVES_DIRECTORY_NAME: &str = "saves";
 
-#[derive(Debug, Clone, PartialEq, Eq)]
+#[derive(Debug, Clone)]
 pub struct GamePaths {
-    pub root: PathBuf,
-    pub data_dir: PathBuf,
-    pub mods_dir: PathBuf,
-    pub saves_dir: PathBuf,
-    pub bundled_data_dir: Option<PathBuf>,
-    pub using_android_fallback: bool,
+    root: PathBuf,
+    data_dir: PathBuf,
+    mods_dir: PathBuf,
+    saves_dir: PathBuf,
+    bundled_data_dir: Option<PathBuf>,
+    using_android_fallback: bool,
 }
 
 impl GamePaths {
     pub fn initialize() -> io::Result<Self> {
         let bundled_data_dir = discover_bundled_data_dir();
-        let (preferred_root, fallback_root) = platform_roots();
+        let roots = platform_roots();
 
-        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
-            Ok(paths) => {
-                std::env::set_current_dir(&paths.root)?;
-                Ok(paths)
-            }
-            Err(preferred_error) => {
-                let Some(fallback) = fallback_root else {
-                    return Err(preferred_error);
-                };
-                let mut paths = prepare_root(&fallback, bundled_data_dir.as_deref())?;
-                paths.using_android_fallback = cfg!(target_os = "android");
-                std::env::set_current_dir(&paths.root)?;
-                Ok(paths)
+        for (root, using_android_fallback) in roots {
+            match prepare_root(&root, bundled_data_dir.as_deref()) {
+                Ok(mut paths) => {
+                    paths.bundled_data_dir = bundled_data_dir.clone();
+                    paths.using_android_fallback = using_android_fallback;
+                    std::env::set_current_dir(&paths.root)?;
+                    return Ok(paths);
+                }
+                Err(_) => continue,
             }
         }
+
+        Err(io::Error::new(
+            io::ErrorKind::Other,
+            "unable to initialize the game root",
+        ))
     }
 
-    pub fn base_content_path(&self) -> PathBuf {
-        self.data_dir.join("base_content.json")
+    pub fn root(&self) -> &Path {
+        &self.root
+    }
+
+    pub fn data_dir(&self) -> &Path {
+        &self.data_dir
+    }
+
+    pub fn mods_dir(&self) -> &Path {
+        &self.mods_dir
+    }
+
+    pub fn saves_dir(&self) -> &Path {
+        &self.saves_dir
+    }
+
+    pub fn bundled_data_dir(&self) -> Option<&Path> {
+        self.bundled_data_dir.as_deref()
+    }
+
+    pub fn using_android_fallback(&self) -> bool {
+        self.using_android_fallback
     }
 }
 
 fn prepare_root(root: &Path, bundled_data_dir: Option<&Path>) -> io::Result<GamePaths> {
-    ensure_directory(root)?;
     let data_dir = root.join(DATA_DIRECTORY_NAME);
     let mods_dir = data_dir.join(MODS_DIRECTORY_NAME);
     let saves_dir = root.join(SAVES_DIRECTORY_NAME);
-    ensure_directory(&data_dir)?;
-    ensure_directory(&mods_dir)?;
-    ensure_directory(&saves_dir)?;
+
+    fs::create_dir_all(&mods_dir)?;
+    fs::create_dir_all(&saves_dir)?;
 
     let paths = GamePaths {
         root: root.to_path_buf(),
         data_dir,
         mods_dir,
         saves_dir,
-        bundled_data_dir: bundled_data_dir.map(Path::to_path_buf),
+        bundled_data_dir: None,
         using_android_fallback: false,
     };
-    paths.sync_bundled_data(bundled_data_dir)?;
+
+    sync_bundled_data(&paths, bundled_data_dir)?;
     Ok(paths)
 }
 
-impl GamePaths {
-    fn sync_bundled_data(&self, bundled_data_dir: Option<&Path>) -> io::Result<()> {
-        let Some(bundled_data_dir) = bundled_data_dir else {
-            return Ok(());
-        };
+fn sync_bundled_data(paths: &GamePaths, bundled_data_dir: Option<&Path>) -> io::Result<()> {
+    let Some(bundled_data_dir) = bundled_data_dir else {
+        return Ok(());
+    };
 
-        let bundled_base = bundled_data_dir.join("base_content.json");
-        if bundled_base.is_file() {
-            fs::copy(&bundled_base, self.base_content_path())?;
-            set_read_only(&self.base_content_path())?;
-        }
-
-        let bundled_mods = bundled_data_dir.join(MODS_DIRECTORY_NAME);
-        if bundled_mods.is_dir() {
-            sync_directory_without_overwriting(&bundled_mods, &self.mods_dir)?;
-        }
-        Ok(())
-    }
-}
-
-fn platform_roots() -> (PathBuf, Option<PathBuf>) {
-    #[cfg(target_os = "android")]
-    {
-        let external_root = std::env::var_os("EXTERNAL_STORAGE")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"));
-        let preferred = external_root.join("Documents").join(GAME_DIRECTORY_NAME);
-        let fallback = external_root
-            .join("Android")
-            .join("data")
-            .join("com.rightward.ashenchronicle")
-            .join("files")
-            .join("Documents")
-            .join(GAME_DIRECTORY_NAME);
-        return (preferred, Some(fallback));
+    let bundled_base = bundled_data_dir.join("base_content.json");
+    let game_base = paths.root.join("base_content.json");
+    if bundled_base.is_file() {
+        fs::copy(&bundled_base, &game_base)?;
+        set_read_only(&game_base)?;
     }
 
-    #[cfg(not(target_os = "android"))]
-    {
-        let preferred = dirs::document_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(GAME_DIRECTORY_NAME);
-        (preferred, None)
-    }
-}
-
-fn discover_bundled_data_dir() -> Option<PathBuf> {
-    let mut candidates = Vec::new();
-
-    if let Ok(current_dir) = std::env::current_dir() {
-        candidates.push(current_dir.join("data"));
-    }
-    if let Ok(exe) = std::env::current_exe() {
-        if let Some(dir) = exe.parent() {
-            candidates.push(dir.join("data"));
-            if let Some(parent) = dir.parent() {
-                candidates.push(parent.join("data"));
-            }
-        }
+    let bundled_mods = bundled_data_dir.join(MODS_DIRECTORY_NAME);
+    if bundled_mods.is_dir() {
+        sync_directory_without_overwriting(&bundled_mods, &paths.mods_dir)?;
     }
 
-    candidates.into_iter().find(|path| path.is_dir())
-}
-
-fn ensure_directory(path: &Path) -> io::Result<()> {
-    if path.is_dir() {
-        Ok(())
-    } else {
-        fs::create_dir_all(path)
-    }
+    Ok(())
 }
 
 fn sync_directory_without_overwriting(source: &Path, destination: &Path) -> io::Result<()> {
+    fs::create_dir_all(destination)?;
+
     for entry in fs::read_dir(source)? {
         let entry = entry?;
         let source_path = entry.path();
         let destination_path = destination.join(entry.file_name());
+
         if source_path.is_dir() {
-            ensure_directory(&destination_path)?;
             sync_directory_without_overwriting(&source_path, &destination_path)?;
         } else if source_path.is_file() && !destination_path.exists() {
-            fs::copy(&source_path, &destination_path)?;
+            fs::copy(source_path, destination_path)?;
         }
     }
+
     Ok(())
 }
 
@@ -158,39 +130,72 @@ fn set_read_only(path: &Path) -> io::Result<()> {
     fs::set_permissions(path, permissions)
 }
 
+fn discover_bundled_data_dir() -> Option<PathBuf> {
+    let candidates = [
+        PathBuf::from("data"),
+        std::env::current_exe()
+            .ok()
+            .and_then(|path| path.parent().map(|parent| parent.join("data")))
+            .unwrap_or_default(),
+        std::env::current_exe()
+            .ok()
+            .and_then(|path| {
+                path.parent()
+                    .and_then(Path::parent)
+                    .map(|parent| parent.join("data"))
+            })
+            .unwrap_or_default(),
+    ];
+
+    candidates.into_iter().find(|path| path.is_dir())
+}
+
+fn platform_roots() -> Vec<(PathBuf, bool)> {
+    #[cfg(target_os = "android")]
+    {
+        let shared = std::env::var_os("EXTERNAL_STORAGE")
+            .map(PathBuf::from)
+            .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"));
+        let shared_root = shared
+            .join("Documents")
+            .join(GAME_DIRECTORY_NAME);
+        let fallback_root = shared
+            .join("Android")
+            .join("data")
+            .join("com.rightward.ashenchronicle")
+            .join("files")
+            .join("Documents")
+            .join(GAME_DIRECTORY_NAME);
+
+        vec![(shared_root, false), (fallback_root, true)]
+    }
+
+    #[cfg(not(target_os = "android"))]
+    {
+        let root = dirs::document_dir()
+            .unwrap_or_else(|| PathBuf::from("."))
+            .join(GAME_DIRECTORY_NAME);
+        vec![(root, false)]
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
-    use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir() -> PathBuf {
-        let stamp = SystemTime::now()
-            .duration_since(UNIX_EPOCH)
-            .expect("system clock should be valid")
-            .as_nanos();
-        let path = std::env::temp_dir().join(format!("ashen_chronicle_game_paths_{}", stamp));
-        fs::create_dir_all(&path).expect("temporary directory should be created");
-        path
+        std::env::temp_dir().join(format!(
+            "ashen-chronicle-game-paths-{}",
+            std::process::id()
+        ))
     }
 
     #[test]
-    fn game_paths_use_expected_directory_names() {
-        let root = PathBuf::from("/tmp/chronicle");
-        let paths = GamePaths {
-            root: root.clone(),
-            data_dir: root.join(DATA_DIRECTORY_NAME),
-            mods_dir: root.join(DATA_DIRECTORY_NAME).join(MODS_DIRECTORY_NAME),
-            saves_dir: root.join(SAVES_DIRECTORY_NAME),
-            bundled_data_dir: None,
-            using_android_fallback: false,
-        };
-
-        assert_eq!(
-            paths.base_content_path(),
-            root.join("data/base_content.json")
-        );
-        assert_eq!(paths.mods_dir, root.join("data/mods"));
-        assert_eq!(paths.saves_dir, root.join("saves"));
+    fn game_root_contains_expected_directories() {
+        assert_eq!(GAME_DIRECTORY_NAME, "The Ashen Chronicle");
+        assert_eq!(DATA_DIRECTORY_NAME, "data");
+        assert_eq!(MODS_DIRECTORY_NAME, "mods");
+        assert_eq!(SAVES_DIRECTORY_NAME, "saves");
     }
 
     #[test]
@@ -199,7 +204,7 @@ mod tests {
         let source = root.join("bundled");
         let destination = root.join("user");
         fs::create_dir_all(source.join("nested")).expect("source should exist");
-        fs::create_dir_all(destination).expect("destination should exist");
+        fs::create_dir_all(&destination).expect("destination should exist");
         fs::write(source.join("nested/content.json"), "bundled").expect("source file should exist");
         fs::write(destination.join("nested_marker"), "marker").expect("marker should exist");
 
@@ -210,9 +215,11 @@ mod tests {
             "bundled"
         );
         assert_eq!(
-            fs::read_to_string(destination.join("nested_marker")).expect("marker should exist"),
+            fs::read_to_string(destination.join("nested_marker"))
+                .expect("existing file should remain"),
             "marker"
         );
-        fs::remove_dir_all(root).expect("temporary directory should be removed");
+
+        let _ = fs::remove_dir_all(root);
     }
 }
