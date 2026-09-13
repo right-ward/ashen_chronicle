@@ -63,7 +63,7 @@ impl GamePaths {
         };
 
         let bundled_base = bundled_data_dir.join("base_content.json");
-        if bundled_base.is_file() && !self.base_content_path().is_file() {
+        if bundled_base.is_file() {
             fs::copy(&bundled_base, self.base_content_path())?;
             set_read_only(&self.base_content_path())?;
         }
