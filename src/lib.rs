@@ -8,6 +8,7 @@ mod bevy_lifecycle;
 mod bevy_navigation_bridge;
 mod bevy_presentation;
 mod bevy_records;
+mod bevy_runtime;
 mod content;
 mod events;
 mod game;
