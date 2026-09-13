@@ -11,7 +11,6 @@ import android.view.View;
 import com.google.androidgamesdk.GameActivity;
 
 import java.io.File;
-import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 
@@ -70,7 +69,7 @@ public class MainActivity extends GameActivity {
         }
 
         try {
-            copyAssetDirectory("data/mods", mods, false);
+            copyAssetDirectory("data/mods", mods);
             copyAssetFile("data/base_content.json", new File(data, "base_content.json"));
             File baseContent = new File(data, "base_content.json");
             if (baseContent.isFile()) {
@@ -82,7 +81,7 @@ public class MainActivity extends GameActivity {
         }
     }
 
-    private void copyAssetDirectory(String assetPath, File destination, boolean overwrite) throws IOException {
+    private void copyAssetDirectory(String assetPath, File destination) throws IOException {
         String[] children = getAssets().list(assetPath);
         if (children == null) {
             return;
@@ -102,8 +101,8 @@ public class MainActivity extends GameActivity {
             String childAssetPath = assetPath + "/" + child;
             String[] nested = getAssets().list(childAssetPath);
             if (nested != null && nested.length > 0) {
-                copyAssetDirectory(childAssetPath, target, overwrite);
-            } else if (overwrite || !target.exists()) {
+                copyAssetDirectory(childAssetPath, target);
+            } else if (!target.exists()) {
                 copyAssetFile(childAssetPath, target);
             }
         }
@@ -115,15 +114,12 @@ public class MainActivity extends GameActivity {
             throw new IOException("Could not create " + parent);
         }
 
-        try (FileInputStream ignored = null) {
-            android.content.res.AssetManager assets = getAssets();
-            try (java.io.InputStream input = assets.open(assetPath);
-                 FileOutputStream output = new FileOutputStream(destination)) {
-                byte[] buffer = new byte[8192];
-                int length;
-                while ((length = input.read(buffer)) != -1) {
-                    output.write(buffer, 0, length);
-                }
+        try (java.io.InputStream input = getAssets().open(assetPath);
+             FileOutputStream output = new FileOutputStream(destination)) {
+            byte[] buffer = new byte[8192];
+            int length;
+            while ((length = input.read(buffer)) != -1) {
+                output.write(buffer, 0, length);
             }
         }
     }
