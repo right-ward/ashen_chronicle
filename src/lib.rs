@@ -11,6 +11,7 @@ mod bevy_records;
 mod content;
 mod events;
 mod game;
+mod game_paths;
 mod input;
 mod model;
 mod persistence;
@@ -21,8 +22,11 @@ pub mod procedural_characteristics;
 pub mod procedural_entities;
 pub mod procedural_opportunities;
 pub mod procedural_relationships;
-mod rng;
+pub mod rng;
 
 pub fn run() {
+    if let Err(error) = game_paths::GamePaths::initialize() {
+        panic!("failed to initialize The Ashen Chronicle game root: {error}");
+    }
     bevy_app::run();
 }
