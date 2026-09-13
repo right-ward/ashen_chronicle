@@ -14,7 +14,7 @@ const WINDOW_WIDTH: u32 = 1280;
 const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
-pub(crate) fn run() {
+pub fn run() {
     let mut app = App::new();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {

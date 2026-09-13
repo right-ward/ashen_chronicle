@@ -2,6 +2,10 @@
 target/
 **/target/
 
+# Android/Gradle build output
+**/build/
+android/app/src/main/jniLibs/
+
 # Rust backup files
 **/*.rs.bk
 
