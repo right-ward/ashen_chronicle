@@ -22,43 +22,52 @@ impl GamePaths {
         let bundled_data_dir = discover_bundled_data_dir();
         let (preferred_root, fallback_root) = platform_roots();
 
-        let (root, using_android_fallback) = match ensure_directory(&preferred_root) {
-            Ok(()) => (preferred_root, false),
+        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
+            Ok(paths) => {
+                std::env::set_current_dir(&paths.root)?;
+                Ok(paths)
+            }
             Err(preferred_error) => {
                 let Some(fallback) = fallback_root else {
                     return Err(preferred_error);
                 };
-                ensure_directory(&fallback)?;
-                (fallback, cfg!(target_os = "android"))
+                let mut paths = prepare_root(&fallback, bundled_data_dir.as_deref())?;
+                paths.using_android_fallback = cfg!(target_os = "android");
+                std::env::set_current_dir(&paths.root)?;
+                Ok(paths)
             }
-        };
-
-        let data_dir = root.join(DATA_DIRECTORY_NAME);
-        let mods_dir = data_dir.join(MODS_DIRECTORY_NAME);
-        let saves_dir = root.join(SAVES_DIRECTORY_NAME);
-        ensure_directory(&data_dir)?;
-        ensure_directory(&mods_dir)?;
-        ensure_directory(&saves_dir)?;
-
-        let paths = Self {
-            root,
-            data_dir,
-            mods_dir,
-            saves_dir,
-            bundled_data_dir,
-            using_android_fallback,
-        };
-        paths.sync_bundled_data()?;
-        std::env::set_current_dir(&paths.root)?;
-        Ok(paths)
+        }
     }
 
     pub fn base_content_path(&self) -> PathBuf {
         self.data_dir.join("base_content.json")
     }
+}
 
-    fn sync_bundled_data(&self) -> io::Result<()> {
-        let Some(bundled_data_dir) = &self.bundled_data_dir else {
+fn prepare_root(root: &Path, bundled_data_dir: Option<&Path>) -> io::Result<GamePaths> {
+    ensure_directory(root)?;
+    let data_dir = root.join(DATA_DIRECTORY_NAME);
+    let mods_dir = data_dir.join(MODS_DIRECTORY_NAME);
+    let saves_dir = root.join(SAVES_DIRECTORY_NAME);
+    ensure_directory(&data_dir)?;
+    ensure_directory(&mods_dir)?;
+    ensure_directory(&saves_dir)?;
+
+    let paths = GamePaths {
+        root: root.to_path_buf(),
+        data_dir,
+        mods_dir,
+        saves_dir,
+        bundled_data_dir: bundled_data_dir.map(Path::to_path_buf),
+        using_android_fallback: false,
+    };
+    paths.sync_bundled_data(bundled_data_dir)?;
+    Ok(paths)
+}
+
+impl GamePaths {
+    fn sync_bundled_data(&self, bundled_data_dir: Option<&Path>) -> io::Result<()> {
+        let Some(bundled_data_dir) = bundled_data_dir else {
             return Ok(());
         };
 
@@ -191,8 +200,10 @@ mod tests {
         let destination = root.join("user");
         fs::create_dir_all(source.join("nested")).expect("source should exist");
         fs::create_dir_all(destination).expect("destination should exist");
-        fs::write(source.join("nested/content.json"), "bundled").expect("source file should exist");
-        fs::write(destination.join("nested_marker"), "marker").expect("marker should exist");
+        fs::write(source.join("nested/content.json"), "bundled")
+            .expect("source file should exist");
+        fs::write(destination.join("nested_marker"), "marker")
+            .expect("marker should exist");
 
         sync_directory_without_overwriting(&source, &destination).expect("sync should succeed");
         assert_eq!(
