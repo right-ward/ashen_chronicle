@@ -1,5 +1,6 @@
 use crate::content::EventContent;
 use crate::model::GameState;
+use atomic_write_file::AtomicWriteFile;
 use flate2::{read::GzDecoder, write::GzEncoder, Compression};
 use serde::{Deserialize, Serialize};
 use std::fs::{self, File};
@@ -50,10 +51,11 @@ pub fn save_game(path: &Path, state: &GameState) -> io::Result<()> {
     let json =
         serde_json::to_vec_pretty(&payload).map_err(|err| io::Error::other(err.to_string()))?;
 
-    let file = File::create(path)?;
+    let file = AtomicWriteFile::open(path)?;
     let mut encoder = GzEncoder::new(file, Compression::default());
     encoder.write_all(&json)?;
-    encoder.finish()?;
+    let file = encoder.finish()?;
+    file.commit()?;
     Ok(())
 }
 
@@ -253,6 +255,28 @@ mod tests {
         assert_ne!(loaded.world.locations[0].description, original_description);
         assert_eq!(loaded.world.locations[0].exits, original_exits);
         assert_eq!(loaded.world.history.len(), history_len);
+        fs::remove_dir_all(&dir).expect("temporary directory should be removed");
+    }
+
+    #[test]
+    fn save_replacement_keeps_the_latest_complete_save_readable() {
+        let dir = temp_dir();
+        let path = character_save_path(&dir, "Replacement Test");
+        let mut first = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "First".to_string(),
+            "Ash Walker".to_string(),
+        );
+        first.character.turn = 3;
+        save_game(&path, &first).expect("initial save should succeed");
+
+        let mut second = first.clone();
+        second.character.turn = 9;
+        save_game(&path, &second).expect("replacement save should succeed");
+
+        let loaded = load_game(&path).expect("replacement save should remain readable");
+        assert_eq!(loaded.character.turn, 9);
         fs::remove_dir_all(&dir).expect("temporary directory should be removed");
     }
 
