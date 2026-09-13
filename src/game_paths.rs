@@ -82,9 +82,7 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
         let external_root = std::env::var_os("EXTERNAL_STORAGE")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"));
-        let preferred = external_root
-            .join("Documents")
-            .join(GAME_DIRECTORY_NAME);
+        let preferred = external_root.join("Documents").join(GAME_DIRECTORY_NAME);
         let fallback = external_root
             .join("Android")
             .join("data")
@@ -178,7 +176,10 @@ mod tests {
             using_android_fallback: false,
         };
 
-        assert_eq!(paths.base_content_path(), root.join("data/base_content.json"));
+        assert_eq!(
+            paths.base_content_path(),
+            root.join("data/base_content.json")
+        );
         assert_eq!(paths.mods_dir, root.join("data/mods"));
         assert_eq!(paths.saves_dir, root.join("saves"));
     }
@@ -195,7 +196,8 @@ mod tests {
 
         sync_directory_without_overwriting(&source, &destination).expect("sync should succeed");
         assert_eq!(
-            fs::read_to_string(destination.join("nested/content.json")).expect("copied file should exist"),
+            fs::read_to_string(destination.join("nested/content.json"))
+                .expect("copied file should exist"),
             "bundled"
         );
         assert_eq!(
