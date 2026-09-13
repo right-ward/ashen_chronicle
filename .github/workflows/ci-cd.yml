@@ -143,8 +143,8 @@ jobs:
           fmt_status=$?
 
           echo >> test.log
-          echo '=== cargo clippy ===' >> test.log
-          cargo clippy --all-targets --all-features -- -D warnings >> test.log 2>&1
+          echo '=== cargo clippy --release ===' >> test.log
+          cargo clippy --release --all-targets --all-features -- -D warnings >> test.log 2>&1
           clippy_status=$?
 
           echo >> test.log
