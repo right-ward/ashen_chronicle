@@ -200,10 +200,8 @@ mod tests {
         let destination = root.join("user");
         fs::create_dir_all(source.join("nested")).expect("source should exist");
         fs::create_dir_all(destination).expect("destination should exist");
-        fs::write(source.join("nested/content.json"), "bundled")
-            .expect("source file should exist");
-        fs::write(destination.join("nested_marker"), "marker")
-            .expect("marker should exist");
+        fs::write(source.join("nested/content.json"), "bundled").expect("source file should exist");
+        fs::write(destination.join("nested_marker"), "marker").expect("marker should exist");
 
         sync_directory_without_overwriting(&source, &destination).expect("sync should succeed");
         assert_eq!(
