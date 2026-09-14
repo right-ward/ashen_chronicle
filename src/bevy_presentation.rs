@@ -4,8 +4,10 @@
 //! model. Gameplay systems remain responsible for translating authoritative game
 //! state into presentation view models and interpreting semantic input events.
 
-use bevy::input::keyboard::KeyboardInput;
+use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
+use bevy::input::ButtonState;
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::input::InputEvent;
 
@@ -331,11 +333,9 @@ fn process_ime_events(
                     text: Some(value.clone().into()),
                 });
             }
-            Ime::Disabled { .. } => {
-                if focus.target.is_some() {
-                    focus.target = None;
-                    focus.suppress_next_back = true;
-                }
+            Ime::Disabled { .. } if focus.target.is_some() => {
+                focus.target = None;
+                focus.suppress_next_back = true;
             }
             _ => {}
         }
@@ -424,6 +424,7 @@ fn choice_button_input(
     }
 }
 
+#[allow(clippy::type_complexity)] // For interaction_query
 fn contextual_touch_input(
     mut interaction_query: Query<
         (
@@ -458,14 +459,13 @@ fn contextual_touch_input(
                 focus.target = Some(TextInputTarget::Console);
                 focus.suppress_next_back = false;
             }
-        } else if tab.is_some() {
-            if navigation.current_screen == Some(ScreenId::Console) {
-                gameplay_queue.0.push(InputEvent::Tab);
-            }
+        } else if tab.is_some() && navigation.current_screen == Some(ScreenId::Console) {
+            gameplay_queue.0.push(InputEvent::Tab);
         }
     }
 }
 
+#[allow(clippy::type_complexity)] // For text_fields
 fn contextual_touch_targets(
     mut commands: Commands,
     navigation: Res<NavigationState>,
