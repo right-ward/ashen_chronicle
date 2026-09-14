@@ -1,0 +1,31 @@
+name: Development patch
+
+on:
+  push:
+    branches:
+      - feat/v0.50.4-storage-screen-audit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+      - name: Apply rustfmt changes
+        run: cargo fmt --all
+      - name: Commit formatting
+        shell: bash
+        run: |
+          set -euo pipefail
+          git add src/game_paths.rs
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "style: format game path storage helpers"
+          git rm .github/workflows/dev-patch.yml
+          git commit -m "chore: remove temporary development workflow"
+          git push origin HEAD:feat/v0.50.4-storage-screen-audit
