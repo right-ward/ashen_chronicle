@@ -7,7 +7,7 @@ use bevy::prelude::*;
 
 use crate::{
     bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_interactions, bevy_lifecycle,
-    bevy_navigation_bridge, bevy_presentation, bevy_records,
+    bevy_navigation_bridge, bevy_presentation, bevy_records, bevy_runtime,
 };
 
 const WINDOW_WIDTH: u32 = 1280;
@@ -26,6 +26,7 @@ pub fn run() {
         ..default()
     }));
     bevy_presentation::install(&mut app);
+    bevy_runtime::install(&mut app);
     bevy_lifecycle::install(&mut app);
     bevy_gameplay::install(&mut app);
     bevy_combat::install(&mut app);
