@@ -152,7 +152,11 @@ fn console_input(
                 state.console.edit(InputEvent::Backspace);
                 state.dirty = true;
             }
-            InputEvent::Delete | InputEvent::Character(_) => {}
+            InputEvent::Delete => {
+                state.console.edit(InputEvent::Delete);
+                state.dirty = true;
+            }
+            InputEvent::Character(_) => {}
         }
     }
 }
