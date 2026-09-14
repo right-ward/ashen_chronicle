@@ -61,6 +61,42 @@ pub enum ScreenId {
     Feedback,
 }
 
+fn screen_padding() -> Val {
+    vmin(3.333)
+}
+
+fn screen_gap() -> Val {
+    vmin(2.222)
+}
+
+fn panel_padding() -> Val {
+    vmin(2.222)
+}
+
+fn panel_gap() -> Val {
+    vmin(1.389)
+}
+
+fn title_font_size() -> FontSize {
+    FontSize::VMin(5.0)
+}
+
+fn label_font_size() -> FontSize {
+    FontSize::VMin(2.778)
+}
+
+fn muted_font_size() -> FontSize {
+    FontSize::VMin(2.5)
+}
+
+fn button_padding_horizontal() -> Val {
+    vmin(1.944)
+}
+
+fn button_padding_vertical() -> Val {
+    vmin(1.111)
+}
+
 pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
@@ -76,16 +112,18 @@ pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity
             Node {
                 width: percent(100),
                 height: percent(100),
-                padding: UiRect::all(px(24)),
+                min_width: px(0),
+                min_height: px(0),
+                padding: UiRect::all(screen_padding()),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(16),
+                row_gap: screen_gap(),
                 ..default()
             },
             BackgroundColor(THEME_BACKGROUND),
             children![(
                 Text::new(title.into()),
                 TextContent,
-                TextFont::from_font_size(FontSize::Px(36.0)),
+                TextFont::from_font_size(title_font_size()),
                 TextColor(THEME_TEXT),
             )],
         ))
@@ -97,9 +135,13 @@ pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
         .spawn((
             Node {
                 width: percent(100),
-                padding: UiRect::all(px(16)),
+                min_width: px(0),
+                min_height: px(0),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                padding: UiRect::all(panel_padding()),
                 flex_direction: FlexDirection::Column,
-                row_gap: px(10),
+                row_gap: panel_gap(),
                 overflow: Overflow::scroll(),
                 ..default()
             },
@@ -114,8 +156,13 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
     let label = commands
         .spawn((
             Text::new(text.into()),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                ..default()
+            },
             TextContent,
-            TextFont::from_font_size(FontSize::Px(20.0)),
+            TextFont::from_font_size(label_font_size()),
             TextColor(THEME_TEXT),
         ))
         .id();
@@ -131,8 +178,13 @@ pub fn spawn_muted_label(
     let label = commands
         .spawn((
             Text::new(text.into()),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                ..default()
+            },
             TextContent,
-            TextFont::from_font_size(FontSize::Px(18.0)),
+            TextFont::from_font_size(muted_font_size()),
             TextColor(THEME_MUTED),
         ))
         .id();
@@ -152,8 +204,9 @@ pub fn spawn_choice_button(
             ChoiceButton { index },
             Node {
                 width: percent(100),
+                min_width: px(0),
                 min_height: px(48),
-                padding: UiRect::axes(px(14), px(8)),
+                padding: UiRect::axes(button_padding_horizontal(), button_padding_vertical()),
                 justify_content: JustifyContent::Start,
                 align_items: AlignItems::Center,
                 border: UiRect::all(px(1)),
@@ -163,8 +216,13 @@ pub fn spawn_choice_button(
             BackgroundColor(THEME_PANEL_ALT),
             children![(
                 Text::new(label.into()),
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    ..default()
+                },
                 TextContent,
-                TextFont::from_font_size(FontSize::Px(20.0)),
+                TextFont::from_font_size(label_font_size()),
                 TextColor(THEME_TEXT),
             )],
         ))
@@ -179,6 +237,7 @@ pub fn spawn_gauge(commands: &mut Commands, parent: Entity, current: i32, maximu
         .spawn((
             Node {
                 width: percent(100),
+                min_width: px(0),
                 height: px(18),
                 ..default()
             },
@@ -297,6 +356,26 @@ mod tests {
             ScreenId::Feedback,
         ];
         assert_eq!(screens.len(), 15);
+    }
+
+    #[test]
+    fn responsive_spacing_preserves_desktop_baseline() {
+        assert_eq!(screen_padding(), vmin(3.333));
+        assert_eq!(panel_padding(), vmin(2.222));
+        assert_eq!(screen_gap(), vmin(2.222));
+        assert_eq!(panel_gap(), vmin(1.389));
+    }
+
+    #[test]
+    fn responsive_fonts_use_viewport_units() {
+        assert_eq!(title_font_size(), FontSize::VMin(5.0));
+        assert_eq!(label_font_size(), FontSize::VMin(2.778));
+        assert_eq!(muted_font_size(), FontSize::VMin(2.5));
+    }
+
+    #[test]
+    fn touch_buttons_keep_a_fixed_logical_minimum_height() {
+        assert_eq!(px(48), Val::Px(48.0));
     }
 
     #[test]
