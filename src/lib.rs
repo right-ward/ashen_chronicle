@@ -10,6 +10,8 @@ mod bevy_presentation;
 mod bevy_records;
 mod bevy_runtime;
 mod content;
+#[cfg(not(target_os = "android"))]
+mod desktop_storage;
 mod events;
 mod game;
 mod game_paths;
