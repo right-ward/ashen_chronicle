@@ -134,7 +134,7 @@ fn move_selection(
 ) {
     let max = match lifecycle.phase {
         LifecyclePhase::Start => start_option_count(lifecycle).saturating_sub(1),
-        LifecyclePhase::Load => lifecycle.save_files.len().saturating_sub(1),
+        LifecyclePhase::Load => lifecycle.save_files.len(),
         LifecyclePhase::CreateCharacter => 3,
         LifecyclePhase::QuitConfirm => 1,
         LifecyclePhase::Death => 2,

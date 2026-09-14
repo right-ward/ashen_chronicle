@@ -113,7 +113,12 @@ fn combat_input(
                 }
                 activate_current_selection(&mut lifecycle, &mut combat_state, &mut navigation);
             }
-            InputEvent::Cancel => {}
+            InputEvent::Cancel => {
+                combat_state.clear();
+                navigation.return_screen = None;
+                navigation.current_screen = Some(ScreenId::Gameplay);
+                navigation.selected = 0;
+            }
             _ => {}
         }
     }

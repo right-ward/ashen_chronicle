@@ -570,6 +570,10 @@ src/
 - Made Bevy the required runtime dependency instead of retaining an obsolete optional feature gate now that the terminal frontend has been removed.
 
 ## v0.50.x: Android Packaging/Porting
+### v0.50.5: Cross-platform game-root selection and Android screen audit
+- Added native desktop game-root use/recreate/alternate-folder selection.
+- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
+- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
 ### v0.50.3: Responsive Bevy presentation for Android landscape
 - Made the shared Bevy screen root use viewport-relative spacing so the same layout scales across phone, tablet, and resizable desktop landscape resolutions.
 - Made shared panels flexible so dashboard, navigation, lifecycle, record, interaction, and result content can shrink into the available viewport while retaining internal scrolling for longer content.

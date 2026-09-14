@@ -2,6 +2,9 @@ use std::fs;
 use std::io;
 use std::path::{Path, PathBuf};
 
+#[cfg(not(target_os = "android"))]
+use crate::desktop_storage;
+
 pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle";
 pub const DATA_DIRECTORY_NAME: &str = "data";
 pub const MODS_DIRECTORY_NAME: &str = "mods";
@@ -21,6 +24,9 @@ impl GamePaths {
     pub fn initialize() -> io::Result<Self> {
         let bundled_data_dir = discover_bundled_data_dir();
         let (preferred_root, fallback_root) = platform_roots();
+
+        #[cfg(not(target_os = "android"))]
+        let preferred_root = desktop_storage::resolve_root(&preferred_root)?;
 
         match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
             Ok(paths) => {
@@ -73,8 +79,12 @@ impl GamePaths {
 
         let bundled_base = bundled_data_dir.join("base_content.json");
         if bundled_base.is_file() {
-            fs::copy(&bundled_base, self.base_content_path())?;
-            set_read_only(&self.base_content_path())?;
+            let target = self.base_content_path();
+            if target.is_file() {
+                set_writable(&target)?;
+            }
+            fs::copy(&bundled_base, &target)?;
+            set_read_only(&target)?;
         }
 
         let bundled_mods = bundled_data_dir.join(MODS_DIRECTORY_NAME);
@@ -150,6 +160,12 @@ fn sync_directory_without_overwriting(source: &Path, destination: &Path) -> io::
         }
     }
     Ok(())
+}
+
+fn set_writable(path: &Path) -> io::Result<()> {
+    let mut permissions = fs::metadata(path)?.permissions();
+    permissions.set_readonly(false);
+    fs::set_permissions(path, permissions)
 }
 
 fn set_read_only(path: &Path) -> io::Result<()> {

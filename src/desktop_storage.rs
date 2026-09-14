@@ -51,5 +51,10 @@ fn pick_alternate_root(preferred_root: &Path) -> io::Result<PathBuf> {
         .set_title("Choose The Ashen Chronicle game root")
         .set_directory(start)
         .pick_folder()
-        .ok_or_else(|| io::Error::new(io::ErrorKind::Interrupted, "game root selection was cancelled"))
+        .ok_or_else(|| {
+            io::Error::new(
+                io::ErrorKind::Interrupted,
+                "game root selection was cancelled",
+            )
+        })
 }

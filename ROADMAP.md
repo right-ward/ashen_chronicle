@@ -5,7 +5,12 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-### v0.50.x: Android touch, soft-keyboard, and system Back input
+### v0.50.5: Cross-platform game-root selection and Android screen audit
+- Added native desktop game-root use/recreate/alternate-folder selection.
+- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
+- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
+
+### v0.50.4: Android touch, soft-keyboard, and system Back input
 - Added reusable contextual touch behavior to the shared Bevy presentation layer while preserving the frontend-neutral semantic input queues and desktop keyboard mappings.
 - Ordinary Bevy choice buttons remain direct-touch actions, while character-creation fields and the developer-console input gain contextual touch focus controls.
 - Added a compact contextual Tab button beside the developer-console input without reserving a permanent control row.
