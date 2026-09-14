@@ -1,5 +1,3 @@
-use std::collections::HashSet;
-
 use crate::content::CampaignContent;
 use crate::model::{GameState, Region};
 use crate::procedural_characteristics::{RegionCharacteristics, WorldCharacteristics};
