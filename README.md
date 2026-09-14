@@ -184,7 +184,13 @@ Development releases remain below `1.0.0` while the core systems and content are
 
 ## License
 
-See [`LICENSE`](./LICENSE) for the project's license information.
+The source code of Ashen Chronicle is licensed under the BSD 3-Clause License.
+See [`LICENSE`](./LICENSE) for the source code's license information.
+
+Original game assets, including artwork, are licensed under CC BY 4.0 unless otherwise stated.
+See [`LICENSE-ART`](./LICENSE-ART) for the assets's license information.
+
+Third-party assets remain under their respective licenses.
 
 ---
 
