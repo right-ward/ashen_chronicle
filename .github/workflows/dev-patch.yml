@@ -1,0 +1,159 @@
+name: Development patch
+
+on:
+  push:
+    branches:
+      - feat/v0.50.4-storage-screen-audit
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout branch
+        uses: actions/checkout@v7.0.1
+        with:
+          fetch-depth: 0
+
+      - name: Apply requested changes
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def replace_once(path, old, new):
+              p = Path(path)
+              text = p.read_text()
+              count = text.count(old)
+              if count != 1:
+                  raise SystemExit(f"{path}: expected exactly one occurrence, found {count}: {old!r}")
+              p.write_text(text.replace(old, new, 1))
+
+          def append_once(path, marker, text):
+              p = Path(path)
+              current = p.read_text()
+              if marker in current:
+                  raise SystemExit(f"{path}: marker already present: {marker!r}")
+              p.write_text(current + text)
+
+          replace_once(
+              "Cargo.toml",
+              'bevy = { version = "0.19.1", default-features = false, features = [\n    "default_app",\n    "2d_bevy_render",\n    "ui_bevy_render",\n    "std",\n    "default_font",\n    "bevy_winit",\n    "x11",\n    "android-game-activity",\n] }\ndirs = "6"',
+              'bevy = { version = "0.19.1", default-features = false, features = [\n    "default_app",\n    "2d_bevy_render",\n    "ui_bevy_render",\n    "std",\n    "default_font",\n    "bevy_winit",\n    "x11",\n    "android-game-activity",\n] }\ndirs = "6"\n\n[target.\'cfg(not(target_os = "android"))\'.dependencies]\nrfd = "0.17.2"',
+          )
+
+          replace_once(
+              "src/game_paths.rs",
+              "use std::path::{Path, PathBuf};\n",
+              "use std::path::{Path, PathBuf};\n\n#[cfg(not(target_os = \"android\"))]\nuse rfd::{FileDialog, MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};\n",
+          )
+          replace_once(
+              "src/game_paths.rs",
+              "        let (preferred_root, fallback_root) = platform_roots();\n\n        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {",
+              "        let (preferred_root, fallback_root) = platform_roots();\n\n        #[cfg(not(target_os = \"android\"))]\n        let preferred_root = resolve_desktop_root(&preferred_root)?;\n\n        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {",
+          )
+          replace_once(
+              "src/game_paths.rs",
+              "        let bundled_base = bundled_data_dir.join(\"base_content.json\");\n        if bundled_base.is_file() {\n            fs::copy(&bundled_base, self.base_content_path())?;\n            set_read_only(&self.base_content_path())?;\n        }",
+              "        let bundled_base = bundled_data_dir.join(\"base_content.json\");\n        if bundled_base.is_file() {\n            let target = self.base_content_path();\n            if target.is_file() {\n                set_writable(&target)?;\n            }\n            fs::copy(&bundled_base, &target)?;\n            set_read_only(&target)?;\n        }",
+          )
+          replace_once(
+              "src/game_paths.rs",
+              "fn set_read_only(path: &Path) -> io::Result<()> {\n    let mut permissions = fs::metadata(path)?.permissions();\n    permissions.set_readonly(true);\n    fs::set_permissions(path, permissions)\n}\n",
+              "#[cfg(not(target_os = \"android\"))]\nfn resolve_desktop_root(preferred_root: &Path) -> io::Result<PathBuf> {\n    if preferred_root.exists() {\n        return match MessageDialog::new()\n            .set_level(MessageLevel::Info)\n            .set_title(\"The Ashen Chronicle storage\")\n            .set_description(format!(\n                \"An existing game root was found at:\\n\\n{}\\n\\nYes: use it\\nNo: recreate it\\nCancel: choose another folder\",\n                preferred_root.display()\n            ))\n            .set_buttons(MessageButtons::YesNoCancel)\n            .show()\n        {\n            MessageDialogResult::Yes => Ok(preferred_root.to_path_buf()),\n            MessageDialogResult::No => {\n                fs::remove_dir_all(preferred_root)?;\n                Ok(preferred_root.to_path_buf())\n            }\n            MessageDialogResult::Cancel | MessageDialogResult::Ok | MessageDialogResult::Custom(_) =>\n                pick_alternate_root(preferred_root),\n        };\n    }\n\n    match MessageDialog::new()\n        .set_level(MessageLevel::Info)\n        .set_title(\"The Ashen Chronicle storage\")\n        .set_description(format!(\n            \"The default game root does not exist yet:\\n\\n{}\\n\\nYes: create it\\nNo: choose another folder\",\n            preferred_root.display()\n        ))\n        .set_buttons(MessageButtons::YesNo)\n        .show()\n    {\n        MessageDialogResult::Yes => Ok(preferred_root.to_path_buf()),\n        MessageDialogResult::No\n        | MessageDialogResult::Cancel\n        | MessageDialogResult::Ok\n        | MessageDialogResult::Custom(_) => pick_alternate_root(preferred_root),\n    }\n}\n\n#[cfg(not(target_os = \"android\"))]\nfn pick_alternate_root(preferred_root: &Path) -> io::Result<PathBuf> {\n    let start = preferred_root\n        .parent()\n        .filter(|path| path.is_dir())\n        .map(Path::to_path_buf)\n        .or_else(dirs::document_dir)\n        .unwrap_or_else(|| PathBuf::from(\".\"));\n    FileDialog::new()\n        .set_title(\"Choose The Ashen Chronicle game root\")\n        .set_directory(start)\n        .pick_folder()\n        .ok_or_else(|| io::Error::new(io::ErrorKind::Interrupted, \"game root selection was cancelled\"))\n}\n\nfn set_writable(path: &Path) -> io::Result<()> {\n    let mut permissions = fs::metadata(path)?.permissions();\n    permissions.set_readonly(false);\n    fs::set_permissions(path, permissions)\n}\n\nfn set_read_only(path: &Path) -> io::Result<()> {\n    let mut permissions = fs::metadata(path)?.permissions();\n    permissions.set_readonly(true);\n    fs::set_permissions(path, permissions)\n}\n",
+          )
+
+          replace_once(
+              "src/bevy_lifecycle.rs",
+              "        LifecyclePhase::Load => lifecycle.save_files.len().saturating_sub(1),",
+              "        LifecyclePhase::Load => lifecycle.save_files.len(),",
+          )
+
+          replace_once(
+              "src/bevy_combat.rs",
+              "            InputEvent::Cancel => {},",
+              "            InputEvent::Cancel => {\n                combat_state.clear();\n                navigation.return_screen = None;\n                navigation.current_screen = Some(ScreenId::Gameplay);\n                navigation.selected = 0;\n            }",
+          )
+
+          replace_once("Cargo.toml", 'version = "0.50.4"', 'version = "0.50.5"')
+
+          lock = Path("Cargo.lock")
+          lock_text = lock.read_text()
+          old = 'name = "ashen_chronicle"\nversion = "0.50.4"'
+          new = 'name = "ashen_chronicle"\nversion = "0.50.5"'
+          if lock_text.count(old) != 1:
+              raise SystemExit(f"Cargo.lock: expected one package version occurrence, found {lock_text.count(old)}")
+          lock.write_text(lock_text.replace(old, new, 1))
+
+          roadmap = Path("ROADMAP.md")
+          roadmap_text = roadmap.read_text()
+          replace = (
+              '### v0.50.x: Android touch, soft-keyboard, and system Back input\n'
+              '- Added reusable contextual touch behavior to the shared Bevy presentation layer while preserving the frontend-neutral semantic input queues and desktop keyboard mappings.\n'
+              '- Ordinary Bevy choice buttons remain direct-touch actions, while character-creation fields and the developer-console input gain contextual touch focus controls.\n'
+              '- Added a compact contextual Tab button beside the developer-console input without reserving a permanent control row.\n'
+              '- Added touch-drag scrolling for shared scrollable panels so long gameplay, records, dialogue, console, and lifecycle content remains usable on touch-only devices.\n'
+              '- Added shared Android soft-keyboard IME integration; committed IME text is routed through the existing keyboard text-input path, and text focus controls keyboard visibility without Android-specific gameplay logic.\n'
+              '- Added Android Back key handling through the shared semantic Cancel input, including suppression of the navigation action when the soft keyboard is being dismissed.\n'
+              '- Completed semantic delete handling in the developer console while retaining existing physical keyboard behavior.\n'
+          )
+          replacement = (
+              '### v0.50.5: Cross-platform game-root selection and Android screen audit\n'
+              '- Added a native desktop startup prompt for an existing default game root, with explicit use, recreation, or alternate-folder choices.\n'
+              '- Added a cross-platform desktop folder picker for choosing an alternate game root while keeping Android on its existing shared-storage/fallback flow.\n'
+              '- Made bundled base-content synchronization safe when an existing protected copy is present by temporarily restoring write permission before replacement, then re-protecting the file.\n'
+              '- Audited the existing Bevy screen navigation contract and fixed lifecycle Load Back selection so its rendered Back entry is reachable from keyboard/semantic navigation.\n'
+              '- Fixed Combat semantic Cancel so Android system Back can leave combat and return to gameplay consistently with other dedicated screens.\n'
+              '- Completed static code-path review of lifecycle, gameplay/world, character, inventory, quests, meditation, history, journal, talk/conversation, remains/result, combat, developer console, and feedback presentation against the shared responsive/touch architecture.\n'
+              '\n### v0.50.4: Android touch, soft-keyboard, and system Back input\n'
+              '- Added reusable contextual touch behavior to the shared Bevy presentation layer while preserving the frontend-neutral semantic input queues and desktop keyboard mappings.\n'
+              '- Ordinary Bevy choice buttons remain direct-touch actions, while character-creation fields and the developer-console input gain contextual touch focus controls.\n'
+              '- Added a compact contextual Tab button beside the developer-console input without reserving a permanent control row.\n'
+              '- Added touch-drag scrolling for shared scrollable panels so long gameplay, records, dialogue, console, and lifecycle content remains usable on touch-only devices.\n'
+              '- Added shared Android soft-keyboard IME integration; committed IME text is routed through the existing keyboard text-input path, and text focus controls keyboard visibility without Android-specific gameplay logic.\n'
+              '- Added Android Back key handling through the shared semantic Cancel input, including suppression of the navigation action when the soft keyboard is being dismissed.\n'
+              '- Completed semantic delete handling in the developer console while retaining existing physical keyboard behavior.\n'
+          )
+          if roadmap_text.count(replace) != 1:
+              raise SystemExit(f"ROADMAP.md: expected existing v0.50.4 block exactly once, found {roadmap_text.count(replace)}")
+          roadmap.write_text(roadmap_text.replace(replace, replacement, 1).replace(
+              'Continue the remaining v0.50.x Android presentation/input work with #223, #224, and #225.',
+              'Continue the remaining v0.50.x Android presentation/input work with #223, #224, and #225; #223 still needs final manual Android-device verification.'
+          ))
+
+          history = Path("docs/roadmap-history.md")
+          history_text = history.read_text()
+          marker = '## v0.50.x: Android Packaging/Porting\n'
+          history_entry = (
+              '### v0.50.5: Cross-platform game-root selection and Android screen audit\n'
+              '- Added a native desktop startup prompt for an existing default game root, with explicit use, recreation, or alternate-folder choices.\n'
+              '- Added a cross-platform desktop folder picker for choosing an alternate game root while keeping Android on its existing shared-storage/fallback flow.\n'
+              '- Made bundled base-content synchronization safe when an existing protected copy is present by temporarily restoring write permission before replacement, then re-protecting the file.\n'
+              '- Audited the existing Bevy screen navigation contract and fixed lifecycle Load Back selection so its rendered Back entry is reachable from keyboard/semantic navigation.\n'
+              '- Fixed Combat semantic Cancel so Android system Back can leave combat and return to gameplay consistently with other dedicated screens.\n'
+              '- Completed static code-path review of lifecycle, gameplay/world, character, inventory, quests, meditation, history, journal, talk/conversation, remains/result, combat, developer console, and feedback presentation against the shared responsive/touch architecture.\n'
+          )
+          if history_text.count(marker) != 1:
+              raise SystemExit('docs/roadmap-history.md: Android packaging section marker not found exactly once')
+          history.write_text(history_text.replace(marker, marker + history_entry, 1))
+
+          Path(".github/workflows/dev-patch.yml").unlink()
+
+      - name: Check formatting
+        run: cargo fmt --all -- --check
+
+      - name: Commit changes
+        shell: bash
+        run: |
+          set -euo pipefail
+          if git diff --quiet; then
+            echo 'No changes were produced.'
+            exit 1
+          fi
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add Cargo.toml Cargo.lock ROADMAP.md docs/roadmap-history.md src/game_paths.rs src/bevy_lifecycle.rs src/bevy_combat.rs
+          git diff --cached --check
+          git commit -m "feat(v0.50.5): finish game-root flow and audit Bevy screens"
+          git push origin HEAD:feat/v0.50.4-storage-screen-audit
