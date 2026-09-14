@@ -1,0 +1,121 @@
+name: Development patch
+
+on:
+  push:
+    branches: [feat/v0.50.4-storage-screen-audit]
+
+permissions:
+  contents: write
+
+jobs:
+  patch:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+        with: {fetch-depth: 0}
+      - name: Patch source
+        shell: python
+        run: |
+          from pathlib import Path
+
+          def r(path, old, new):
+              p = Path(path); s = p.read_text(); n = s.count(old)
+              if n != 1: raise SystemExit(f'{path}: expected 1 match, got {n}')
+              p.write_text(s.replace(old, new, 1))
+
+          r('Cargo.toml', 'version = "0.50.4"', 'version = "0.50.5"')
+          p = Path('Cargo.toml'); s = p.read_text()
+          dep = '[target.\'cfg(not(target_os = "android"))\'.dependencies]\nrfd = "0.17.2"\n'
+          if dep not in s: p.write_text(s.replace('dirs = "6"\n', 'dirs = "6"\n\n' + dep, 1))
+
+          r('src/game_paths.rs', 'use std::path::{Path, PathBuf};\n', 'use std::path::{Path, PathBuf};\n\n#[cfg(not(target_os = "android"))]\nuse rfd::{FileDialog, MessageButtons, MessageDialog, MessageDialogResult, MessageLevel};\n')
+          r('src/game_paths.rs', '        let (preferred_root, fallback_root) = platform_roots();\n\n        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {', '        let (preferred_root, fallback_root) = platform_roots();\n\n        #[cfg(not(target_os = "android"))]\n        let preferred_root = resolve_desktop_root(&preferred_root)?;\n\n        match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {')
+          r('src/game_paths.rs', '        let bundled_base = bundled_data_dir.join("base_content.json");\n        if bundled_base.is_file() {\n            fs::copy(&bundled_base, self.base_content_path())?;\n            set_read_only(&self.base_content_path())?;\n        }', '        let bundled_base = bundled_data_dir.join("base_content.json");\n        if bundled_base.is_file() {\n            let target = self.base_content_path();\n            if target.is_file() {\n                set_writable(&target)?;\n            }\n            fs::copy(&bundled_base, &target)?;\n            set_read_only(&target)?;\n        }')
+          marker = 'fn set_read_only(path: &Path) -> io::Result<()> {'
+          helper = '''#[cfg(not(target_os = "android"))]
+fn resolve_desktop_root(preferred_root: &Path) -> io::Result<PathBuf> {
+    if preferred_root.exists() {
+        return match MessageDialog::new()
+            .set_level(MessageLevel::Info)
+            .set_title("The Ashen Chronicle storage")
+            .set_description(format!(
+                "An existing game root was found at:\\n\\n{}\\n\\nYes: use it\\nNo: recreate it\\nCancel: choose another folder",
+                preferred_root.display()
+            ))
+            .set_buttons(MessageButtons::YesNoCancel)
+            .show()
+        {
+            MessageDialogResult::Yes => Ok(preferred_root.to_path_buf()),
+            MessageDialogResult::No => { fs::remove_dir_all(preferred_root)?; Ok(preferred_root.to_path_buf()) }
+            _ => pick_alternate_root(preferred_root),
+        };
+    }
+    match MessageDialog::new()
+        .set_level(MessageLevel::Info)
+        .set_title("The Ashen Chronicle storage")
+        .set_description(format!(
+            "The default game root does not exist yet:\\n\\n{}\\n\\nYes: create it\\nNo: choose another folder",
+            preferred_root.display()
+        ))
+        .set_buttons(MessageButtons::YesNo)
+        .show()
+    {
+        MessageDialogResult::Yes => Ok(preferred_root.to_path_buf()),
+        _ => pick_alternate_root(preferred_root),
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn pick_alternate_root(preferred_root: &Path) -> io::Result<PathBuf> {
+    let start = preferred_root.parent().filter(|p| p.is_dir()).map(Path::to_path_buf)
+        .or_else(dirs::document_dir).unwrap_or_else(|| PathBuf::from("."));
+    FileDialog::new().set_title("Choose The Ashen Chronicle game root")
+        .set_directory(start).pick_folder()
+        .ok_or_else(|| io::Error::new(io::ErrorKind::Interrupted, "game root selection was cancelled"))
+}
+
+fn set_writable(path: &Path) -> io::Result<()> {
+    let mut permissions = fs::metadata(path)?.permissions();
+    permissions.set_readonly(false);
+    fs::set_permissions(path, permissions)
+}
+
+'''
+          if 'fn resolve_desktop_root' not in s:
+              p.write_text(s.replace(marker, helper + marker, 1))
+
+          r('src/bevy_lifecycle.rs', '        LifecyclePhase::Load => lifecycle.save_files.len().saturating_sub(1),', '        LifecyclePhase::Load => lifecycle.save_files.len(),')
+          r('src/bevy_combat.rs', '            InputEvent::Cancel => {}', '            InputEvent::Cancel => {\n                combat_state.clear();\n                navigation.return_screen = None;\n                navigation.current_screen = Some(ScreenId::Gameplay);\n                navigation.selected = 0;\n            }')
+
+          p = Path('ROADMAP.md'); s = p.read_text()
+          if '### v0.50.5: Cross-platform game-root selection and Android screen audit' not in s:
+              marker = '### v0.50.x: Android touch, soft-keyboard, and system Back input\n'
+              block = ('### v0.50.5: Cross-platform game-root selection and Android screen audit\n'
+                       '- Added native desktop game-root use/recreate/alternate-folder selection.\n'
+                       '- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.\n'
+                       '- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.\n\n')
+              p.write_text(s.replace(marker, block + marker.replace('v0.50.x:', 'v0.50.4:'), 1))
+          p = Path('docs/roadmap-history.md'); s = p.read_text()
+          if '### v0.50.5: Cross-platform game-root selection and Android screen audit' not in s:
+              marker = '## v0.50.x: Android Packaging/Porting\n'
+              entry = ('### v0.50.5: Cross-platform game-root selection and Android screen audit\n'
+                       '- Added native desktop game-root use/recreate/alternate-folder selection.\n'
+                       '- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.\n'
+                       '- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.\n')
+              p.write_text(s.replace(marker, marker + entry, 1))
+      - name: Refresh and format
+        run: |
+          cargo fetch
+          cargo fmt --all
+          cargo fmt --all -- --check
+      - name: Commit and push
+        shell: bash
+        run: |
+          set -euo pipefail
+          rm -f .github/workflows/dev-patch.yml
+          git add -A
+          git diff --cached --check
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git commit -m "feat(v0.50.5): finish game-root flow and audit Bevy screens"
+          git push origin HEAD:feat/v0.50.4-storage-screen-audit
