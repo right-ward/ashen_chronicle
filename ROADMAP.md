@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-### v0.51.0: Android touch, soft-keyboard, and system Back input
+### v0.50.x: Android touch, soft-keyboard, and system Back input
 - Added reusable contextual touch behavior to the shared Bevy presentation layer while preserving the frontend-neutral semantic input queues and desktop keyboard mappings.
 - Ordinary Bevy choice buttons remain direct-touch actions, while character-creation fields and the developer-console input gain contextual touch focus controls.
 - Added a compact contextual Tab button beside the developer-console input without reserving a permanent control row.
