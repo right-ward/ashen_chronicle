@@ -424,7 +424,7 @@ fn choice_button_input(
     }
 }
 
-#[allow(clippy::type_complexity)]  // For interaction_query
+#[allow(clippy::type_complexity)] // For interaction_query
 fn contextual_touch_input(
     mut interaction_query: Query<
         (
@@ -465,7 +465,7 @@ fn contextual_touch_input(
     }
 }
 
-#[allow(clippy::type_complexity)]  // For text_fields
+#[allow(clippy::type_complexity)] // For text_fields
 fn contextual_touch_targets(
     mut commands: Commands,
     navigation: Res<NavigationState>,
