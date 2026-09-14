@@ -99,7 +99,7 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
             .join("files")
             .join("Documents")
             .join(GAME_DIRECTORY_NAME);
-        return (preferred, Some(fallback));
+        (preferred, Some(fallback))
     }
 
     #[cfg(not(target_os = "android"))]

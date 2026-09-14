@@ -43,7 +43,7 @@ on:
           - windows-aarch64
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}
+  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ inputs.branch }}-${{ inputs.target }}
   cancel-in-progress: true
 
 permissions:
@@ -101,6 +101,67 @@ jobs:
           echo "changed=true" >> "$GITHUB_OUTPUT"
           echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
 
+  clippy:
+    name: Clippy
+    if: |
+      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
+      github.event_name == 'workflow_dispatch' ||
+      github.event_name == 'pull_request'
+    runs-on: ubuntu-latest
+
+    steps:
+      - name: Checkout PR commit
+        if: github.event_name == 'pull_request'
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event.pull_request.head.sha }}
+          repository: ${{ github.event.pull_request.head.repo.full_name }}
+          fetch-depth: 0
+
+      - name: Checkout current ref
+        if: github.event_name != 'pull_request'
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
+          fetch-depth: 0
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Run Clippy
+        shell: bash
+        run: |
+          set +e
+
+          : > clippy.log
+          cargo clippy --all-targets --all-features -- -D warnings 2>&1 | tee clippy.log
+          clippy_status=${PIPESTATUS[0]}
+
+          echo "clippy_status=$clippy_status" >> clippy.log
+          if [ "$clippy_status" -ne 0 ]; then
+            exit 1
+          fi
+
+      - name: Archive Clippy log
+        if: always()
+        shell: bash
+        run: |
+          set +e
+          tar caf clippy-log.tar.xz clippy.log
+
+      - name: Upload Clippy log
+        if: always()
+        uses: actions/upload-artifact@v7.0.1
+        with:
+          path: clippy-log.tar.xz
+          if-no-files-found: error
+          retention-days: 7
+          archive: false
+          overwrite: true
+
   test:
     name: Test
     if: |
@@ -131,7 +192,7 @@ jobs:
           toolchain: stable
           cache: true
 
-      - name: Run validation and tests
+      - name: Run formatting and tests
         shell: bash
         run: |
           set +e
@@ -143,23 +204,16 @@ jobs:
           fmt_status=$?
 
           echo >> test.log
-          echo '=== cargo clippy --release ===' >> test.log
-          cargo clippy --release --all-targets --all-features -- -D warnings >> test.log 2>&1
-          clippy_status=$?
-
-          echo >> test.log
-          echo '=== cargo test --release --no-fail-fast ===' >> test.log
-          cargo test --release --no-fail-fast >> test.log 2>&1
+          echo '=== cargo test ===' >> test.log
+          cargo test --features dev --no-fail-fast >> test.log 2>&1
           test_status=$?
 
           echo >> test.log
           echo "fmt_status=$fmt_status" >> test.log
-          echo "clippy_status=$clippy_status" >> test.log
           echo "test_status=$test_status" >> test.log
 
-          if [ "$fmt_status" -ne 0 ] || [ "$clippy_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then
+          if [ "$fmt_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then
             echo "fmt_status=$fmt_status"
-            echo "clippy_status=$clippy_status"
             echo "test_status=$test_status"
             exit 1
           fi
@@ -175,80 +229,64 @@ jobs:
         if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: test-log-${{ github.run_id }}.tar.xz
           path: test-log.tar.xz
           if-no-files-found: error
           retention-days: 7
           archive: false
+          overwrite: true
 
-  build:
-    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+  prep_build_matrix:
+    name: Prepare build matrix
     if: |
       (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
       github.event_name == 'workflow_dispatch'
+    runs-on: ubuntu-latest
+    outputs:
+      matrix: ${{ steps.matrix.outputs.matrix }}
+
+    steps:
+      - name: Prepare build matrix
+        id: matrix
+        shell: bash
+        env:
+          TARGET: ${{ inputs.target }}
+        run: |
+          set -euo pipefail
+
+          matrix='[
+            {"platform":"android","arch":"x86_64","dispatch_target":"android-x86_64","target":"x86_64-linux-android","runner":"ubuntu-latest","archive_ext":"tar.xz"},
+            {"platform":"android","arch":"aarch64","dispatch_target":"android-aarch64","target":"aarch64-linux-android","runner":"ubuntu-latest","archive_ext":"tar.xz"},
+            {"platform":"android","arch":"armv7","dispatch_target":"android-armv7","target":"armv7-linux-androideabi","runner":"ubuntu-latest","archive_ext":"tar.xz"},
+            {"platform":"linux","arch":"x86_64","dispatch_target":"linux-x86_64","target":"x86_64-unknown-linux-gnu","runner":"ubuntu-latest","archive_ext":"tar.xz"},
+            {"platform":"linux","arch":"aarch64","dispatch_target":"linux-aarch64","target":"aarch64-unknown-linux-gnu","runner":"ubuntu-latest","archive_ext":"tar.xz"},
+            {"platform":"macos","arch":"x86_64","dispatch_target":"macos-x86_64","target":"x86_64-apple-darwin","runner":"macos-15-intel","archive_ext":"tar.xz"},
+            {"platform":"macos","arch":"aarch64","dispatch_target":"macos-aarch64","target":"aarch64-apple-darwin","runner":"macos-15","archive_ext":"tar.xz"},
+            {"platform":"windows","arch":"x86_64","dispatch_target":"windows-x86_64","target":"x86_64-pc-windows-msvc","runner":"windows-latest","archive_ext":"zip"},
+            {"platform":"windows","arch":"aarch64","dispatch_target":"windows-aarch64","target":"aarch64-pc-windows-msvc","runner":"windows-latest","archive_ext":"zip"}
+          ]'
+
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+            matrix="$(jq -c --arg target "$TARGET" 'map(select(.dispatch_target == $target))' <<< "$matrix")"
+            if [[ "$matrix" == "[]" ]]; then
+              echo "Unsupported build target: $TARGET"
+              exit 1
+            fi
+          else
+            matrix="$(jq -c . <<< "$matrix")"
+          fi
+
+          echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
+
+  build:
+    name: Build ${{ matrix.platform }} ${{ matrix.arch }}
+    needs: prep_build_matrix
     runs-on: ${{ matrix.runner }}
     strategy:
       fail-fast: false
-      matrix:
-        include:
-          - platform: android
-            arch: x86_64
-            dispatch_target: android-x86_64
-            target: x86_64-linux-android
-            runner: ubuntu-latest
-            archive_ext: tar.xz
-          - platform: android
-            arch: aarch64
-            dispatch_target: android-aarch64
-            target: aarch64-linux-android
-            runner: ubuntu-latest
-            archive_ext: tar.xz
-          - platform: android
-            arch: armv7
-            dispatch_target: android-armv7
-            target: armv7-linux-androideabi
-            runner: ubuntu-latest
-            archive_ext: tar.xz
-          - platform: linux
-            arch: x86_64
-            dispatch_target: linux-x86_64
-            target: x86_64-unknown-linux-gnu
-            runner: ubuntu-latest
-            archive_ext: tar.xz
-          - platform: linux
-            arch: aarch64
-            dispatch_target: linux-aarch64
-            target: aarch64-unknown-linux-gnu
-            runner: ubuntu-latest
-            archive_ext: tar.xz
-          - platform: macos
-            arch: x86_64
-            dispatch_target: macos-x86_64
-            target: x86_64-apple-darwin
-            runner: macos-15-intel
-            archive_ext: tar.xz
-          - platform: macos
-            arch: aarch64
-            dispatch_target: macos-aarch64
-            target: aarch64-apple-darwin
-            runner: macos-15
-            archive_ext: tar.xz
-          - platform: windows
-            arch: x86_64
-            dispatch_target: windows-x86_64
-            target: x86_64-pc-windows-msvc
-            runner: windows-latest
-            archive_ext: zip
-          - platform: windows
-            arch: aarch64
-            dispatch_target: windows-aarch64
-            target: aarch64-pc-windows-msvc
-            runner: windows-latest
-            archive_ext: zip
+      matrix: ${{ fromJSON(needs.prep_build_matrix.outputs.matrix) }}
 
     steps:
       - name: Checkout source
-        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions/checkout@v7.0.1
         with:
           ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
@@ -284,39 +322,37 @@ jobs:
           fi
 
       - name: Set up Rust
-        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
         with:
           toolchain: stable
           cache: true
 
       - name: Set up Android SDK
-        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'android'
+        if: matrix.platform == 'android'
         uses: android-actions/setup-android@v4.0.1
         with:
           packages: platform-tools
 
       - name: Install Android NDK
-        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'android'
+        if: matrix.platform == 'android'
         shell: bash
         run: |
           sdkmanager --install "ndk;27.3.13750724"
 
       - name: Configure Linux cross compiler
-        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'linux' && matrix.arch == 'aarch64'
+        if: matrix.platform == 'linux' && matrix.arch == 'aarch64'
         shell: bash
         run: |
           sudo apt-get update
           sudo apt-get install -y gcc-aarch64-linux-gnu
 
       - name: Configure Windows build environment
-        if: (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target) && matrix.platform == 'windows'
+        if: matrix.platform == 'windows'
         uses: ilammy/msvc-dev-cmd@v1.13.0
         with:
           arch: ${{ matrix.arch == 'aarch64' && 'amd64_arm64' || 'amd64' }}
 
       - name: Build release binary
-        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -386,7 +422,6 @@ jobs:
           cargo build --release --target "$TARGET" 2>&1 | tee -a build.log
 
       - name: Package release archive
-        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -420,17 +455,16 @@ jobs:
           echo "Created $release_name.$ARCHIVE_EXT" | tee -a build.log
 
       - name: Upload release archive
-        if: github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: release-${{ matrix.platform }}-${{ matrix.arch }}
           path: ashen_chronicle-*-${{ matrix.platform }}-${{ matrix.arch }}.${{ matrix.archive_ext }}
           if-no-files-found: error
           retention-days: 7
           archive: false
+          overwrite: true
 
       - name: Archive build log
-        if: always() && (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target)
+        if: always()
         shell: bash
         env:
           TARGET: ${{ matrix.target }}
@@ -449,14 +483,14 @@ jobs:
           tar caf "build-log-${BUILD_PLATFORM}-${ARCH}.tar.xz" build-log.txt
 
       - name: Upload build log
-        if: always() && (github.event_name != 'workflow_dispatch' || matrix.dispatch_target == inputs.target)
+        if: always()
         uses: actions/upload-artifact@v7.0.1
         with:
-          name: build-log-${{ matrix.platform }}-${{ matrix.arch }}
           path: build-log-${{ matrix.platform }}-${{ matrix.arch }}.tar.xz
           if-no-files-found: error
           retention-days: 7
           archive: false
+          overwrite: true
 
   release:
     name: Publish GitHub Release
