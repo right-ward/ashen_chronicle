@@ -333,11 +333,9 @@ fn process_ime_events(
                     text: Some(value.clone().into()),
                 });
             }
-            Ime::Disabled { .. } => {
-                if focus.target.is_some() {
-                    focus.target = None;
-                    focus.suppress_next_back = true;
-                }
+            Ime::Disabled { .. } if focus.target.is_some() => {
+                focus.target = None;
+                focus.suppress_next_back = true;
             }
             _ => {}
         }
@@ -460,10 +458,8 @@ fn contextual_touch_input(
                 focus.target = Some(TextInputTarget::Console);
                 focus.suppress_next_back = false;
             }
-        } else if tab.is_some() {
-            if navigation.current_screen == Some(ScreenId::Console) {
-                gameplay_queue.0.push(InputEvent::Tab);
-            }
+        } else if tab.is_some() && navigation.current_screen == Some(ScreenId::Console) {
+            gameplay_queue.0.push(InputEvent::Tab);
         }
     }
 }
