@@ -162,6 +162,16 @@ fn sync_directory_without_overwriting(source: &Path, destination: &Path) -> io::
     Ok(())
 }
 
+#[cfg(unix)]
+fn set_writable(path: &Path) -> io::Result<()> {
+    use std::os::unix::fs::PermissionsExt;
+
+    let mut permissions = fs::metadata(path)?.permissions();
+    permissions.set_mode(permissions.mode() | 0o200);
+    fs::set_permissions(path, permissions)
+}
+
+#[cfg(not(unix))]
 fn set_writable(path: &Path) -> io::Result<()> {
     let mut permissions = fs::metadata(path)?.permissions();
     permissions.set_readonly(false);
