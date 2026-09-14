@@ -5,6 +5,14 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.6: Android APK CI packaging and signing
+- Added CI packaging for installable signed Android APKs using the existing Gradle/GameActivity project.
+- Preserved the existing Android x86_64, AArch64, and ARMv7 targets with per-ABI native library packaging.
+- Added workflow-dispatch support for building a selected Android target without a release tag.
+- Added secure release signing through GitHub Actions secrets, with short-lived CI-only signing for manual test builds when persistent secrets are unavailable.
+- Added APK signature verification and Android build-log artifacts.
+- Release-tag Android assets are now APKs; the legacy standalone Android executable tarballs are removed from the published release while desktop release artifacts remain unchanged.
+
 ### v0.50.5: Cross-platform game-root selection and Android screen audit
 - Added native desktop game-root use/recreate/alternate-folder selection.
 - Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
@@ -21,7 +29,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Complete final Android device/touch-only verification for #217 and #223, then continue the remaining v0.50.x Android presentation/input work with #224 and #225.
+Run the Android CI workflow, install the resulting APK on a physical Android device, verify the supported touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 
