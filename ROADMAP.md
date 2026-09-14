@@ -5,17 +5,18 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-### v0.50.3: Responsive Bevy presentation for Android landscape
-- Made the shared Bevy screen root use viewport-relative spacing so the same layout scales across phone, tablet, and resizable desktop landscape resolutions.
-- Made shared panels flexible so dashboard, navigation, lifecycle, record, interaction, and result content can shrink into the available viewport while retaining internal scrolling for longer content.
-- Made shared labels and button text wrap within their available width instead of allowing long content to force the layout wider than the screen.
-- Converted shared title/body typography and the progression feedback overlay to viewport-relative font and spacing units while preserving the existing dark, text-first visual identity.
-- Kept interactive controls at a 48px logical minimum height to provide a stable touch target while responsive spacing and typography adapt around them.
-- Reused the same shared presentation implementation for desktop and Android; Android remains landscape-only through the existing activity configuration.
+### v0.50.x: Android touch, soft-keyboard, and system Back input
+- Added reusable contextual touch behavior to the shared Bevy presentation layer while preserving the frontend-neutral semantic input queues and desktop keyboard mappings.
+- Ordinary Bevy choice buttons remain direct-touch actions, while character-creation fields and the developer-console input gain contextual touch focus controls.
+- Added a compact contextual Tab button beside the developer-console input without reserving a permanent control row.
+- Added touch-drag scrolling for shared scrollable panels so long gameplay, records, dialogue, console, and lifecycle content remains usable on touch-only devices.
+- Added shared Android soft-keyboard IME integration; committed IME text is routed through the existing keyboard text-input path, and text focus controls keyboard visibility without Android-specific gameplay logic.
+- Added Android Back key handling through the shared semantic Cancel input, including suppression of the navigation action when the soft keyboard is being dismissed.
+- Completed semantic delete handling in the developer console while retaining existing physical keyboard behavior.
 
 ## Next
 
-Continue the v0.50.x Android presentation/input work with #220, #221, and #222, followed by #223, #224, and #225.
+Continue the remaining v0.50.x Android presentation/input work with #223, #224, and #225.
 
 ## Longer-term direction
 

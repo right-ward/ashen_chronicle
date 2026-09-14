@@ -11,6 +11,7 @@
             android:name=".MainActivity"
             android:exported="true"
             android:screenOrientation="sensorLandscape"
+            android:windowSoftInputMode="adjustResize"
             android:configChanges="layoutDirection|locale|orientation|keyboardHidden|screenSize|smallestScreenSize|density|keyboard|navigation|screenLayout|uiMode"
             android:theme="@style/Theme.AppCompat.NoActionBar">
             <meta-data
