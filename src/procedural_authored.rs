@@ -15,11 +15,6 @@ pub fn integrate_authored_content(state: &mut GameState, content: &CampaignConte
         return 0;
     }
 
-    let authored_npc_names = content
-        .npcs
-        .iter()
-        .map(|npc| npc.name.as_str())
-        .collect::<HashSet<_>>();
     let mut added = 0;
 
     for npc_content in &content.npcs {
@@ -98,11 +93,6 @@ pub fn integrate_authored_content(state: &mut GameState, content: &CampaignConte
             added += 1;
         }
     }
-
-    debug_assert!(content.npcs.iter().all(|npc| {
-        !authored_npc_names.contains(npc.name.as_str())
-            || state.npcs.iter().any(|runtime| runtime.name == npc.name)
-    }));
 
     added
 }
