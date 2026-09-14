@@ -10,6 +10,7 @@ mod bevy_presentation;
 mod bevy_records;
 mod bevy_runtime;
 mod content;
+mod desktop_storage;
 mod events;
 mod game;
 mod game_paths;
