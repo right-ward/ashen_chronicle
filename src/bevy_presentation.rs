@@ -4,6 +4,7 @@
 //! model. Gameplay systems remain responsible for translating authoritative game
 //! state into presentation view models and interpreting semantic input events.
 
+use bevy::input::keyboard::KeyboardInput;
 use bevy::prelude::*;
 
 use crate::input::InputEvent;
@@ -28,6 +29,43 @@ pub struct TextContent;
 
 #[derive(Component)]
 pub struct GaugeFill;
+
+#[derive(Component)]
+struct TouchScrollablePanel;
+
+#[derive(Component)]
+struct ContextualTextField {
+    index: usize,
+}
+
+#[derive(Component)]
+struct ContextualConsoleInput;
+
+#[derive(Component)]
+struct ContextualConsoleInputRow;
+
+#[derive(Component)]
+struct ContextualConsoleTab;
+
+#[derive(Component)]
+struct ContextualEnhanced;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum TextInputTarget {
+    LifecycleField(usize),
+    Console,
+}
+
+#[derive(Resource, Default, Debug)]
+struct TextInputFocus {
+    target: Option<TextInputTarget>,
+    suppress_next_back: bool,
+}
+
+#[derive(Resource, Default, Debug)]
+struct TouchScrollState {
+    active: Option<(u64, Entity, Vec2)>,
+}
 
 #[derive(Resource, Default)]
 pub struct SemanticInputQueue(pub Vec<InputEvent>);
@@ -101,8 +139,15 @@ pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
         .init_resource::<NavigationState>()
+        .init_resource::<TextInputFocus>()
+        .init_resource::<TouchScrollState>()
+        .add_systems(PreUpdate, process_ime_events.after(bevy::input::InputSystems))
         .add_systems(Update, keyboard_to_semantic_input)
-        .add_systems(Update, choice_button_input);
+        .add_systems(Update, choice_button_input)
+        .add_systems(Update, contextual_touch_input)
+        .add_systems(Update, touch_scroll)
+        .add_systems(PostUpdate, contextual_touch_targets)
+        .add_systems(PostUpdate, sync_ime_window);
 }
 
 pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity {
@@ -133,6 +178,7 @@ pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity
 pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
     let panel = commands
         .spawn((
+            TouchScrollablePanel,
             Node {
                 width: percent(100),
                 min_width: px(0),
@@ -265,12 +311,50 @@ pub(crate) fn gauge_ratio(current: i32, maximum: i32) -> f32 {
     }
 }
 
+fn process_ime_events(
+    mut ime: MessageReader<Ime>,
+    mut keyboard_input: MessageWriter<KeyboardInput>,
+    mut focus: ResMut<TextInputFocus>,
+) {
+    for event in ime.read() {
+        match event {
+            Ime::Commit { window, value } if !value.is_empty() => {
+                keyboard_input.write(KeyboardInput {
+                    key_code: KeyCode::Unidentified(NativeKeyCode::Unidentified),
+                    logical_key: Key::Character(value.clone().into()),
+                    state: ButtonState::Pressed,
+                    window: *window,
+                    repeat: false,
+                    text: Some(value.clone().into()),
+                });
+            }
+            Ime::Disabled { .. } => {
+                if focus.target.is_some() {
+                    focus.target = None;
+                    focus.suppress_next_back = true;
+                }
+            }
+            _ => {}
+        }
+    }
+}
+
 fn keyboard_to_semantic_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     navigation: Res<NavigationState>,
+    mut focus: ResMut<TextInputFocus>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
+    if !matches!(
+        (focus.target, navigation.current_screen),
+        (Some(TextInputTarget::LifecycleField(_)), Some(ScreenId::Lifecycle))
+            | (Some(TextInputTarget::Console), Some(ScreenId::Console))
+            | (None, _)
+    ) {
+        focus.target = None;
+    }
+
     let mappings = [
         (KeyCode::ArrowUp, InputEvent::Up),
         (KeyCode::ArrowDown, InputEvent::Down),
@@ -283,6 +367,7 @@ fn keyboard_to_semantic_input(
         (KeyCode::Tab, InputEvent::Tab),
         (KeyCode::Backspace, InputEvent::Backspace),
         (KeyCode::Delete, InputEvent::Delete),
+        (KeyCode::BrowserBack, InputEvent::Cancel),
         (KeyCode::KeyJ, InputEvent::Character('j')),
         (KeyCode::KeyK, InputEvent::Character('k')),
         (KeyCode::Digit1, InputEvent::Character('1')),
@@ -290,12 +375,22 @@ fn keyboard_to_semantic_input(
         (KeyCode::Digit3, InputEvent::Character('3')),
     ];
     for (key, event) in mappings {
-        if keyboard.just_pressed(key) {
-            if navigation.current_screen == Some(ScreenId::Lifecycle) {
-                lifecycle_queue.0.push(event);
-            } else {
-                gameplay_queue.0.push(event);
+        if !keyboard.just_pressed(key) {
+            continue;
+        }
+        if key == KeyCode::BrowserBack {
+            if focus.suppress_next_back {
+                focus.suppress_next_back = false;
+                continue;
             }
+            if focus.target.is_some() {
+                continue;
+            }
+        }
+        if navigation.current_screen == Some(ScreenId::Lifecycle) {
+            lifecycle_queue.0.push(event);
+        } else {
+            gameplay_queue.0.push(event);
         }
     }
 }
@@ -322,6 +417,190 @@ fn choice_button_input(
         }
         queue.push(InputEvent::Confirm);
     }
+}
+
+fn contextual_touch_input(
+    mut interaction_query: Query<
+        (
+            &Interaction,
+            Option<&ContextualTextField>,
+            Option<&ContextualConsoleInput>,
+            Option<&ContextualConsoleTab>,
+        ),
+        Changed<Interaction>,
+    >,
+    navigation: Res<NavigationState>,
+    mut focus: ResMut<TextInputFocus>,
+    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut gameplay_queue: ResMut<GameplayInputQueue>,
+) {
+    for (interaction, field, console, tab) in &mut interaction_query {
+        if *interaction != Interaction::Pressed {
+            continue;
+        }
+        if let Some(field) = field {
+            if navigation.current_screen != Some(ScreenId::Lifecycle) {
+                continue;
+            }
+            focus.target = Some(TextInputTarget::LifecycleField(field.index));
+            focus.suppress_next_back = false;
+            lifecycle_queue.0.push(InputEvent::Home);
+            for _ in 0..field.index {
+                lifecycle_queue.0.push(InputEvent::Down);
+            }
+        } else if console.is_some() {
+            if navigation.current_screen == Some(ScreenId::Console) {
+                focus.target = Some(TextInputTarget::Console);
+                focus.suppress_next_back = false;
+            }
+        } else if tab.is_some() {
+            if navigation.current_screen == Some(ScreenId::Console) {
+                gameplay_queue.0.push(InputEvent::Tab);
+            }
+        }
+    }
+}
+
+fn contextual_touch_targets(
+    mut commands: Commands,
+    navigation: Res<NavigationState>,
+    mut text_fields: Query<
+        (Entity, &Text, &mut Node, Option<&ContextualEnhanced>, Option<&ContextualTextField>, Option<&ContextualConsoleInput>),
+        With<TextContent>,
+    >,
+    panels: Query<Entity, With<TouchScrollablePanel>>,
+    tabs: Query<Entity, With<ContextualConsoleTab>>,
+) {
+    let console_tab_exists = tabs.single().is_ok();
+    let console_panel = if navigation.current_screen == Some(ScreenId::Console) {
+        panels.iter().next()
+    } else {
+        None
+    };
+
+    for (entity, text, mut node, enhanced, field, console_input) in &mut text_fields {
+        if enhanced.is_some() {
+            continue;
+        }
+        if navigation.current_screen == Some(ScreenId::Lifecycle) && field.is_none() && console_input.is_none() {
+            let trimmed = text.as_str().trim_start_matches('>').trim_start();
+            let Some((label, _)) = trimmed.split_once(':') else {
+                continue;
+            };
+            let index = match label.trim() {
+                "World" => 0,
+                "Character" => 1,
+                "Title" => 2,
+                _ => continue,
+            };
+            node.min_height = px(48);
+            node.padding = UiRect::axes(vmin(1.389), vmin(0.833));
+            commands.entity(entity).insert((
+                Button,
+                ContextualTextField { index },
+                ContextualEnhanced,
+                BorderColor::all(THEME_ACCENT),
+                BackgroundColor(THEME_PANEL_ALT),
+            ));
+        } else if navigation.current_screen == Some(ScreenId::Console)
+            && console_input.is_none()
+            && text.as_str().starts_with("> ")
+        {
+            node.min_height = px(48);
+            node.width = percent(84);
+            node.padding = UiRect::axes(vmin(1.389), vmin(0.833));
+            commands.entity(entity).insert((
+                Button,
+                ContextualConsoleInput,
+                ContextualEnhanced,
+                BorderColor::all(THEME_ACCENT),
+                BackgroundColor(THEME_PANEL_ALT),
+            ));
+            if !console_tab_exists {
+                if let Some(panel) = console_panel {
+                    let row = commands
+                        .spawn((
+                            ContextualConsoleInputRow,
+                            Node {
+                                width: percent(100),
+                                min_width: px(0),
+                                flex_direction: FlexDirection::Row,
+                                column_gap: vmin(1.111),
+                                align_items: AlignItems::Center,
+                                ..default()
+                            },
+                        ))
+                        .id();
+                    commands.entity(panel).add_child(row);
+                    commands.entity(row).add_child(entity);
+                    let tab = commands
+                        .spawn((
+                            Button,
+                            ContextualConsoleTab,
+                            Node {
+                                width: px(64),
+                                min_width: px(64),
+                                min_height: px(48),
+                                padding: UiRect::axes(px(10), px(6)),
+                                justify_content: JustifyContent::Center,
+                                align_items: AlignItems::Center,
+                                border: UiRect::all(px(1)),
+                                ..default()
+                            },
+                            BorderColor::all(THEME_ACCENT),
+                            BackgroundColor(THEME_PANEL_ALT),
+                            children![(
+                                Text::new("Tab"),
+                                TextContent,
+                                TextFont::from_font_size(muted_font_size()),
+                                TextColor(THEME_TEXT),
+                            )],
+                        ))
+                        .id();
+                    commands.entity(row).add_child(tab);
+                }
+            }
+        }
+    }
+}
+
+fn touch_scroll(
+    touches: Res<Touches>,
+    mut state: ResMut<TouchScrollState>,
+    mut panels: Query<(Entity, &ComputedNode, &UiGlobalTransform, &mut ScrollPosition), With<TouchScrollablePanel>>,
+) {
+    for touch in touches.iter_just_pressed() {
+        for (entity, computed, transform, _) in &mut panels {
+            if computed.contains_point(*transform, touch.position()) {
+                state.active = Some((touch.id(), entity, touch.position()));
+                break;
+            }
+        }
+    }
+
+    if let Some((id, entity, last_position)) = state.active {
+        let current = touches.iter().find(|touch| touch.id() == id).map(|touch| touch.position());
+        if let Some(position) = current {
+            let delta = position - last_position;
+            if let Ok((_, _, _, mut scroll)) = panels.get_mut(entity) {
+                scroll.0.y = (scroll.0.y - delta.y).max(0.0);
+            }
+            state.active = Some((id, entity, position));
+        }
+        if touches.just_released(id) || touches.just_canceled(id) {
+            state.active = None;
+        }
+    }
+}
+
+fn sync_ime_window(
+    focus: Res<TextInputFocus>,
+    mut windows: Query<&mut Window, With<PrimaryWindow>>,
+) {
+    let Some(mut window) = windows.iter_mut().next() else {
+        return;
+    };
+    window.ime_enabled = focus.target.is_some();
 }
 
 #[cfg(test)]
