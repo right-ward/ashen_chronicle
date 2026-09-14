@@ -1,3 +1,4 @@
+# Temporary development workflow; removes itself after applying the patch.
 name: Development patch
 on:
   push:
