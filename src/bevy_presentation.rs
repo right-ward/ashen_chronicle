@@ -141,7 +141,10 @@ pub fn install(app: &mut App) {
         .init_resource::<NavigationState>()
         .init_resource::<TextInputFocus>()
         .init_resource::<TouchScrollState>()
-        .add_systems(PreUpdate, process_ime_events.after(bevy::input::InputSystems))
+        .add_systems(
+            PreUpdate,
+            process_ime_events.after(bevy::input::InputSystems),
+        )
         .add_systems(Update, keyboard_to_semantic_input)
         .add_systems(Update, choice_button_input)
         .add_systems(Update, contextual_touch_input)
@@ -348,8 +351,10 @@ fn keyboard_to_semantic_input(
 ) {
     if !matches!(
         (focus.target, navigation.current_screen),
-        (Some(TextInputTarget::LifecycleField(_)), Some(ScreenId::Lifecycle))
-            | (Some(TextInputTarget::Console), Some(ScreenId::Console))
+        (
+            Some(TextInputTarget::LifecycleField(_)),
+            Some(ScreenId::Lifecycle)
+        ) | (Some(TextInputTarget::Console), Some(ScreenId::Console))
             | (None, _)
     ) {
         focus.target = None;
@@ -465,7 +470,14 @@ fn contextual_touch_targets(
     mut commands: Commands,
     navigation: Res<NavigationState>,
     mut text_fields: Query<
-        (Entity, &Text, &mut Node, Option<&ContextualEnhanced>, Option<&ContextualTextField>, Option<&ContextualConsoleInput>),
+        (
+            Entity,
+            &Text,
+            &mut Node,
+            Option<&ContextualEnhanced>,
+            Option<&ContextualTextField>,
+            Option<&ContextualConsoleInput>,
+        ),
         With<TextContent>,
     >,
     panels: Query<Entity, With<TouchScrollablePanel>>,
@@ -482,7 +494,10 @@ fn contextual_touch_targets(
         if enhanced.is_some() {
             continue;
         }
-        if navigation.current_screen == Some(ScreenId::Lifecycle) && field.is_none() && console_input.is_none() {
+        if navigation.current_screen == Some(ScreenId::Lifecycle)
+            && field.is_none()
+            && console_input.is_none()
+        {
             let trimmed = text.as_str().trim_start_matches('>').trim_start();
             let Some((label, _)) = trimmed.split_once(':') else {
                 continue;
@@ -567,7 +582,15 @@ fn contextual_touch_targets(
 fn touch_scroll(
     touches: Res<Touches>,
     mut state: ResMut<TouchScrollState>,
-    mut panels: Query<(Entity, &ComputedNode, &UiGlobalTransform, &mut ScrollPosition), With<TouchScrollablePanel>>,
+    mut panels: Query<
+        (
+            Entity,
+            &ComputedNode,
+            &UiGlobalTransform,
+            &mut ScrollPosition,
+        ),
+        With<TouchScrollablePanel>,
+    >,
 ) {
     for touch in touches.iter_just_pressed() {
         for (entity, computed, transform, _) in &mut panels {
@@ -579,7 +602,10 @@ fn touch_scroll(
     }
 
     if let Some((id, entity, last_position)) = state.active {
-        let current = touches.iter().find(|touch| touch.id() == id).map(|touch| touch.position());
+        let current = touches
+            .iter()
+            .find(|touch| touch.id() == id)
+            .map(|touch| touch.position());
         if let Some(position) = current {
             let delta = position - last_position;
             if let Ok((_, _, _, mut scroll)) = panels.get_mut(entity) {
