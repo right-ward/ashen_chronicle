@@ -5,6 +5,13 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.8: Android SAF storage access
+- Replaced Android All Files Access with user-selected Storage Access Framework directory access.
+- Kept Rust filesystem I/O on the app-scoped Android game root while mirroring editable mods and saves to the selected shared folder.
+- Persisted the selected folder permission across launches and synchronized shared data into the local game root on startup.
+- Migrated existing local mods/saves into an empty newly selected shared folder without overwriting an existing shared game dataset.
+- Kept the bundled protected base content out of the user-editable shared storage mirror.
+
 ### v0.50.7: Android launch crash fix
 - Added Bevy's Android entry-point macro so GameActivity can invoke the native application entry point.
 - Added an Android CI guard that fails the build when `android_main` is not exported by the native library.
@@ -33,7 +40,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.7, install the resulting APK on a physical Android device, verify launch plus the supported touch/storage flows, then continue with #225.
+Run the Android CI workflow for v0.50.8, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 
