@@ -5,6 +5,10 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.7: Android launch crash fix
+- Added Bevy's Android entry-point macro so GameActivity can invoke the native application entry point.
+- Added an Android CI guard that fails the build when `android_main` is not exported by the native library.
+
 ### v0.50.6: Android APK CI packaging and signing
 - Added CI packaging for installable signed Android APKs using the existing Gradle/GameActivity project.
 - Preserved the existing Android x86_64, AArch64, and ARMv7 targets with per-ABI native library packaging.
@@ -29,7 +33,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow, install the resulting APK on a physical Android device, verify the supported touch/storage flows, then continue with #225.
+Run the Android CI workflow for v0.50.7, install the resulting APK on a physical Android device, verify launch plus the supported touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 
