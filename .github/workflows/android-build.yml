@@ -215,23 +215,6 @@ jobs:
           if [[ -n "$ANDROID_KEY_ALIAS" ]]; then echo "ANDROID_KEY_ALIAS=$ANDROID_KEY_ALIAS" >> "$GITHUB_ENV"; fi
           if [[ -n "$ANDROID_KEY_PASSWORD" ]]; then echo "ANDROID_KEY_PASSWORD=$ANDROID_KEY_PASSWORD" >> "$GITHUB_ENV"; fi
 
-      - name: Validate Android entry-point configuration
-        shell: bash
-        run: |
-          set -euo pipefail
-
-          if ! grep -Eq '^[[:space:]]*#\[bevy_main\][[:space:]]*$' src/main.rs; then
-            echo "Android entry point requires #[bevy_main] in src/main.rs."
-            exit 1
-          fi
-
-          if ! grep -Eq '"android-game-activity"' Cargo.toml; then
-            echo "Android entry point requires Bevy's android-game-activity feature in Cargo.toml."
-            exit 1
-          fi
-
-          echo "Android entry-point configuration is present."
-
       - name: Build native Android library
         shell: bash
         env:
@@ -271,6 +254,12 @@ jobs:
           so_file="target/$TARGET/release/libashen_chronicle.so"
           if [[ ! -s "$so_file" ]]; then
             echo "Android native library was not produced: $so_file"
+            exit 1
+          fi
+
+          llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          if ! "$llvm_nm" -D "$so_file" | grep -qE ' [Tt] android_main$'; then
+            echo "libashen_chronicle.so does not export android_main; GameActivity cannot start it."
             exit 1
           fi
 
