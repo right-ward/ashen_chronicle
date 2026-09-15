@@ -101,15 +101,14 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
         let external_root = std::env::var_os("EXTERNAL_STORAGE")
             .map(PathBuf::from)
             .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"));
-        let preferred = external_root.join("Documents").join(GAME_DIRECTORY_NAME);
-        let fallback = external_root
+        let root = external_root
             .join("Android")
             .join("data")
             .join("com.rightward.ashenchronicle")
             .join("files")
             .join("Documents")
             .join(GAME_DIRECTORY_NAME);
-        (preferred, Some(fallback))
+        (root, None)
     }
 
     #[cfg(not(target_os = "android"))]
