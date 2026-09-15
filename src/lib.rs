@@ -33,3 +33,9 @@ pub fn run() {
     }
     bevy_app::run();
 }
+
+#[cfg(target_os = "android")]
+#[bevy::prelude::bevy_main]
+fn main() {
+    run();
+}
