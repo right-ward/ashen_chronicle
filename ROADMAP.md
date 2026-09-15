@@ -5,6 +5,10 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.10: Android entry-point CI guard fix
+- Replaced the stripped-library `android_main` symbol check with source/configuration validation that is compatible with the release profile.
+- Kept the native Android build and added a non-empty native-library output check before APK packaging.
+
 ### v0.50.9: Android armv7 CI symbol-check fix
 - Corrected Android CI native-library validation to inspect defined `android_main` symbols instead of requiring dynamic export visibility, allowing the armv7 build to proceed to APK packaging.
 
@@ -43,7 +47,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.9, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
+Run the Android CI workflow for v0.50.10, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 
