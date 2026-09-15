@@ -5,6 +5,9 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.9: Android armv7 CI symbol-check fix
+- Corrected Android CI native-library validation to inspect defined `android_main` symbols instead of requiring dynamic export visibility, allowing the armv7 build to proceed to APK packaging.
+
 ### v0.50.8: Android SAF storage access
 - Replaced Android All Files Access with user-selected Storage Access Framework directory access.
 - Kept Rust filesystem I/O on the app-scoped Android game root while mirroring editable mods and saves to the selected shared folder.
@@ -40,7 +43,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.8, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
+Run the Android CI workflow for v0.50.9, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 
