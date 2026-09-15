@@ -251,8 +251,14 @@ jobs:
           rustup target add "$TARGET" 2>&1 | tee -a android-build.log
           cargo build --release --target "$TARGET" 2>&1 | tee -a android-build.log
 
+          so_file="target/$TARGET/release/libashen_chronicle.so"
+          if ! nm -D --defined-only "$so_file" | grep -qE '(^| )android_main$'; then
+            echo "Android entry point android_main was not exported by $so_file."
+            exit 1
+          fi
+
           mkdir -p "android/app/src/main/jniLibs/${{ matrix.abi }}"
-          cp "target/$TARGET/release/libashen_chronicle.so" "android/app/src/main/jniLibs/${{ matrix.abi }}/libashen_chronicle.so"
+          cp "$so_file" "android/app/src/main/jniLibs/${{ matrix.abi }}/libashen_chronicle.so"
 
       - name: Build signed APK
         shell: bash
