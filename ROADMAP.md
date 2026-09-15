@@ -5,6 +5,11 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.12: Android GameActivity entry-point export fix
+- Replaced Bevy's generated private Android entry-point wrapper with a public `android_main` symbol in the library target that produces the packaged native `.so`.
+- Kept artifact-level CI validation of the exported `android_main` symbol using the Android NDK's `llvm-nm`.
+- Kept a non-empty native-library output check before APK packaging.
+
 ### v0.50.11: Android GameActivity entry-point fix
 - Moved Bevy's Android entry-point function into the library target that produces the packaged native `.so`.
 - Restored artifact-level CI validation of the exported `android_main` symbol using the Android NDK's `llvm-nm`.
@@ -52,7 +57,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.11, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
+Run the Android CI workflow for v0.50.12, install the resulting APK on a physical Android device, verify launch, folder selection, shared-storage synchronization, and the existing touch/storage flows, then continue with #225.
 
 ## Longer-term direction
 

@@ -35,7 +35,8 @@ pub fn run() {
 }
 
 #[cfg(target_os = "android")]
-#[bevy::prelude::bevy_main]
-fn main() {
+#[unsafe(no_mangle)]
+pub fn android_main(android_app: bevy::android::android_activity::AndroidApp) {
+    let _ = bevy::android::ANDROID_APP.set(android_app);
     run();
 }
