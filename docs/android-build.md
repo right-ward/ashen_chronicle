@@ -34,6 +34,16 @@ keytool -genkeypair -v \
 
 Encode that keystore for the `ANDROID_KEYSTORE_BASE64` secret without adding the file to the repository. The remaining secret values must match the keystore created above.
 
+## Android storage
+
+Android uses the Storage Access Framework rather than `MANAGE_EXTERNAL_STORAGE`. On first launch, the game asks the player to choose or create a folder for `The Ashen Chronicle` using the system folder picker.
+
+The selected folder permission is persisted by Android. Rust continues to use an app-scoped filesystem directory for normal `std::fs` access, while the Android activity mirrors the editable `data/mods` and `saves` directories between that local root and the selected shared folder. The bundled `data/base_content.json` remains protected and is not synchronized into user-editable shared storage.
+
+When the selected folder is empty, the existing local mods and saves are copied into it. When it already contains game data, that shared data is imported into the local game root instead. Subsequent saves/mod changes are synchronized back when the activity stops.
+
+The selected directory should be the game folder itself (for example, `Documents/The Ashen Chronicle`), not its parent `Documents` directory.
+
 ## Local Android project
 
 The Gradle project is under `android/`. It uses Bevy's `GameActivity` integration and expects the Rust `cdylib` to be copied into the ABI-specific `jniLibs` directory before Gradle packages the APK.
