@@ -570,10 +570,6 @@ src/
 - Made Bevy the required runtime dependency instead of retaining an obsolete optional feature gate now that the terminal frontend has been removed.
 
 ## v0.50.x: Android Packaging/Porting
-### v0.50.5: Cross-platform game-root selection and Android screen audit
-- Added native desktop game-root use/recreate/alternate-folder selection.
-- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
-- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
 ### v0.50.3: Responsive Bevy presentation for Android landscape
 - Made the shared Bevy screen root use viewport-relative spacing so the same layout scales across phone, tablet, and resizable desktop landscape resolutions.
 - Made shared panels flexible so dashboard, navigation, lifecycle, record, interaction, and result content can shrink into the available viewport while retaining internal scrolling for longer content.
@@ -589,4 +585,15 @@ src/
 - Added shared Android soft-keyboard IME integration; committed IME text is routed through the existing keyboard text-input path, and text focus controls keyboard visibility without Android-specific gameplay logic.
 - Added Android Back key handling through the shared semantic Cancel input, including suppression of the navigation action when the soft keyboard is being dismissed.
 - Completed semantic delete handling in the developer console while retaining existing physical keyboard behavior.
+### v0.50.5: Cross-platform game-root selection and Android screen audit
+- Added native desktop game-root use/recreate/alternate-folder selection.
+- Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
+- Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
+### v0.50.6: Android APK CI packaging and signing
+- Added CI packaging for installable signed Android APKs using the existing Gradle/GameActivity project.
+- Preserved the existing Android x86_64, AArch64, and ARMv7 targets with per-ABI native library packaging.
+- Added workflow-dispatch support for building a selected Android target without a release tag.
+- Added secure release signing through GitHub Actions secrets, with short-lived CI-only signing for manual test builds when persistent secrets are unavailable.
+- Added APK signature verification and Android build-log artifacts.
+- Release-tag Android assets are now APKs; the legacy standalone Android executable tarballs are removed from the published release while desktop release artifacts remain unchanged.
 
