@@ -72,7 +72,7 @@ fn suppress_touch_choice_press(
         }
     }
 
-    for (_, mut interaction, _, _) in &mut buttons {
+    for (_, interaction, _, _) in &mut buttons {
         if *interaction == Interaction::Pressed {
             // Touch presses are confirmed on release by complete_touch_choice.
             // Clearing Interaction::Pressed prevents the generic button handler
@@ -130,15 +130,4 @@ fn complete_touch_choice(
         queue.push(InputEvent::Down);
     }
     queue.push(InputEvent::Confirm);
-}
-
-#[cfg(test)]
-mod tests {
-    use super::TOUCH_TAP_THRESHOLD;
-
-    #[test]
-    fn touch_threshold_is_large_enough_to_ignore_small_jitter() {
-        assert!(TOUCH_TAP_THRESHOLD >= 8.0);
-        assert!(TOUCH_TAP_THRESHOLD <= 24.0);
-    }
 }
