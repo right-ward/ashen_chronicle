@@ -258,6 +258,18 @@ jobs:
           fi
 
           llvm_nm="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-nm"
+          readelf_bin="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin/llvm-readelf"
+
+          echo "=== llvm-nm -D (raw, unfiltered) ==="
+          "$llvm_nm" -D "$so_file" || true
+
+          echo "=== llvm-nm -D android_main search ==="
+          "$llvm_nm" -D "$so_file" | grep -i android_main || echo "NO MATCH in -D output"
+
+          echo "=== llvm-readelf -Ws android_main search ==="
+          "$readelf_bin" -Ws "$so_file" | grep -i android_main || echo "NO MATCH in readelf -Ws"
+
+          echo "=== existing android_main export gate ==="
           if ! "$llvm_nm" -D "$so_file" | grep -qE ' [Tt] android_main$'; then
             echo "libashen_chronicle.so does not export android_main; GameActivity cannot start it."
             exit 1
