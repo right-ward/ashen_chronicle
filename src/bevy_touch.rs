@@ -72,7 +72,7 @@ fn suppress_touch_choice_press(
         }
     }
 
-    for (_, interaction, _, _) in &mut buttons {
+    for (_, mut interaction, _, _) in &mut buttons {
         if *interaction == Interaction::Pressed {
             // Touch presses are confirmed on release by complete_touch_choice.
             // Clearing Interaction::Pressed prevents the generic button handler
