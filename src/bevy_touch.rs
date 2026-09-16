@@ -47,7 +47,7 @@ fn suppress_touch_choice_press(
         let button = buttons
             .iter()
             .find(|(_, _, computed, transform)| {
-                computed.contains_point(*transform, touch.position())
+                computed.contains_point(**transform, touch.position())
             })
             .map(|(entity, _, _, _)| entity);
         state.active = Some(ActiveTouch {
@@ -85,7 +85,10 @@ fn suppress_touch_choice_press(
 fn complete_touch_choice(
     touches: Res<Touches>,
     mut state: ResMut<TouchChoiceState>,
-    buttons: Query<(Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform), With<ChoiceButton>>,
+    buttons: Query<
+        (Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform),
+        With<ChoiceButton>,
+    >,
     navigation: Res<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
@@ -113,7 +116,7 @@ fn complete_touch_choice(
         .iter()
         .find(|(entity, _, computed, transform)| {
             Some(*entity) == active.button
-                && computed.contains_point(*transform, released_touch.position())
+                && computed.contains_point(**transform, released_touch.position())
         })
         .map(|(_, choice, _, _)| choice.index)
     else {
