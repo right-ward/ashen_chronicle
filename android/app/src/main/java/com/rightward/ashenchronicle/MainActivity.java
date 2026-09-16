@@ -110,8 +110,8 @@ public class MainActivity extends GameActivity {
         }
 
         try {
-            copyAssetDirectory("data/mods", mods);
-            copyAssetFile("data/base_content.json", new File(data, "base_content.json"));
+            copyAssetDirectory("mods", mods);
+            copyAssetFile("base_content.json", new File(data, "base_content.json"));
             File baseContent = new File(data, "base_content.json");
             if (baseContent.isFile()) {
                 baseContent.setWritable(false, false);
