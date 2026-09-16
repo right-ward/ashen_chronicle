@@ -165,6 +165,7 @@ jobs:
         uses: gradle/actions/setup-gradle@v6
         with:
           gradle-version: '8.6'
+          cache-overwrite-existing: true
 
       - name: Prepare signing keystore
         shell: bash
