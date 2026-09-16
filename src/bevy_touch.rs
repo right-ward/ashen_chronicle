@@ -46,7 +46,9 @@ fn suppress_touch_choice_press(
     for touch in touches.iter_just_pressed() {
         let button = buttons
             .iter()
-            .find(|(_, _, computed, transform)| computed.contains_point(*transform, touch.position()))
+            .find(|(_, _, computed, transform)| {
+                computed.contains_point(*transform, touch.position())
+            })
             .map(|(entity, _, _, _)| entity);
         state.active = Some(ActiveTouch {
             id: touch.id(),
@@ -95,7 +97,9 @@ fn complete_touch_choice(
         return;
     };
 
-    let Some(released_touch) = touches.iter_just_released().find(|touch| touch.id() == active.id)
+    let Some(released_touch) = touches
+        .iter_just_released()
+        .find(|touch| touch.id() == active.id)
     else {
         if touches.just_canceled(active.id) {
             state.active = None;
