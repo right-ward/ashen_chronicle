@@ -1,7 +1,7 @@
 [package]
 name = "ashen_chronicle"
 
-version = "0.50.13"
+version = "0.50.14"
 edition = "2021"
 
 [lib]
