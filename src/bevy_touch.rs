@@ -39,7 +39,7 @@ fn suppress_touch_choice_press(
     touches: Res<Touches>,
     mut state: ResMut<TouchChoiceState>,
     mut buttons: Query<
-        (Entity, &Interaction, &ComputedNode, &UiGlobalTransform),
+        (Entity, &mut Interaction, &ComputedNode, &UiGlobalTransform),
         With<ChoiceButton>,
     >,
 ) {
@@ -85,7 +85,10 @@ fn suppress_touch_choice_press(
 fn complete_touch_choice(
     touches: Res<Touches>,
     mut state: ResMut<TouchChoiceState>,
-    buttons: Query<(Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform), With<ChoiceButton>>,
+    buttons: Query<
+        (Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform),
+        With<ChoiceButton>,
+    >,
     navigation: Res<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
