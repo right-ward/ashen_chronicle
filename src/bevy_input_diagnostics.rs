@@ -2,10 +2,13 @@
 
 use bevy::prelude::*;
 
+#[cfg(target_os = "android")]
 pub fn install(app: &mut App) {
-    #[cfg(target_os = "android")]
     app.add_systems(Update, (log_ime_events, log_browser_back));
 }
+
+#[cfg(not(target_os = "android"))]
+pub fn install(_app: &mut App) {}
 
 #[cfg(target_os = "android")]
 fn log_ime_events(mut ime: MessageReader<Ime>) {
