@@ -6,7 +6,9 @@
 
 use bevy::prelude::*;
 
-use crate::bevy_presentation::{ChoiceButton, GameplayInputQueue, NavigationState, ScreenId, SemanticInputQueue};
+use crate::bevy_presentation::{
+    ChoiceButton, GameplayInputQueue, NavigationState, ScreenId, SemanticInputQueue,
+};
 use crate::input::InputEvent;
 
 const TOUCH_TAP_THRESHOLD: f32 = 12.0;
@@ -37,30 +39,14 @@ fn suppress_touch_choice_press(
     touches: Res<Touches>,
     mut state: ResMut<TouchChoiceState>,
     mut buttons: Query<
-        (
-            Entity,
-            &Interaction,
-            &ComputedNode,
-            &UiGlobalTransform,
-        ),
+        (Entity, &Interaction, &ComputedNode, &UiGlobalTransform),
         With<ChoiceButton>,
     >,
 ) {
-    if let Some(active) = state.active {
-        if let Some(touch) = touches.iter().find(|touch| touch.id() == active.id) {
-            let distance = touch.position().distance(active.start);
-            let dragging = active.dragging || distance > TOUCH_TAP_THRESHOLD;
-            state.active = Some(ActiveTouch { dragging, ..active });
-        } else if touches.just_released(active.id) || touches.just_canceled(active.id) {
-            state.active = None;
-            return;
-        }
-    }
-
     for touch in touches.iter_just_pressed() {
         let button = buttons
             .iter()
-            .find(|(_, _, computed, transform)| computed.contains_point(**transform, touch.position()))
+            .find(|(_, _, computed, transform)| computed.contains_point(*transform, touch.position()))
             .map(|(entity, _, _, _)| entity);
         state.active = Some(ActiveTouch {
             id: touch.id(),
@@ -70,21 +56,26 @@ fn suppress_touch_choice_press(
         });
     }
 
-    if let Some(active) = state.active {
-        for (entity, interaction, _, _) in &mut buttons {
-            if *interaction != Interaction::Pressed {
-                continue;
-            }
-            if active.dragging || active.button != Some(entity) {
-                // Touch presses are confirmed on release by complete_touch_choice.
-                // Clearing Interaction::Pressed here prevents the existing generic
-                // button handler from treating a touch as an immediate click.
-                if let Ok((_, mut interaction, _, _)) = buttons.get_mut(entity) {
-                    *interaction = Interaction::None;
-                }
-            } else if let Ok((_, mut interaction, _, _)) = buttons.get_mut(entity) {
-                *interaction = Interaction::None;
-            }
+    let Some(active) = state.active else {
+        return;
+    };
+
+    if let Some(touch) = touches.iter().find(|touch| touch.id() == active.id) {
+        let distance = touch.position().distance(active.start);
+        if distance > TOUCH_TAP_THRESHOLD && !active.dragging {
+            state.active = Some(ActiveTouch {
+                dragging: true,
+                ..active
+            });
+        }
+    }
+
+    for (_, interaction, _, _) in &mut buttons {
+        if *interaction == Interaction::Pressed {
+            // Touch presses are confirmed on release by complete_touch_choice.
+            // Clearing Interaction::Pressed prevents the generic button handler
+            // from treating a touch as an immediate click or a scroll as a click.
+            *interaction = Interaction::None;
         }
     }
 }
@@ -104,24 +95,27 @@ fn complete_touch_choice(
         return;
     };
 
-    let released = touches.just_released(active.id) || touches.just_canceled(active.id);
-    if !released {
+    let Some(released_touch) = touches.iter_just_released().find(|touch| touch.id() == active.id)
+    else {
+        if touches.just_canceled(active.id) {
+            state.active = None;
+        }
         return;
-    }
+    };
 
     state.active = None;
-    if active.dragging || active.button.is_none() {
+    if active.dragging {
         return;
     }
 
-    let release_position = buttons
+    let Some(index) = buttons
         .iter()
         .find(|(entity, _, computed, transform)| {
-            Some(*entity) == active.button && computed.contains_point(**transform, release_position(active.id, &touches))
+            Some(*entity) == active.button
+                && computed.contains_point(*transform, released_touch.position())
         })
-        .map(|(_, choice, _, _)| choice.index);
-
-    let Some(index) = release_position else {
+        .map(|(_, choice, _, _)| choice.index)
+    else {
         return;
     };
 
@@ -135,14 +129,6 @@ fn complete_touch_choice(
         queue.push(InputEvent::Down);
     }
     queue.push(InputEvent::Confirm);
-}
-
-fn release_position(id: u64, touches: &Touches) -> Vec2 {
-    touches
-        .iter_just_released()
-        .find(|touch| touch.id() == id)
-        .map(|touch| touch.position())
-        .unwrap_or(Vec2::ZERO)
 }
 
 #[cfg(test)]
