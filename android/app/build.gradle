@@ -3,8 +3,8 @@ plugins {
 }
 
 def androidAbi = System.getenv("ANDROID_ABI") ?: "arm64-v8a"
-def androidVersionName = System.getenv("ANDROID_VERSION_NAME") ?: "0.50.14"
-def androidVersionCode = (System.getenv("ANDROID_VERSION_CODE") ?: "5014001").toInteger()
+def androidVersionName = System.getenv("ANDROID_VERSION_NAME") ?: "0.50.15"
+def androidVersionCode = (System.getenv("ANDROID_VERSION_CODE") ?: "5015001").toInteger()
 
 def signingStoreFile = System.getenv("ANDROID_KEYSTORE_FILE")
 def signingStorePassword = System.getenv("ANDROID_KEYSTORE_PASSWORD")
@@ -15,70 +15,39 @@ def hasReleaseSigning = [
         signingStorePassword,
         signingKeyAlias,
         signingKeyPassword
-].every { value -> value != null && !value.isEmpty() }
+].every { it != null && !it.isEmpty() }
 
 android {
-    namespace 'com.rightward.ashenchronicle'
-    compileSdk 34
-    ndkVersion "27.3.13750724"
+    namespace = "com.rightward.ashenchronicle"
+    compileSdk = libs.versions.android.compileSdk.get().toInteger()
 
     defaultConfig {
-        applicationId "com.rightward.ashenchronicle"
-        minSdk 31
-        targetSdk 33
-        versionCode androidVersionCode
-        versionName androidVersionName
-
-        ndk {
-            abiFilters androidAbi
-        }
-
-        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
-    }
-
-    signingConfigs {
-        if (hasReleaseSigning) {
-            release {
-                storeFile file(signingStoreFile)
-                storePassword signingStorePassword
-                keyAlias signingKeyAlias
-                keyPassword signingKeyPassword
-            }
-        }
+        applicationId = "com.rightward.ashenchronicle"
+        minSdk = libs.versions.android.minSdk.get().toInteger()
+        targetSdk = libs.versions.android.targetSdk.get().toInteger()
+        versionCode = androidVersionCode
+        versionName = androidVersionName
     }
 
     buildTypes {
         release {
-            minifyEnabled false
-            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            minifyEnabled = false
+            shrinkResources = false
             if (hasReleaseSigning) {
-                signingConfig signingConfigs.release
+                signingConfig = signingConfigs.create("release") {
+                    storeFile = file(signingStoreFile)
+                    storePassword = signingStorePassword
+                    keyAlias = signingKeyAlias
+                    keyPassword = signingKeyPassword
+                }
             }
         }
     }
 
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_1_8
-        targetCompatibility JavaVersion.VERSION_1_8
-    }
-
-    buildFeatures {
-        prefab true
-    }
-
     sourceSets {
         main {
-            assets.srcDirs += files('../../data')
+            assets.srcDirs += ["src/main/assets"]
+            jniLibs.srcDirs += ["src/main/jniLibs/$androidAbi"]
         }
     }
-}
-
-dependencies {
-    implementation libs.appcompat
-    implementation libs.material
-    implementation libs.games.activity
-    implementation libs.documentfile
-    testImplementation libs.junit
-    androidTestImplementation libs.ext.junit
-    androidTestImplementation libs.espresso.core
 }
