@@ -5,6 +5,14 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.15: Android shared-storage synchronization fix
+- Extended Android local-to-shared SAF synchronization from `data/mods/` to the complete local `data/` directory, including bundled root-level files such as `base_content.json` and future root-level data files.
+- Kept shared-to-local synchronization limited to editable `data/mods/` and `saves/`, preserving the bundled base content as locally protected content.
+- Added an Android `onPause()` storage flush while retaining the `onStop()` flush, so newly written saves and input diagnostics are mirrored to the selected shared folder earlier in the activity lifecycle.
+- Hardened recursive local-directory mirroring so a single file-copy failure is logged without aborting synchronization of the remaining files in the same directory.
+- Bumped the project and Android fallback version metadata to 0.50.15.
+- Physical Android verification of complete data mirroring, save-file visibility, and input-log visibility remains outstanding.
+
 ### v0.50.14: Android storage and touch input fixes
 - Corrected Android bundled-asset paths so the packaged `data/` content is copied into the app-local game root before native gameplay starts.
 - Added Android-side diagnostics for IME events and the `BrowserBack` key event so device input-delivery behavior can be verified without changing the existing text or navigation consumers.
@@ -65,7 +73,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.14, install the resulting APK on a physical Android device, verify that packaged assets populate the app-local game root and that selected shared storage synchronizes correctly, then inspect the Android input diagnostics while testing text entry and system Back before making any further input-layer changes.
+Run the Android CI workflow for v0.50.15, install the resulting APK on a physical Android device, verify that complete `data/` and `saves/` content reaches the selected shared folder, confirm input diagnostics appear there, then investigate any remaining provider-specific SAF failures before making further storage changes.
 
 ## Longer-term direction
 
