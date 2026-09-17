@@ -36,7 +36,16 @@ public class MainActivity extends GameActivity {
     }
 
     @Override
+    protected void onPause() {
+        syncLocalStorageToShared();
+        super.onPause();
+    }
+
+    @Override
     protected void onStop() {
+        // Keep this as a final lifecycle flush even though onPause() already
+        // synchronizes, since Android may reach onStop() through a separate
+        // lifecycle path.
         syncLocalStorageToShared();
         super.onStop();
     }
@@ -218,14 +227,12 @@ public class MainActivity extends GameActivity {
 
         File root = resolveGameRoot();
         File data = new File(root, "data");
-        File mods = new File(data, "mods");
         File saves = new File(root, "saves");
 
         try {
             DocumentFile sharedData = findOrCreateDirectory(tree, "data");
-            DocumentFile sharedMods = findOrCreateDirectory(sharedData, "mods");
             DocumentFile sharedSaves = findOrCreateDirectory(tree, "saves");
-            copyLocalDirectoryToDocument(mods, sharedMods);
+            copyLocalDirectoryToDocument(data, sharedData);
             copyLocalDirectoryToDocument(saves, sharedSaves);
         } catch (IOException exception) {
             Log.w(TAG, "Could not export shared game storage", exception);
@@ -326,17 +333,26 @@ public class MainActivity extends GameActivity {
             return;
         }
 
-        for (File child : source.listFiles()) {
+        File[] children = source.listFiles();
+        if (children == null) {
+            throw new IOException("Could not list local directory " + source);
+        }
+
+        for (File child : children) {
             if (!isSafeDocumentName(child.getName())) {
                 Log.w(TAG, "Skipping unsafe local-storage name: " + child.getName());
                 continue;
             }
 
-            if (child.isDirectory()) {
-                DocumentFile target = findOrCreateDirectory(destination, child.getName());
-                copyLocalDirectoryToDocument(child, target);
-            } else if (child.isFile()) {
-                copyLocalFileToDocument(child, destination);
+            try {
+                if (child.isDirectory()) {
+                    DocumentFile target = findOrCreateDirectory(destination, child.getName());
+                    copyLocalDirectoryToDocument(child, target);
+                } else if (child.isFile()) {
+                    copyLocalFileToDocument(child, destination);
+                }
+            } catch (IOException exception) {
+                Log.w(TAG, "Could not sync local file " + child, exception);
             }
         }
     }
