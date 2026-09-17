@@ -15,39 +15,70 @@ def hasReleaseSigning = [
         signingStorePassword,
         signingKeyAlias,
         signingKeyPassword
-].every { it != null && !it.isEmpty() }
+].every { value -> value != null && !value.isEmpty() }
 
 android {
-    namespace = "com.rightward.ashenchronicle"
-    compileSdk = libs.versions.android.compileSdk.get().toInteger()
+    namespace 'com.rightward.ashenchronicle'
+    compileSdk 34
+    ndkVersion "27.3.13750724"
 
     defaultConfig {
-        applicationId = "com.rightward.ashenchronicle"
-        minSdk = libs.versions.android.minSdk.get().toInteger()
-        targetSdk = libs.versions.android.targetSdk.get().toInteger()
-        versionCode = androidVersionCode
-        versionName = androidVersionName
+        applicationId "com.rightward.ashenchronicle"
+        minSdk 31
+        targetSdk 33
+        versionCode androidVersionCode
+        versionName androidVersionName
+
+        ndk {
+            abiFilters androidAbi
+        }
+
+        testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
     }
 
-    buildTypes {
-        release {
-            minifyEnabled = false
-            shrinkResources = false
-            if (hasReleaseSigning) {
-                signingConfig = signingConfigs.create("release") {
-                    storeFile = file(signingStoreFile)
-                    storePassword = signingStorePassword
-                    keyAlias = signingKeyAlias
-                    keyPassword = signingKeyPassword
-                }
+    signingConfigs {
+        if (hasReleaseSigning) {
+            release {
+                storeFile file(signingStoreFile)
+                storePassword signingStorePassword
+                keyAlias signingKeyAlias
+                keyPassword signingKeyPassword
             }
         }
     }
 
-    sourceSets {
-        main {
-            assets.srcDirs += ["src/main/assets"]
-            jniLibs.srcDirs += ["src/main/jniLibs/$androidAbi"]
+    buildTypes {
+        release {
+            minifyEnabled false
+            proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
+            if (hasReleaseSigning) {
+                signingConfig signingConfigs.release
+            }
         }
     }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_1_8
+        targetCompatibility JavaVersion.VERSION_1_8
+    }
+
+    buildFeatures {
+        prefab true
+    }
+
+    sourceSets {
+        main {
+            assets.srcDirs += files('../../data')
+        }
+    }
+}
+
+dependencies {
+    implementation libs.appcompat
+    implementation libs.material
+    implementation libs.games.activity
+    implementation libs.documentfile
+    testImplementation libs.junit
+    androidTestImplementation libs.ext.junit
+    androidTestImplementation libs.espresso.core
 }
