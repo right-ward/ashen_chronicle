@@ -17,6 +17,7 @@ bevy = { version = "0.19.1", default-features = false, features = [
     "bevy_winit",
     "x11",
     "android-game-activity",
+    "bevy_ui_widgets",
 ] }
 dirs = "6"
 atomic-write-file = "0.3.1"
