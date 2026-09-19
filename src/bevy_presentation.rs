@@ -664,6 +664,12 @@ mod tests {
     use super::*;
 
     #[test]
+    fn touch_coordinates_convert_from_logical_to_physical_space() {
+        let position = physical_touch_position(&Window::default(), Vec2::new(100.0, 50.0));
+        assert_eq!(position, Vec2::new(100.0, 50.0));
+    }
+
+    #[test]
     fn navigation_state_starts_without_a_screen_or_selection() {
         let state = NavigationState::default();
         assert_eq!(state.current_screen, None);
