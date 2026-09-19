@@ -46,7 +46,7 @@ fn suppress_touch_choice_press(
     >,
 ) {
     for touch in touches.iter_just_pressed() {
-        let physical_position = touch.position() * window.scale_factor();
+        let physical_position = physical_touch_position(touch.position(), window.scale_factor());
         let button = buttons
             .iter()
             .find(|(_, _, computed, transform)| {
@@ -85,6 +85,10 @@ fn suppress_touch_choice_press(
     }
 }
 
+fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2 {
+    position * scale_factor
+}
+
 fn complete_touch_choice(
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -113,7 +117,8 @@ fn complete_touch_choice(
         return;
     }
 
-    let physical_release_position = released_touch.position() * window.scale_factor();
+    let physical_release_position =
+        physical_touch_position(released_touch.position(), window.scale_factor());
     let Some(index) = buttons
         .iter()
         .find(|(entity, _, computed, transform)| {
@@ -135,4 +140,15 @@ fn complete_touch_choice(
         queue.push(InputEvent::Down);
     }
     queue.push(InputEvent::Confirm);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn touch_coordinates_convert_from_logical_to_physical_space() {
+        let position = physical_touch_position(Vec2::new(100.0, 50.0), 2.5);
+        assert_eq!(position, Vec2::new(250.0, 125.0));
+    }
 }
