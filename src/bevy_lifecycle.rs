@@ -431,12 +431,14 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
         ("Title", &lifecycle.character_title),
     ];
     for (index, (label, value)) in fields.into_iter().enumerate() {
-        let marker = if lifecycle.selected == index {
-            ">"
-        } else {
-            " "
-        };
-        bevy_presentation::spawn_label(commands, panel, format!("{marker} {label}: {value}"));
+        bevy_presentation::spawn_text_input_field(
+            commands,
+            panel,
+            index,
+            label,
+            value,
+            lifecycle.selected == index,
+        );
     }
     bevy_presentation::spawn_choice_button(commands, panel, 3, "Begin Life");
 }
