@@ -138,4 +138,3 @@ fn complete_touch_choice(
     }
     queue.push(InputEvent::Confirm);
 }
-

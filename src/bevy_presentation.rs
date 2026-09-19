@@ -273,11 +273,7 @@ pub fn spawn_text_input_field(
             BorderColor::all(THEME_ACCENT),
             BackgroundColor(THEME_PANEL_ALT),
             children![(
-                Text::new(format!(
-                    "{marker} {}: {}",
-                    label.into(),
-                    value.into(),
-                )),
+                Text::new(format!("{marker} {}: {}", label.into(), value.into(),)),
                 Node {
                     width: percent(100),
                     min_width: px(0),

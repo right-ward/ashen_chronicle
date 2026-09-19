@@ -10,7 +10,10 @@ use std::io::Write;
 
 #[cfg(target_os = "android")]
 pub fn install(app: &mut App) {
-    app.add_systems(Update, (log_ime_events, log_keyboard_text, log_browser_back));
+    app.add_systems(
+        Update,
+        (log_ime_events, log_keyboard_text, log_browser_back),
+    );
 }
 
 #[cfg(not(target_os = "android"))]
