@@ -6,7 +6,12 @@
 
 use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
 use bevy::input::ButtonState;
+use bevy::input_focus::{
+    tab_navigation::{TabGroup, TabIndex},
+    AutoFocus, FocusCause, InputFocus,
+};
 use bevy::prelude::*;
+use bevy::text::{EditableText, TextCursorStyle};
 use bevy::window::PrimaryWindow;
 
 use crate::input::InputEvent;
@@ -36,8 +41,8 @@ pub struct GaugeFill;
 struct TouchScrollablePanel;
 
 #[derive(Component)]
-struct ContextualTextField {
-    index: usize,
+pub(crate) struct LifecycleTextField {
+    pub(crate) index: usize,
 }
 
 #[derive(Component)]
@@ -52,15 +57,9 @@ struct ContextualConsoleTab;
 #[derive(Component)]
 struct ContextualEnhanced;
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum TextInputTarget {
-    LifecycleField(usize),
-    Console,
-}
-
 #[derive(Resource, Default, Debug)]
-struct TextInputFocus {
-    target: Option<TextInputTarget>,
+struct ConsoleTextInputFocus {
+    active: bool,
     suppress_next_back: bool,
 }
 
@@ -145,18 +144,22 @@ pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
         .init_resource::<NavigationState>()
-        .init_resource::<TextInputFocus>()
+        .init_resource::<ConsoleTextInputFocus>()
         .init_resource::<TouchScrollState>()
         .add_systems(
             PreUpdate,
-            process_ime_events.after(bevy::input::InputSystems),
+            process_ime_events
+                .after(bevy::input::InputSystems)
+                .after(bevy::ui_widgets::ImeSystems::HandleEvents)
+                .after(bevy::ui_widgets::ImeSystems::ToggleWindowIMEInput),
         )
         .add_systems(Update, keyboard_to_semantic_input)
         .add_systems(Update, choice_button_input)
         .add_systems(Update, contextual_touch_input)
         .add_systems(Update, touch_scroll)
         .add_systems(PostUpdate, contextual_touch_targets)
-        .add_systems(PostUpdate, sync_ime_window);
+        .add_systems(PostUpdate, sync_ime_window)
+        .add_systems(PostUpdate, sync_lifecycle_field_visuals);
 }
 
 pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity {
@@ -188,6 +191,7 @@ pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
     let panel = commands
         .spawn((
             TouchScrollablePanel,
+            TabGroup::modal(),
             Node {
                 width: percent(100),
                 min_width: px(0),
@@ -255,14 +259,43 @@ pub fn spawn_text_input_field(
     value: impl Into<String>,
     selected: bool,
 ) -> Entity {
-    let marker = if selected { ">" } else { " " };
+    let label = label.into();
+    let row = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            min_height: px(48),
+            flex_direction: FlexDirection::Row,
+            column_gap: vmin(1.389),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .id();
+
+    let label_entity = commands
+        .spawn((
+            Text::new(format!("{label}:")),
+            Node {
+                width: percent(25),
+                min_width: px(0),
+                ..default()
+            },
+            TextContent,
+            TextFont::from_font_size(label_font_size()),
+            TextColor(THEME_TEXT),
+        ))
+        .id();
+
     let field = commands
         .spawn((
             Button,
-            ContextualTextField { index },
-            ContextualEnhanced,
+            LifecycleTextField { index },
+            EditableText::new(value),
+            TextCursorStyle::default(),
+            TextLayout::no_wrap(),
+            TabIndex(index as i32),
             Node {
-                width: percent(100),
+                width: percent(75),
                 min_width: px(0),
                 min_height: px(48),
                 padding: UiRect::axes(vmin(1.389), vmin(0.833)),
@@ -270,22 +303,20 @@ pub fn spawn_text_input_field(
                 border: UiRect::all(px(1)),
                 ..default()
             },
-            BorderColor::all(THEME_ACCENT),
+            BorderColor::all(if selected { THEME_ACCENT } else { THEME_MUTED }),
             BackgroundColor(THEME_PANEL_ALT),
-            children![(
-                Text::new(format!("{marker} {}: {}", label.into(), value.into(),)),
-                Node {
-                    width: percent(100),
-                    min_width: px(0),
-                    ..default()
-                },
-                TextContent,
-                TextFont::from_font_size(label_font_size()),
-                TextColor(THEME_TEXT),
-            )],
+            TextFont::from_font_size(label_font_size()),
+            TextColor(THEME_TEXT),
         ))
         .id();
-    commands.entity(parent).add_child(field);
+
+    if selected {
+        commands.entity(field).insert(AutoFocus);
+    }
+
+    commands.entity(row).add_child(label_entity);
+    commands.entity(row).add_child(field);
+    commands.entity(parent).add_child(row);
     field
 }
 
@@ -365,11 +396,13 @@ pub(crate) fn gauge_ratio(current: i32, maximum: i32) -> f32 {
 fn process_ime_events(
     mut ime: MessageReader<Ime>,
     mut keyboard_input: MessageWriter<KeyboardInput>,
-    mut focus: ResMut<TextInputFocus>,
+    mut input_focus: ResMut<InputFocus>,
+    editable_texts: Query<(), With<EditableText>>,
+    mut console_focus: ResMut<ConsoleTextInputFocus>,
 ) {
     for event in ime.read() {
         match event {
-            Ime::Commit { window, value } if !value.is_empty() => {
+            Ime::Commit { window, value } if console_focus.active && !value.is_empty() => {
                 keyboard_input.write(KeyboardInput {
                     key_code: KeyCode::Unidentified(NativeKeyCode::Unidentified),
                     logical_key: Key::Character(value.clone().into()),
@@ -379,9 +412,17 @@ fn process_ime_events(
                     text: Some(value.clone().into()),
                 });
             }
-            Ime::Disabled { .. } if focus.target.is_some() => {
-                focus.target = None;
-                focus.suppress_next_back = true;
+            Ime::Disabled { .. } => {
+                if console_focus.active {
+                    console_focus.active = false;
+                    console_focus.suppress_next_back = true;
+                } else if input_focus
+                    .get()
+                    .is_some_and(|entity| editable_texts.contains(entity))
+                {
+                    input_focus.clear();
+                    console_focus.suppress_next_back = true;
+                }
             }
             _ => {}
         }
@@ -391,20 +432,20 @@ fn process_ime_events(
 fn keyboard_to_semantic_input(
     keyboard: Res<ButtonInput<KeyCode>>,
     navigation: Res<NavigationState>,
-    mut focus: ResMut<TextInputFocus>,
+    input_focus: Res<InputFocus>,
+    editable_fields: Query<(), With<LifecycleTextField>>,
+    mut console_focus: ResMut<ConsoleTextInputFocus>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    if !matches!(
-        (focus.target, navigation.current_screen),
-        (
-            Some(TextInputTarget::LifecycleField(_)),
-            Some(ScreenId::Lifecycle)
-        ) | (Some(TextInputTarget::Console), Some(ScreenId::Console))
-            | (None, _)
-    ) {
-        focus.target = None;
+    if navigation.current_screen != Some(ScreenId::Console) {
+        console_focus.active = false;
     }
+
+    let lifecycle_text_focused = navigation.current_screen == Some(ScreenId::Lifecycle)
+        && input_focus
+            .get()
+            .is_some_and(|entity| editable_fields.contains(entity));
 
     let mappings = [
         (KeyCode::ArrowUp, InputEvent::Up),
@@ -429,12 +470,20 @@ fn keyboard_to_semantic_input(
         if !keyboard.just_pressed(key) {
             continue;
         }
+        if lifecycle_text_focused
+            && !matches!(
+                key,
+                KeyCode::Enter | KeyCode::Escape | KeyCode::BrowserBack
+            )
+        {
+            continue;
+        }
         if key == KeyCode::BrowserBack {
-            if focus.suppress_next_back {
-                focus.suppress_next_back = false;
+            if console_focus.suppress_next_back {
+                console_focus.suppress_next_back = false;
                 continue;
             }
-            if focus.target.is_some() {
+            if console_focus.active || lifecycle_text_focused {
                 continue;
             }
         }
@@ -474,19 +523,20 @@ fn choice_button_input(
 fn contextual_touch_input(
     mut interaction_query: Query<
         (
+            Entity,
             &Interaction,
-            Option<&ContextualTextField>,
+            Option<&LifecycleTextField>,
             Option<&ContextualConsoleInput>,
             Option<&ContextualConsoleTab>,
         ),
         Changed<Interaction>,
     >,
-    navigation: Res<NavigationState>,
-    mut focus: ResMut<TextInputFocus>,
-    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut navigation: ResMut<NavigationState>,
+    mut input_focus: ResMut<InputFocus>,
+    mut console_focus: ResMut<ConsoleTextInputFocus>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (interaction, field, console, tab) in &mut interaction_query {
+    for (entity, interaction, field, console, tab) in &mut interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
         }
@@ -494,16 +544,14 @@ fn contextual_touch_input(
             if navigation.current_screen != Some(ScreenId::Lifecycle) {
                 continue;
             }
-            focus.target = Some(TextInputTarget::LifecycleField(field.index));
-            focus.suppress_next_back = false;
-            lifecycle_queue.0.push(InputEvent::Home);
-            for _ in 0..field.index {
-                lifecycle_queue.0.push(InputEvent::Down);
-            }
+            input_focus.set(entity, FocusCause::Pressed);
+            navigation.selected = field.index;
+            console_focus.active = false;
+            console_focus.suppress_next_back = false;
         } else if console.is_some() {
             if navigation.current_screen == Some(ScreenId::Console) {
-                focus.target = Some(TextInputTarget::Console);
-                focus.suppress_next_back = false;
+                console_focus.active = true;
+                console_focus.suppress_next_back = false;
             }
         } else if tab.is_some() && navigation.current_screen == Some(ScreenId::Console) {
             gameplay_queue.0.push(InputEvent::Tab);
@@ -646,13 +694,42 @@ fn touch_scroll(
 }
 
 fn sync_ime_window(
-    focus: Res<TextInputFocus>,
+    input_focus: Res<InputFocus>,
+    editable_texts: Query<(), With<EditableText>>,
+    console_focus: Res<ConsoleTextInputFocus>,
     mut windows: Query<&mut Window, With<PrimaryWindow>>,
 ) {
     let Some(mut window) = windows.iter_mut().next() else {
         return;
     };
-    window.ime_enabled = focus.target.is_some();
+    let native_editable_focused = input_focus
+        .get()
+        .is_some_and(|entity| editable_texts.contains(entity));
+    window.ime_enabled = console_focus.active || native_editable_focused;
+}
+
+fn sync_lifecycle_field_visuals(
+    input_focus: Res<InputFocus>,
+    mut fields: Query<(
+        Entity,
+        &LifecycleTextField,
+        &mut BorderColor,
+        &mut BackgroundColor,
+    )>,
+) {
+    let focused = input_focus
+        .get()
+        .filter(|entity| fields.get(*entity).is_ok())
+        .copied();
+
+    for (entity, _, mut border, mut background) in &mut fields {
+        border.set_all(if focused == Some(entity) {
+            THEME_ACCENT
+        } else {
+            THEME_MUTED
+        });
+        *background = BackgroundColor(THEME_PANEL_ALT);
+    }
 }
 
 #[cfg(test)]
