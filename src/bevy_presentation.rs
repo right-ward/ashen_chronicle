@@ -243,6 +243,52 @@ pub fn spawn_muted_label(
     label
 }
 
+pub fn spawn_text_input_field(
+    commands: &mut Commands,
+    parent: Entity,
+    index: usize,
+    label: impl Into<String>,
+    value: impl Into<String>,
+    selected: bool,
+) -> Entity {
+    let marker = if selected { ">" } else { " " };
+    let field = commands
+        .spawn((
+            Button,
+            ContextualTextField { index },
+            ContextualEnhanced,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: px(48),
+                padding: UiRect::axes(vmin(1.389), vmin(0.833)),
+                align_items: AlignItems::Center,
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_ACCENT),
+            BackgroundColor(THEME_PANEL_ALT),
+            children![(
+                Text::new(format!(
+                    "{marker} {}: {}",
+                    label.into(),
+                    value.into(),
+                )),
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    ..default()
+                },
+                TextContent,
+                TextFont::from_font_size(label_font_size()),
+                TextColor(THEME_TEXT),
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(field);
+    field
+}
+
 pub fn spawn_choice_button(
     commands: &mut Commands,
     parent: Entity,
@@ -475,7 +521,6 @@ fn contextual_touch_targets(
             &Text,
             &mut Node,
             Option<&ContextualEnhanced>,
-            Option<&ContextualTextField>,
             Option<&ContextualConsoleInput>,
         ),
         With<TextContent>,
@@ -494,30 +539,7 @@ fn contextual_touch_targets(
         if enhanced.is_some() {
             continue;
         }
-        if navigation.current_screen == Some(ScreenId::Lifecycle)
-            && field.is_none()
-            && console_input.is_none()
-        {
-            let trimmed = text.as_str().trim_start_matches('>').trim_start();
-            let Some((label, _)) = trimmed.split_once(':') else {
-                continue;
-            };
-            let index = match label.trim() {
-                "World" => 0,
-                "Character" => 1,
-                "Title" => 2,
-                _ => continue,
-            };
-            node.min_height = px(48);
-            node.padding = UiRect::axes(vmin(1.389), vmin(0.833));
-            commands.entity(entity).insert((
-                Button,
-                ContextualTextField { index },
-                ContextualEnhanced,
-                BorderColor::all(THEME_ACCENT),
-                BackgroundColor(THEME_PANEL_ALT),
-            ));
-        } else if navigation.current_screen == Some(ScreenId::Console)
+        if navigation.current_screen == Some(ScreenId::Console)
             && console_input.is_none()
             && text.as_str().starts_with("> ")
         {
@@ -581,6 +603,7 @@ fn contextual_touch_targets(
 
 fn touch_scroll(
     touches: Res<Touches>,
+    window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchScrollState>,
     mut panels: Query<
         (
@@ -594,7 +617,10 @@ fn touch_scroll(
 ) {
     for touch in touches.iter_just_pressed() {
         for (entity, computed, transform, _) in &mut panels {
-            if computed.contains_point(*transform, touch.position()) {
+            if computed.contains_point(
+                *transform,
+                touch.position() * window.scale_factor(),
+            ) {
                 state.active = Some((touch.id(), entity, touch.position()));
                 break;
             }
