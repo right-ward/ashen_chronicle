@@ -3,6 +3,7 @@
 //! Engine setup stays here; lifecycle and gameplay behavior remain in their
 //! frontend-independent systems and Bevy adapters.
 
+use bevy::input_focus::tab_navigation::TabNavigationPlugin;
 use bevy::prelude::*;
 
 use crate::{
@@ -26,6 +27,7 @@ pub fn run() {
         }),
         ..default()
     }));
+    app.add_plugins(TabNavigationPlugin);
     bevy_presentation::install(&mut app);
     bevy_touch::install(&mut app);
     bevy_input_diagnostics::install(&mut app);

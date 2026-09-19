@@ -16,7 +16,11 @@ Bevy presentation adapters turn those views into UI nodes. Shared node construct
 
 ## Input
 
-Native Bevy keyboard and button interaction is translated into the semantic `InputEvent` model in `input.rs`. Gameplay and screen systems consume these semantic events rather than Bevy-specific keyboard types except where text entry requires native `KeyboardInput` text data.
+Native Bevy keyboard, touch, and button interaction is translated into the semantic `InputEvent` model in `input.rs`. Gameplay and screen systems consume these semantic events rather than Bevy-specific keyboard types except where text entry requires native `KeyboardInput` text data.
+
+Android touch positions are logical window coordinates while Bevy UI layout hit-testing uses physical coordinates, so the shared touch handling converts touch positions with the window scale factor before testing UI bounds. This conversion is shared by custom choice and scroll hit-testing.
+
+Lifecycle character-creation fields use Bevy 0.19.1's `EditableText` with real `InputFocus`, tab navigation, cursor/edit handling, and native IME routing. The shared presentation layer still gives the fields explicit touch targets so touch input can assign native focus. The custom IME-to-keyboard bridge remains only for the developer console, whose input model is still renderer-specific. Android IME dismissal clears native lifecycle focus before semantic Back navigation resumes.
 
 Arrow keys, Home/End, Page Up/Page Down, Enter, Escape, Tab, Backspace, Delete, and selected number/vim-style shortcuts remain available where each screen supports them. UI buttons produce the same semantic confirmation events as keyboard input.
 

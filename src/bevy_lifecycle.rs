@@ -4,12 +4,13 @@
 //! validation, inheritance, and save-path rules remain in the existing model,
 //! persistence, and game modules.
 
-use bevy::input::keyboard::KeyboardInput;
+use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
+use bevy::text::EditableText;
 use std::path::PathBuf;
 
 use crate::bevy_presentation::{
-    self, BevyScreenRoot, NavigationState, ScreenId, SemanticInputQueue,
+    self, BevyScreenRoot, LifecycleTextField, NavigationState, ScreenId, SemanticInputQueue,
 };
 use crate::game::validate_loaded_state;
 use crate::input::InputEvent;
@@ -69,33 +70,26 @@ pub(crate) fn install(app: &mut App) {
         .add_systems(Startup, initialize)
         .add_systems(
             Update,
-            (text_input, lifecycle_input, render_if_dirty).chain(),
-        );
+            (
+                lifecycle_input,
+                sync_character_field_values,
+                render_if_dirty,
+            )
+                .chain(),
+        )
+        .add_observer(on_lifecycle_field_focus_gained);
 }
 
 fn initialize(mut lifecycle: ResMut<LifecycleState>) {
     lifecycle.refresh_saves();
 }
 
-fn text_input(mut keyboard: MessageReader<KeyboardInput>, mut lifecycle: ResMut<LifecycleState>) {
-    if lifecycle.phase != LifecyclePhase::CreateCharacter || lifecycle.selected > 2 {
-        return;
-    }
-
-    for event in keyboard.read() {
-        if let Some(text) = &event.text {
-            if !text.chars().any(char::is_control) {
-                lifecycle.active_field_mut().push_str(text);
-                lifecycle.dirty = true;
-            }
-        }
-    }
-}
-
 fn lifecycle_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
     mut input_queue: ResMut<SemanticInputQueue>,
+    mut input_focus: ResMut<InputFocus>,
+    fields: Query<(Entity, &LifecycleTextField)>,
     mut commands: Commands,
 ) {
     if input_queue.0.is_empty() {
@@ -108,12 +102,6 @@ fn lifecycle_input(
             InputEvent::Up => move_selection(&mut lifecycle, &mut navigation, -1),
             InputEvent::Down => move_selection(&mut lifecycle, &mut navigation, 1),
             InputEvent::Cancel => handle_cancel(&mut lifecycle, &mut navigation),
-            InputEvent::Backspace => {
-                if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
-                    lifecycle.active_field_mut().pop();
-                    lifecycle.dirty = true;
-                }
-            }
             InputEvent::Confirm => {
                 if let Some(exit) = activate_selection(&mut lifecycle, &mut navigation) {
                     if exit {
@@ -125,6 +113,60 @@ fn lifecycle_input(
             _ => {}
         }
     }
+
+    if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
+        if let Some((entity, _)) = fields
+            .iter()
+            .find(|(_, field)| field.index == lifecycle.selected)
+        {
+            if input_focus.get() != Some(entity) {
+                input_focus.set(entity, FocusCause::Navigated);
+            }
+        }
+    } else if input_focus
+        .get()
+        .is_some_and(|entity| fields.get(entity).is_ok())
+    {
+        input_focus.clear();
+    }
+}
+
+fn sync_character_field_values(
+    mut lifecycle: ResMut<LifecycleState>,
+    fields: Query<(&EditableText, &LifecycleTextField), Changed<EditableText>>,
+) {
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        return;
+    }
+
+    for (field, marker) in &fields {
+        let value = field.value().to_string();
+        match marker.index {
+            0 if lifecycle.world_name != value => lifecycle.world_name = value,
+            1 if lifecycle.character_name != value => lifecycle.character_name = value,
+            2 if lifecycle.character_title != value => lifecycle.character_title = value,
+            _ => {}
+        }
+    }
+}
+
+fn on_lifecycle_field_focus_gained(
+    trigger: On<FocusGained>,
+    fields: Query<&LifecycleTextField>,
+    mut lifecycle: ResMut<LifecycleState>,
+    mut navigation: ResMut<NavigationState>,
+) {
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        return;
+    }
+
+    let Ok(field) = fields.get(trigger.event_target()) else {
+        return;
+    };
+
+    lifecycle.selected = field.index;
+    navigation.current_screen = Some(ScreenId::Lifecycle);
+    navigation.selected = field.index;
 }
 
 fn move_selection(
@@ -142,7 +184,9 @@ fn move_selection(
     };
     lifecycle.selected = (lifecycle.selected as isize + direction).clamp(0, max as isize) as usize;
     navigation.selected = lifecycle.selected;
-    lifecycle.dirty = true;
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        lifecycle.dirty = true;
+    }
 }
 
 fn activate_selection(
@@ -272,14 +316,6 @@ impl LifecycleState {
         }
         self.selected = 0;
         self.dirty = true;
-    }
-
-    fn active_field_mut(&mut self) -> &mut String {
-        match self.selected {
-            0 => &mut self.world_name,
-            1 => &mut self.character_name,
-            _ => &mut self.character_title,
-        }
     }
 
     fn create_character(&mut self) {
@@ -431,12 +467,14 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
         ("Title", &lifecycle.character_title),
     ];
     for (index, (label, value)) in fields.into_iter().enumerate() {
-        let marker = if lifecycle.selected == index {
-            ">"
-        } else {
-            " "
-        };
-        bevy_presentation::spawn_label(commands, panel, format!("{marker} {label}: {value}"));
+        bevy_presentation::spawn_text_input_field(
+            commands,
+            panel,
+            index,
+            label,
+            value,
+            lifecycle.selected == index,
+        );
     }
     bevy_presentation::spawn_choice_button(commands, panel, 3, "Begin Life");
 }

@@ -5,9 +5,11 @@
 //! suppressed so the surrounding scrollable panel can consume the gesture.
 
 use bevy::prelude::*;
+use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
-    ChoiceButton, GameplayInputQueue, NavigationState, ScreenId, SemanticInputQueue,
+    physical_touch_position, ChoiceButton, GameplayInputQueue, NavigationState, ScreenId,
+    SemanticInputQueue,
 };
 use crate::input::InputEvent;
 
@@ -37,6 +39,7 @@ pub fn install(app: &mut App) {
 
 fn suppress_touch_choice_press(
     touches: Res<Touches>,
+    window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchChoiceState>,
     mut buttons: Query<
         (Entity, &mut Interaction, &ComputedNode, &UiGlobalTransform),
@@ -44,10 +47,11 @@ fn suppress_touch_choice_press(
     >,
 ) {
     for touch in touches.iter_just_pressed() {
+        let physical_position = physical_touch_position(touch.position(), window.scale_factor());
         let button = buttons
             .iter()
             .find(|(_, _, computed, transform)| {
-                computed.contains_point(**transform, touch.position())
+                computed.contains_point(**transform, physical_position)
             })
             .map(|(entity, _, _, _)| entity);
         state.active = Some(ActiveTouch {
@@ -84,6 +88,7 @@ fn suppress_touch_choice_press(
 
 fn complete_touch_choice(
     touches: Res<Touches>,
+    window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchChoiceState>,
     buttons: Query<(Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform), With<ChoiceButton>>,
     navigation: Res<NavigationState>,
@@ -109,11 +114,13 @@ fn complete_touch_choice(
         return;
     }
 
+    let physical_release_position =
+        physical_touch_position(released_touch.position(), window.scale_factor());
     let Some(index) = buttons
         .iter()
         .find(|(entity, _, computed, transform)| {
             Some(*entity) == active.button
-                && computed.contains_point(**transform, released_touch.position())
+                && computed.contains_point(**transform, physical_release_position)
         })
         .map(|(_, choice, _, _)| choice.index)
     else {
