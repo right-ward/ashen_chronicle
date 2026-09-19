@@ -184,6 +184,9 @@ fn move_selection(
     };
     lifecycle.selected = (lifecycle.selected as isize + direction).clamp(0, max as isize) as usize;
     navigation.selected = lifecycle.selected;
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        lifecycle.dirty = true;
+    }
 }
 
 fn activate_selection(
