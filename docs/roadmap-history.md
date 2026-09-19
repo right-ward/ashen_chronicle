@@ -589,6 +589,18 @@ src/
 - Added native desktop game-root use/recreate/alternate-folder selection.
 - Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
 - Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
+### v0.50.17: Native Bevy editable text input
+- Migrated character-creation fields to Bevy 0.19.1's native `EditableText` and `InputFocus` systems.
+- Enabled Bevy UI widgets and tab navigation for native cursor/editing, field traversal, and IME handling.
+- Removed the lifecycle-specific custom IME text bridge and duplicate semantic text editing path while retaining the separate console bridge.
+- Kept Android touch-coordinate normalization and explicit lifecycle field touch targets.
+- Added native focus clearing on Android IME dismissal so system Back does not leave lifecycle input stuck.
+
+### v0.50.16: Android touch and text-input flow fix
+- Normalized custom Android touch hit-testing and touch-scroll hit-testing to Bevy UI's physical coordinate space.
+- Made character-creation fields explicit graphical controls with stable field identity and added Android keyboard-text diagnostics.
+- Kept physical Android verification outstanding for touch targeting, field selection, IME entry, and keyboard recovery.
+
 ### v0.50.6: Android APK CI packaging and signing
 - Added CI packaging for installable signed Android APKs using the existing Gradle/GameActivity project.
 - Preserved the existing Android x86_64, AArch64, and ARMv7 targets with per-ABI native library packaging.
