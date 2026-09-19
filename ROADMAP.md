@@ -5,6 +5,15 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.16: Android touch and text-input flow fix
+- Normalized custom Android touch hit-testing to Bevy UI's physical coordinate space so taps target the control actually touched on scaled displays.
+- Applied the same coordinate conversion to custom touch-scroll hit-testing.
+- Made character-creation fields explicit graphical buttons instead of dynamically converting matching text labels into controls after rendering.
+- Kept text-entry focus tied to explicit lifecycle field controls and retained the shared IME/keyboard input path.
+- Added Android keyboard-text diagnostics so device verification can distinguish IME delivery from keyboard-event routing.
+- Added focused coverage for the shared touch-coordinate conversion.
+- Physical Android verification of the corrected touch targeting, character-creation field selection, IME text entry, keyboard dismissal, and post-IME interaction remains outstanding.
+
 ### v0.50.15: Android shared-storage synchronization fix
 - Extended Android local-to-shared SAF synchronization from `data/mods/` to the complete local `data/` directory, including bundled root-level files such as `base_content.json` and future root-level data files.
 - Kept shared-to-local synchronization limited to editable `data/mods/` and `saves/`, preserving the bundled base content as locally protected content.
@@ -73,7 +82,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.15, install the resulting APK on a physical Android device, verify that complete `data/` and `saves/` content reaches the selected shared folder, confirm input diagnostics appear there, then investigate any remaining provider-specific SAF failures before making further storage changes.
+Run the Android CI workflow for v0.50.16, install the resulting APK on a physical Android device, verify distinct start-menu targets, character-creation field selection and IME text entry, keyboard dismissal/recovery, and touch scrolling; then complete the remaining Android storage/shared-folder verification.
 
 ## Longer-term direction
 
