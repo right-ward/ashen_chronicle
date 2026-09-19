@@ -4,12 +4,13 @@
 //! validation, inheritance, and save-path rules remain in the existing model,
 //! persistence, and game modules.
 
-use bevy::input::keyboard::KeyboardInput;
+use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
+use bevy::text::EditableText;
 use std::path::PathBuf;
 
 use crate::bevy_presentation::{
-    self, BevyScreenRoot, NavigationState, ScreenId, SemanticInputQueue,
+    self, BevyScreenRoot, LifecycleTextField, NavigationState, ScreenId, SemanticInputQueue,
 };
 use crate::game::validate_loaded_state;
 use crate::input::InputEvent;
@@ -66,36 +67,24 @@ pub(crate) struct GameSession {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
-        .add_systems(Startup, initialize)
         .add_systems(
             Update,
-            (text_input, lifecycle_input, render_if_dirty).chain(),
-        );
+            (lifecycle_input, sync_character_field_values, render_if_dirty).chain(),
+        )
+        .add_systems(PostUpdate, ensure_lifecycle_field_focus)
+        .add_observer(on_lifecycle_field_focus_gained);
 }
 
 fn initialize(mut lifecycle: ResMut<LifecycleState>) {
     lifecycle.refresh_saves();
 }
 
-fn text_input(mut keyboard: MessageReader<KeyboardInput>, mut lifecycle: ResMut<LifecycleState>) {
-    if lifecycle.phase != LifecyclePhase::CreateCharacter || lifecycle.selected > 2 {
-        return;
-    }
-
-    for event in keyboard.read() {
-        if let Some(text) = &event.text {
-            if !text.chars().any(char::is_control) {
-                lifecycle.active_field_mut().push_str(text);
-                lifecycle.dirty = true;
-            }
-        }
-    }
-}
-
 fn lifecycle_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
     mut input_queue: ResMut<SemanticInputQueue>,
+    mut input_focus: ResMut<InputFocus>,
+    fields: Query<(Entity, &LifecycleTextField)>,
     mut commands: Commands,
 ) {
     if input_queue.0.is_empty() {
@@ -127,6 +116,66 @@ fn lifecycle_input(
     }
 }
 
+fn sync_character_field_values(
+    mut lifecycle: ResMut<LifecycleState>,
+    fields: Query<(&EditableText, &LifecycleTextField), Changed<EditableText>>,
+) {
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        return;
+    }
+
+    for (field, marker) in &fields {
+        let value = field.value().to_string();
+        match marker.index {
+            0 if lifecycle.world_name != value => lifecycle.world_name = value,
+            1 if lifecycle.character_name != value => lifecycle.character_name = value,
+            2 if lifecycle.character_title != value => lifecycle.character_title = value,
+            _ => {}
+        }
+    }
+}
+
+fn ensure_lifecycle_field_focus(
+    lifecycle: Res<LifecycleState>,
+    mut input_focus: ResMut<InputFocus>,
+    fields: Query<(Entity, &LifecycleTextField)>,
+) {
+    if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
+        if let Some((entity, _)) = fields
+            .iter()
+            .find(|(_, field)| field.index == lifecycle.selected)
+        {
+            if input_focus.get() != Some(entity) {
+                input_focus.set(entity, FocusCause::Navigated);
+            }
+        }
+    } else if input_focus
+        .get()
+        .is_some_and(|entity| fields.get(entity).is_ok())
+    {
+        input_focus.clear();
+    }
+}
+
+fn on_lifecycle_field_focus_gained(
+    trigger: On<FocusGained>,
+    fields: Query<&LifecycleTextField>,
+    mut lifecycle: ResMut<LifecycleState>,
+    mut navigation: ResMut<NavigationState>,
+) {
+    if lifecycle.phase != LifecyclePhase::CreateCharacter {
+        return;
+    }
+
+    let Ok(field) = fields.get(trigger.event_target()) else {
+        return;
+    };
+
+    lifecycle.selected = field.index;
+    navigation.current_screen = Some(ScreenId::Lifecycle);
+    navigation.selected = field.index;
+}
+
 fn move_selection(
     lifecycle: &mut LifecycleState,
     navigation: &mut NavigationState,
@@ -142,7 +191,6 @@ fn move_selection(
     };
     lifecycle.selected = (lifecycle.selected as isize + direction).clamp(0, max as isize) as usize;
     navigation.selected = lifecycle.selected;
-    lifecycle.dirty = true;
 }
 
 fn activate_selection(
