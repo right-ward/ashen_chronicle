@@ -67,6 +67,7 @@ pub(crate) struct GameSession {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
+        .add_systems(Startup, initialize)
         .add_systems(
             Update,
             (
@@ -76,7 +77,6 @@ pub(crate) fn install(app: &mut App) {
             )
                 .chain(),
         )
-        .add_systems(PostUpdate, ensure_lifecycle_field_focus)
         .add_observer(on_lifecycle_field_focus_gained);
 }
 
@@ -102,7 +102,6 @@ fn lifecycle_input(
             InputEvent::Up => move_selection(&mut lifecycle, &mut navigation, -1),
             InputEvent::Down => move_selection(&mut lifecycle, &mut navigation, 1),
             InputEvent::Cancel => handle_cancel(&mut lifecycle, &mut navigation),
-            InputEvent::Backspace => {}
             InputEvent::Confirm => {
                 if let Some(exit) = activate_selection(&mut lifecycle, &mut navigation) {
                     if exit {
@@ -148,28 +147,6 @@ fn sync_character_field_values(
             2 if lifecycle.character_title != value => lifecycle.character_title = value,
             _ => {}
         }
-    }
-}
-
-fn ensure_lifecycle_field_focus(
-    lifecycle: Res<LifecycleState>,
-    mut input_focus: ResMut<InputFocus>,
-    fields: Query<(Entity, &LifecycleTextField)>,
-) {
-    if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
-        if let Some((entity, _)) = fields
-            .iter()
-            .find(|(_, field)| field.index == lifecycle.selected)
-        {
-            if input_focus.get() != Some(entity) {
-                input_focus.set(entity, FocusCause::Navigated);
-            }
-        }
-    } else if input_focus
-        .get()
-        .is_some_and(|entity| fields.get(entity).is_ok())
-    {
-        input_focus.clear();
     }
 }
 
