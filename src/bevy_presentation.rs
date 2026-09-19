@@ -716,8 +716,7 @@ fn sync_lifecycle_field_visuals(
 ) {
     let focused = input_focus
         .get()
-        .filter(|entity| fields.get(*entity).is_ok())
-        .copied();
+        .filter(|entity| fields.get(*entity).is_ok());
 
     for (entity, _, mut border, mut background) in &mut fields {
         border.set_all(if focused == Some(entity) {
