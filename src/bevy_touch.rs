@@ -8,7 +8,8 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
-    ChoiceButton, GameplayInputQueue, NavigationState, ScreenId, SemanticInputQueue,
+    physical_touch_position, ChoiceButton, GameplayInputQueue, NavigationState, ScreenId,
+    SemanticInputQueue,
 };
 use crate::input::InputEvent;
 
@@ -85,10 +86,6 @@ fn suppress_touch_choice_press(
     }
 }
 
-fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2 {
-    position * scale_factor
-}
-
 fn complete_touch_choice(
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -142,13 +139,3 @@ fn complete_touch_choice(
     queue.push(InputEvent::Confirm);
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn touch_coordinates_convert_from_logical_to_physical_space() {
-        let position = physical_touch_position(Vec2::new(100.0, 50.0), 2.5);
-        assert_eq!(position, Vec2::new(250.0, 125.0));
-    }
-}
