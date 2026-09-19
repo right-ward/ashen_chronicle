@@ -260,6 +260,7 @@ pub fn spawn_text_input_field(
     selected: bool,
 ) -> Entity {
     let label = label.into();
+    let value = value.into();
     let row = commands
         .spawn(Node {
             width: percent(100),
@@ -290,7 +291,7 @@ pub fn spawn_text_input_field(
         .spawn((
             Button,
             LifecycleTextField { index },
-            EditableText::new(value),
+            EditableText::new(&value),
             TextCursorStyle::default(),
             TextLayout::no_wrap(),
             TabIndex(index as i32),
