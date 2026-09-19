@@ -20,7 +20,7 @@ Native Bevy keyboard, touch, and button interaction is translated into the seman
 
 Android touch positions are logical window coordinates while Bevy UI layout hit-testing uses physical coordinates, so the shared touch handling converts touch positions with the window scale factor before testing UI bounds. This conversion is shared by custom choice and scroll hit-testing.
 
-Lifecycle text fields are explicit graphical controls with their own field identity and focus state rather than text labels being promoted into buttons after rendering. Android IME commits continue through the shared keyboard text-input path, while keyboard dismissal clears text focus without changing the underlying lifecycle navigation model.
+Lifecycle character-creation fields use Bevy 0.19.1's `EditableText` with real `InputFocus`, tab navigation, cursor/edit handling, and native IME routing. The shared presentation layer still gives the fields explicit touch targets so touch input can assign native focus. The custom IME-to-keyboard bridge remains only for the developer console, whose input model is still renderer-specific. Android IME dismissal clears native lifecycle focus before semantic Back navigation resumes.
 
 Arrow keys, Home/End, Page Up/Page Down, Enter, Escape, Tab, Backspace, Delete, and selected number/vim-style shortcuts remain available where each screen supports them. UI buttons produce the same semantic confirmation events as keyboard input.
 
