@@ -75,6 +75,10 @@ pub struct SemanticInputQueue(pub Vec<InputEvent>);
 #[derive(Resource, Default)]
 pub struct GameplayInputQueue(pub Vec<InputEvent>);
 
+pub(crate) fn physical_touch_position(window: &Window, position: Vec2) -> Vec2 {
+    position * window.scale_factor()
+}
+
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NavigationState {
     pub current_screen: Option<ScreenId>,
@@ -619,7 +623,7 @@ fn touch_scroll(
         for (entity, computed, transform, _) in &mut panels {
             if computed.contains_point(
                 *transform,
-                touch.position() * window.scale_factor(),
+                physical_touch_position(&window, touch.position()),
             ) {
                 state.active = Some((touch.id(), entity, touch.position()));
                 break;
