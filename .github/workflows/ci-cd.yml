@@ -41,6 +41,11 @@ on:
           - macos-aarch64
           - windows-x86_64
           - windows-aarch64
+      debug_build:
+        description: Enable Bevy ECS debug names in the release binary
+        required: false
+        default: false
+        type: boolean
 
 concurrency:
   group: ci-${{ github.event.pull_request.number || github.ref }}-${{ inputs.branch }}-${{ inputs.target }}
@@ -358,6 +363,7 @@ jobs:
           TARGET: ${{ matrix.target }}
           BUILD_PLATFORM: ${{ matrix.platform }}
           ARCH: ${{ matrix.arch }}
+          DEBUG_BUILD: ${{ inputs.debug_build }}
         run: |
           set -euo pipefail
 
@@ -419,7 +425,13 @@ jobs:
             export "CARGO_TARGET_${target_env}_LINKER=$linker"
           fi
 
-          cargo build --release --target "$TARGET" 2>&1 | tee -a build.log
+          cargo_args=(build --release --target "$TARGET")
+          if [[ "$DEBUG_BUILD" == "true" ]]; then
+            cargo_args+=(--features bevy/debug)
+            echo "Bevy ECS debug names enabled"
+          fi
+
+          cargo "${cargo_args[@]}" 2>&1 | tee -a build.log
 
       - name: Package release archive
         shell: bash
