@@ -3,11 +3,14 @@
 use bevy::prelude::*;
 
 #[cfg(target_os = "android")]
+use bevy::input::keyboard::KeyboardInput;
+
+#[cfg(target_os = "android")]
 use std::io::Write;
 
 #[cfg(target_os = "android")]
 pub fn install(app: &mut App) {
-    app.add_systems(Update, (log_ime_events, log_browser_back));
+    app.add_systems(Update, (log_ime_events, log_keyboard_text, log_browser_back));
 }
 
 #[cfg(not(target_os = "android"))]
@@ -17,6 +20,18 @@ pub fn install(_app: &mut App) {}
 fn log_ime_events(mut ime: MessageReader<Ime>) {
     for event in ime.read() {
         write_debug_line(&format!("Android IME event: {event:?}"));
+    }
+}
+
+#[cfg(target_os = "android")]
+fn log_keyboard_text(mut keyboard: MessageReader<KeyboardInput>) {
+    for event in keyboard.read() {
+        if event.text.as_ref().is_some_and(|text| !text.is_empty()) {
+            write_debug_line(&format!(
+                "Android KeyboardInput text: {:?} logical_key={:?}",
+                event.text, event.logical_key
+            ));
+        }
     }
 }
 
