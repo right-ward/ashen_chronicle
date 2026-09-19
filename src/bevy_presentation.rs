@@ -471,10 +471,7 @@ fn keyboard_to_semantic_input(
             continue;
         }
         if lifecycle_text_focused
-            && !matches!(
-                key,
-                KeyCode::Enter | KeyCode::Escape | KeyCode::BrowserBack
-            )
+            && !matches!(key, KeyCode::Enter | KeyCode::Escape | KeyCode::BrowserBack)
         {
             continue;
         }

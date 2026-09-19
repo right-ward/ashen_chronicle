@@ -69,7 +69,12 @@ pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
         .add_systems(
             Update,
-            (lifecycle_input, sync_character_field_values, render_if_dirty).chain(),
+            (
+                lifecycle_input,
+                sync_character_field_values,
+                render_if_dirty,
+            )
+                .chain(),
         )
         .add_systems(PostUpdate, ensure_lifecycle_field_focus)
         .add_observer(on_lifecycle_field_focus_gained);
