@@ -97,12 +97,7 @@ fn lifecycle_input(
             InputEvent::Up => move_selection(&mut lifecycle, &mut navigation, -1),
             InputEvent::Down => move_selection(&mut lifecycle, &mut navigation, 1),
             InputEvent::Cancel => handle_cancel(&mut lifecycle, &mut navigation),
-            InputEvent::Backspace => {
-                if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
-                    lifecycle.active_field_mut().pop();
-                    lifecycle.dirty = true;
-                }
-            }
+            InputEvent::Backspace => {}
             InputEvent::Confirm => {
                 if let Some(exit) = activate_selection(&mut lifecycle, &mut navigation) {
                     if exit {
@@ -113,6 +108,22 @@ fn lifecycle_input(
             }
             _ => {}
         }
+    }
+
+    if lifecycle.phase == LifecyclePhase::CreateCharacter && lifecycle.selected <= 2 {
+        if let Some((entity, _)) = fields
+            .iter()
+            .find(|(_, field)| field.index == lifecycle.selected)
+        {
+            if input_focus.get() != Some(entity) {
+                input_focus.set(entity, FocusCause::Navigated);
+            }
+        }
+    } else if input_focus
+        .get()
+        .is_some_and(|entity| fields.get(entity).is_ok())
+    {
+        input_focus.clear();
     }
 }
 
@@ -320,14 +331,6 @@ impl LifecycleState {
         }
         self.selected = 0;
         self.dirty = true;
-    }
-
-    fn active_field_mut(&mut self) -> &mut String {
-        match self.selected {
-            0 => &mut self.world_name,
-            1 => &mut self.character_name,
-            _ => &mut self.character_title,
-        }
     }
 
     fn create_character(&mut self) {
