@@ -75,8 +75,8 @@ pub struct SemanticInputQueue(pub Vec<InputEvent>);
 #[derive(Resource, Default)]
 pub struct GameplayInputQueue(pub Vec<InputEvent>);
 
-pub(crate) fn physical_touch_position(window: &Window, position: Vec2) -> Vec2 {
-    position * window.scale_factor()
+pub(crate) fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2 {
+    position * scale_factor
 }
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -539,7 +539,7 @@ fn contextual_touch_targets(
         None
     };
 
-    for (entity, text, mut node, enhanced, field, console_input) in &mut text_fields {
+    for (entity, text, mut node, enhanced, console_input) in &mut text_fields {
         if enhanced.is_some() {
             continue;
         }
@@ -623,7 +623,7 @@ fn touch_scroll(
         for (entity, computed, transform, _) in &mut panels {
             if computed.contains_point(
                 *transform,
-                physical_touch_position(&window, touch.position()),
+                physical_touch_position(touch.position(), window.scale_factor()),
             ) {
                 state.active = Some((touch.id(), entity, touch.position()));
                 break;
@@ -665,8 +665,8 @@ mod tests {
 
     #[test]
     fn touch_coordinates_convert_from_logical_to_physical_space() {
-        let position = physical_touch_position(&Window::default(), Vec2::new(100.0, 50.0));
-        assert_eq!(position, Vec2::new(100.0, 50.0));
+        let position = physical_touch_position(Vec2::new(100.0, 50.0), 2.5);
+        assert_eq!(position, Vec2::new(250.0, 125.0));
     }
 
     #[test]
