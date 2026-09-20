@@ -1,0 +1,19 @@
+Ashen Chronicle - Android (Java/Gradle) dependencies
+
+The Android app wrapper links the following libraries directly (versions from
+android/gradle/libs.versions.toml at the time of writing):
+
+  androidx.appcompat:appcompat         1.6.1
+  com.google.android.material:material 1.10.0
+  androidx.games:games-activity        4.4.0
+  androidx.documentfile:documentfile   1.1.0
+
+These are Copyright The Android Open Source Project / Google LLC and are
+licensed under the Apache License, Version 2.0. A copy of that license is
+included as Apache-2.0.txt next to this file. Transitive AndroidX
+dependencies pulled in by these libraries are distributed under the same
+license unless their own notices say otherwise.
+
+Rust libraries linked into the native library are listed, with their license
+texts, in THIRD-PARTY-LICENSES.txt.
+

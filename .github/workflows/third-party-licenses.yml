@@ -1,0 +1,50 @@
+name: Generate third-party licenses
+description: >-
+  Generates THIRD-PARTY-LICENSES.txt from Cargo.lock with cargo-about, using
+  about.toml (license allow-list) and about.hbs (template). Fails the job if a
+  dependency uses a license that is not in the allow-list.
+inputs:
+  output:
+    description: Output file, relative to the repository root.
+    required: false
+    default: THIRD-PARTY-LICENSES.txt
+runs:
+  using: composite
+  steps:
+    - name: Install cargo-about
+      uses: taiki-e/install-action@v2
+      with:
+        tool: cargo-about
+
+    - name: Generate license file
+      shell: bash
+      env:
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        cargo about generate --locked -c about.toml -o "$OUTPUT" about.hbs
+
+    - name: Sanity-check license file
+      shell: bash
+      env:
+        OUTPUT: ${{ inputs.output }}
+      run: |
+        set -euo pipefail
+        test -s "$OUTPUT"
+        size="$(wc -c < "$OUTPUT")"
+        if [ "$size" -lt 20000 ]; then
+          echo "$OUTPUT is only $size bytes; expected a full license bundle."
+          exit 1
+        fi
+        # Templating leftovers or missing per-crate copyright lines mean the
+        # output is not usable for MIT/BSD attribution.
+        if grep -q '{{' "$OUTPUT"; then
+          echo "Unrendered template tags found in $OUTPUT."
+          exit 1
+        fi
+        if ! grep -qi 'copyright' "$OUTPUT"; then
+          echo "No copyright lines found in $OUTPUT."
+          exit 1
+        fi
+        echo "Generated $OUTPUT ($size bytes)."
+

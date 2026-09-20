@@ -3,6 +3,12 @@ name = "ashen_chronicle"
 
 version = "0.50.17"
 edition = "2021"
+license = "Apache-2.0"
+# ---- related to license, `data/` is under LICENSE-CONTENT ----
+authors = ["right-ward"]
+repository = "https://github.com/right-ward/ashen_chronicle"
+description = "roguelike dark fantasy game"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]

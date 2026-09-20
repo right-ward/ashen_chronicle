@@ -332,6 +332,9 @@ jobs:
           toolchain: stable
           cache: true
 
+      - name: Generate third-party licenses
+        uses: ./.github/actions/third-party-licenses
+
       - name: Set up Android SDK
         if: matrix.platform == 'android'
         uses: android-actions/setup-android@v4.0.1
@@ -455,6 +458,13 @@ jobs:
           mkdir -p "$package_dir"
 
           cp -R data "$package_dir/"
+
+          # Legal notices must travel with every binary and with data/.
+          cp LICENSE LICENSE-CONTENT NOTICE THIRD-PARTY-NOTICES TRADEMARKS.md \
+            THIRD-PARTY-LICENSES.txt "$package_dir/"
+          mkdir -p "$package_dir/LICENSES"
+          cp LICENSES/* "$package_dir/LICENSES/"
+          cp LICENSE-CONTENT "$package_dir/data/LICENSE-CONTENT"
 
           if [[ "$BUILD_PLATFORM" == "windows" ]]; then
             cp "target/$TARGET/release/ashen_chronicle.exe" "$package_dir/"
