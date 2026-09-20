@@ -22,7 +22,7 @@ runs:
         OUTPUT: ${{ inputs.output }}
       run: |
         set -euo pipefail
-        cargo about generate --offline -c about.toml -o "$OUTPUT" about.hbs
+        cargo about generate -c about.toml -o "$OUTPUT" about.hbs
 
     - name: Sanity-check license file
       shell: bash
