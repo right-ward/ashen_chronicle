@@ -28,4 +28,4 @@ jobs:
         with:
           toolchain: stable
           cache: true
-      - uses: ./.github/workflows/third-party-licenses.yml
+      - uses: ./.github/actions/third-party-licenses
