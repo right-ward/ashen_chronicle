@@ -1,0 +1,39 @@
+version = 1
+SPDX-PackageName = "ashen_chronicle"
+SPDX-PackageDownloadLocation = "https://github.com/right-ward/ashen_chronicle"
+
+# --- Source Code and developer documentation: Apache-2.0 ---------------------
+[[annotations]]
+path = [
+  "src/**",
+  "android/**",
+  ".github/**",
+  "docs/**",
+  "legal/**",
+  "Cargo.toml",
+  "Cargo.lock",
+  ".gitignore",
+  "about.toml",
+  "about.hbs",
+  "*.md",
+  "NOTICE",
+  "THIRD-PARTY-NOTICES",
+]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "2026 right-ward",
+  "Ashen Chronicle contributors",
+]
+SPDX-License-Identifier = "Apache-2.0"
+
+# --- Game Content: Ashen Chronicle Game Content License ----------------------
+# Everything under data/ (base content, bundled mods, scene art, mod docs).
+# This is NOT Apache-2.0, even for files that act as configuration.
+[[annotations]]
+path = ["data/**"]
+precedence = "aggregate"
+SPDX-FileCopyrightText = [
+  "2026 right-ward",
+  "Ashen Chronicle contributors",
+]
+SPDX-License-Identifier = "LicenseRef-Ashen-Chronicle-Content-1.1"

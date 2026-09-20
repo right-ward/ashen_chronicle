@@ -332,6 +332,9 @@ jobs:
           toolchain: stable
           cache: true
 
+      - name: Generate third-party licenses
+        uses: ./.github/actions/third-party-licenses
+
       - name: Set up Android SDK
         if: matrix.platform == 'android'
         uses: android-actions/setup-android@v4.0.1
@@ -456,6 +459,13 @@ jobs:
 
           cp -R data "$package_dir/"
 
+          # Legal notices must travel with every binary and with data/.
+          cp LICENSE LICENSE-CONTENT NOTICE THIRD-PARTY-NOTICES TRADEMARKS.md \
+            THIRD-PARTY-LICENSES.txt "$package_dir/"
+          mkdir -p "$package_dir/LICENSES"
+          cp LICENSES/* "$package_dir/LICENSES/"
+          cp LICENSE-CONTENT "$package_dir/data/LICENSE-CONTENT"
+
           if [[ "$BUILD_PLATFORM" == "windows" ]]; then
             cp "target/$TARGET/release/ashen_chronicle.exe" "$package_dir/"
             (cd package && 7z a -tzip -mx=9 "../$release_name.$ARCHIVE_EXT" "$release_name")
@@ -546,3 +556,37 @@ jobs:
             dist/ashen_chronicle-${{ github.ref_name }}-macos-aarch64.tar.xz
             dist/ashen_chronicle-${{ github.ref_name }}-windows-x86_64.zip
             dist/ashen_chronicle-${{ github.ref_name }}-windows-aarch64.zip
+
+  sync_lock:
+    name: Commit Cargo.lock updates
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    needs: [clippy, test]
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+
+    steps:
+      - name: Checkout main
+        uses: actions/checkout@v7.0.1
+        with:
+          ref: main
+          token: {{ secrets.SYNC_PUSH_TOKEN }}
+
+      - name: Set up Rust
+        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        with:
+          toolchain: stable
+          cache: true
+
+      - name: Sync lock file
+        run: cargo update --workspace
+
+      - name: Commit if changed
+        run: |
+          if git diff --quiet -- Cargo.lock; then
+            echo "Cargo.lock already up to date."
+            exit 0
+          fi
+          git add Cargo.lock
+          git commit -m "chore: sync Cargo.lock [skip ci]"
+          git push origin HEAD:main

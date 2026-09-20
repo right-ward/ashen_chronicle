@@ -143,6 +143,9 @@ jobs:
           toolchain: stable
           cache: true
 
+      - name: Generate third-party licenses
+        uses: ./.github/actions/third-party-licenses
+
       - name: Set up JDK 17
         uses: actions/setup-java@v6
         with:
@@ -278,6 +281,17 @@ jobs:
 
           mkdir -p "android/app/src/main/jniLibs/${{ matrix.abi }}"
           cp "$so_file" "android/app/src/main/jniLibs/${{ matrix.abi }}/libashen_chronicle.so"
+
+      - name: Stage legal notices as APK assets
+        shell: bash
+        run: |
+          set -euo pipefail
+          legal_dir="android/app/src/main/assets/legal"
+          mkdir -p "$legal_dir"
+          cp LICENSE LICENSE-CONTENT NOTICE THIRD-PARTY-NOTICES TRADEMARKS.md \
+            THIRD-PARTY-LICENSES.txt legal/ANDROID-DEPENDENCIES.txt "$legal_dir/"
+          cp LICENSES/Apache-2.0.txt "$legal_dir/"
+          ls -l "$legal_dir"
 
       - name: Build signed APK
         shell: bash

@@ -1,0 +1,31 @@
+name: License check
+
+on:
+  pull_request:
+  push:
+    branches: [main]
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  reuse:
+    name: REUSE lint and license copies
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - name: Content license copies must match
+        run: cmp LICENSE-CONTENT LICENSES/LicenseRef-Ashen-Chronicle-Content-1.1.txt
+      - uses: fsfe/reuse-action@v5
+
+  third-party:
+    name: Third-party license bundle
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7.0.1
+      - uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
+        with:
+          toolchain: stable
+          cache: true
+      - uses: ./.github/actions/third-party-licenses

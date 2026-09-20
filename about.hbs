@@ -1,0 +1,26 @@
+ASHEN CHRONICLE - THIRD-PARTY LICENSES
+
+This file reproduces the copyright notices and license texts of the
+third-party Rust libraries built into Ashen Chronicle. It is generated from
+Cargo.lock by cargo-about and is not an exhaustive statement of the project's
+own licensing. See LICENSE, LICENSE-CONTENT, and NOTICE for that.
+
+Summary of licenses used:
+{{#each overview}}
+  {{name}} ({{id}}): {{count}} crate(s)
+{{/each}}
+
+{{#each licenses}}
+================================================================================
+{{name}} ({{id}})
+================================================================================
+
+Used by:
+{{#each used_by}}
+  - {{crate.name}} {{crate.version}}{{#if crate.repository}} - {{crate.repository}}{{/if}}
+{{/each}}
+
+{{{text}}}
+
+{{/each}}
+

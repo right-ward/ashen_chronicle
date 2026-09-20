@@ -1,0 +1,34 @@
+Ashen Chronicle - Third-Party Notices
+
+Copyright 2026 right-ward
+
+This file describes Ashen Chronicle as of version 0.50.17 and stays in effect
+until replaced.
+
+1. Third-party Game Content
+
+The data files under data/ contain no third-party material known to the
+project maintainer. If third-party Game Content is added, its license and
+required notices must be recorded here and in REUSE.toml before release.
+
+2. Third-party software
+
+Builds of Ashen Chronicle include third-party software libraries (Rust crates
+and, on Android, AndroidX/Google libraries). Each keeps its own license.
+Their copyright notices and license texts are reproduced in:
+
+  - THIRD-PARTY-LICENSES.txt, generated at release time from Cargo.lock and
+    shipped in every release archive; and
+  - assets/legal/ inside the Android APK (THIRD-PARTY-LICENSES.txt and
+    ANDROID-DEPENDENCIES.txt).
+
+Some components are licensed under licenses (such as MPL-2.0) that require
+their source code to be available. Ashen Chronicle uses these components
+unmodified. Their source code is available from the repositories and package
+registries listed in THIRD-PARTY-LICENSES.txt.
+
+3. No relicensing
+
+Nothing in the Apache License, the Ashen Chronicle Game Content License, or
+other project documentation relicenses third-party material.
+

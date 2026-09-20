@@ -3,6 +3,12 @@ name = "ashen_chronicle"
 
 version = "0.50.17"
 edition = "2021"
+license = "Apache-2.0"
+# ---- related to license, `data/` is under LICENSE-CONTENT ----
+authors = ["right-ward"]
+repository = "https://github.com/right-ward/ashen_chronicle"
+description = "roguelike dark fantasy game"
+publish = false
 
 [lib]
 crate-type = ["cdylib", "rlib"]
@@ -18,6 +24,9 @@ bevy = { version = "0.19.1", default-features = false, features = [
     "x11",
     "android-game-activity",
     "bevy_ui_widgets",
+    "keyboard",
+    "mouse",
+    "touch",
 ] }
 dirs = "6"
 atomic-write-file = "0.3.1"

@@ -47,3 +47,6 @@ temp/
 *.todo
 rw_*
 
+# Generated legal files (created in CI)
+THIRD-PARTY-LICENSES.txt
+android/app/src/main/assets/legal/
