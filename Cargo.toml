@@ -1,7 +1,7 @@
 [package]
 name = "ashen_chronicle"
 
-version = "0.50.17"
+version = "0.50.18"
 edition = "2021"
 license = "Apache-2.0"
 # ---- related to license, `data/` is under LICENSE-CONTENT ----
@@ -27,7 +27,8 @@ bevy = { version = "0.19.1", default-features = false, features = [
     "keyboard",
     "mouse",
     "touch",
-] }
+]
+bevy_picking = { version = "0.19.1", default-features = false } }
 dirs = "6"
 atomic-write-file = "0.3.1"
 serde = { version = "1", features = ["derive"] }
