@@ -589,6 +589,11 @@ src/
 - Added native desktop game-root use/recreate/alternate-folder selection.
 - Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
 - Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
+### v0.50.18: Bevy editable-text startup fix
+- Registered the `Pointer<Release>` message storage required by Bevy 0.19.1's `EditableTextInputPlugin` without enabling Bevy's picking plugin stack.
+- Preserved the project's custom touch interaction architecture while preventing the native editable-text pipeline from failing ECS system validation at startup.
+- Bumped the project and Android fallback version metadata to 0.50.18.
+
 ### v0.50.17: Native Bevy editable text input
 - Migrated character-creation fields to Bevy 0.19.1's native `EditableText` and `InputFocus` systems.
 - Enabled Bevy UI widgets and tab navigation for native cursor/editing, field traversal, and IME handling.

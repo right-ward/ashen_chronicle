@@ -5,6 +5,12 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.18: Bevy editable-text startup fix
+- Registered the `Pointer<Release>` message storage required by Bevy 0.19.1's `EditableTextInputPlugin` without enabling Bevy's picking plugin stack.
+- Preserved the project's custom touch interaction architecture while preventing the native editable-text pipeline from failing ECS system validation at startup.
+- Bumped the project and Android fallback version metadata to 0.50.18.
+- Physical Android verification of the complete start/menu, character-creation, IME, keyboard dismissal, touch scrolling, and storage flow remains outstanding.
+
 ### v0.50.17: Native Bevy editable text input
 - Migrated character-creation fields to Bevy 0.19.1's `EditableText` and `InputFocus` pipeline instead of maintaining a custom lifecycle text-input implementation.
 - Enabled Bevy's UI widgets and tab-navigation support so the three character-creation fields use native text editing, focus traversal, cursor handling, deletion, and IME routing.
