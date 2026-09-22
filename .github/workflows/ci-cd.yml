@@ -12,15 +12,6 @@ on:
       - 'Cargo.toml'
       - 'Cargo.lock'
       - 'data/**'
-  pull_request:
-    branches:
-      - main
-    paths:
-      - '**.rs'
-      - '.github/workflows/**'
-      - 'Cargo.toml'
-      - 'Cargo.lock'
-      - 'data/**'
   workflow_dispatch:
     inputs:
       branch:
@@ -48,86 +39,23 @@ on:
         type: boolean
 
 concurrency:
-  group: ci-${{ github.event.pull_request.number || github.ref }}-${{ inputs.branch }}-${{ inputs.target }}
+  group: cd-${{ github.ref }}-${{ inputs.branch }}-${{ inputs.target }}
   cancel-in-progress: true
 
 permissions:
   contents: read
 
 jobs:
-  format:
-    name: Format PR
-    if: github.event_name == 'pull_request' && github.actor != 'github-actions[bot]' && github.event.pull_request.head.repo.full_name == github.repository
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    outputs:
-      changed: ${{ steps.format.outputs.changed }}
-      commit_sha: ${{ steps.format.outputs.commit_sha }}
-
-    steps:
-      - name: Checkout PR branch
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.event.pull_request.head.ref }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-
-      - name: Set up Rust
-        uses: actions-rust-lang/setup-rust-toolchain@v1.17.0
-        with:
-          toolchain: stable
-          cache: true
-
-      - name: Format source
-        id: format
-        shell: bash
-        env:
-          HEAD_BRANCH: ${{ github.event.pull_request.head.ref }}
-          ORIGINAL_SHA: ${{ github.event.pull_request.head.sha }}
-        run: |
-          set -euo pipefail
-
-          cargo fmt --all
-
-          if git diff --quiet; then
-            echo "changed=false" >> "$GITHUB_OUTPUT"
-            echo "commit_sha=$ORIGINAL_SHA" >> "$GITHUB_OUTPUT"
-            echo "Formatting is already clean."
-            exit 0
-          fi
-
-          git config user.name "github-actions[bot]"
-          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
-          git add --all
-          git commit -m "style: apply rustfmt"
-          git push origin "HEAD:$HEAD_BRANCH"
-
-          echo "changed=true" >> "$GITHUB_OUTPUT"
-          echo "commit_sha=$(git rev-parse HEAD)" >> "$GITHUB_OUTPUT"
-
   clippy:
     name: Clippy
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR commit
-        if: github.event_name == 'pull_request'
+      - name: Checkout branch
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-
-      - name: Checkout current ref
-        if: github.event_name != 'pull_request'
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
 
       - name: Set up Rust
@@ -169,26 +97,14 @@ jobs:
 
   test:
     name: Test
-    if: |
-      (github.event_name == 'push' && github.ref == 'refs/heads/main') ||
-      github.event_name == 'workflow_dispatch' ||
-      github.event_name == 'pull_request'
+    if: github.event_name == 'workflow_dispatch'
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout PR commit
-        if: github.event_name == 'pull_request'
+      - name: Checkout branch
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event.pull_request.head.sha }}
-          repository: ${{ github.event.pull_request.head.repo.full_name }}
-          fetch-depth: 0
-
-      - name: Checkout current ref
-        if: github.event_name != 'pull_request'
-        uses: actions/checkout@v7.0.1
-        with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
+          ref: ${{ inputs.branch }}
           fetch-depth: 0
 
       - name: Set up Rust
@@ -560,7 +476,6 @@ jobs:
   sync_lock:
     name: Commit Cargo.lock updates
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
-    needs: [clippy, test]
     runs-on: ubuntu-latest
     permissions:
       contents: write
