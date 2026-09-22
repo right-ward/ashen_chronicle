@@ -166,10 +166,11 @@ dependencies = [
 
 [[package]]
 name = "ashen_chronicle"
-version = "0.50.17"
+version = "0.50.18"
 dependencies = [
  "atomic-write-file",
  "bevy",
+ "bevy_picking",
  "dirs",
  "flate2",
  "rfd",
