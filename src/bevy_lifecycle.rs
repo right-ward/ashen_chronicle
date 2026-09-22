@@ -7,12 +7,13 @@
 use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
 use bevy::text::EditableText;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 
 use crate::bevy_presentation::{
     self, BevyScreenRoot, LifecycleTextField, NavigationState, ScreenId, SemanticInputQueue,
 };
 use crate::game::validate_loaded_state;
+use crate::game_paths::SAVES_DIRECTORY_NAME;
 use crate::input::InputEvent;
 use crate::model::{create_inherited_state, create_new_state, GameState, WorldMode};
 use crate::persistence::{character_save_path, find_save_files, legacy_save_path, load_game};
@@ -214,7 +215,7 @@ fn activate_selection(
                     Ok(state) => {
                         let warnings = validate_loaded_state(&state);
                         let save_path = character_save_path(
-                            PathBuf::from(".").as_path(),
+                            Path::new(SAVES_DIRECTORY_NAME),
                             &state.character.name,
                         );
                         lifecycle.pending_state = Some((state, save_path));
@@ -309,7 +310,8 @@ impl LifecycleState {
 
     fn refresh_saves(&mut self) {
         let current_dir = PathBuf::from(".");
-        self.save_files = find_save_files(&current_dir).unwrap_or_default();
+        let saves_dir = PathBuf::from(SAVES_DIRECTORY_NAME);
+        self.save_files = find_save_files(&saves_dir).unwrap_or_default();
         let legacy = legacy_save_path(&current_dir);
         if legacy.exists() && !self.save_files.iter().any(|path| path == &legacy) {
             self.save_files.push(legacy);
@@ -341,7 +343,7 @@ impl LifecycleState {
             title.to_string(),
         );
         crate::game::world::bootstrap_campaign_content(&mut state);
-        let save_path = character_save_path(PathBuf::from(".").as_path(), character_name);
+        let save_path = character_save_path(Path::new(SAVES_DIRECTORY_NAME), character_name);
         self.session = Some(GameSession { state, save_path });
         self.pending_state = None;
         self.phase = LifecyclePhase::Complete;
@@ -380,7 +382,7 @@ impl LifecycleState {
             self.character_title.trim()
         };
         let state = create_inherited_state(&session.state, name.to_string(), title.to_string());
-        let save_path = character_save_path(PathBuf::from(".").as_path(), name);
+        let save_path = character_save_path(Path::new(SAVES_DIRECTORY_NAME), name);
         self.session = Some(GameSession { state, save_path });
         self.phase = LifecyclePhase::Complete;
         self.selected = 0;
@@ -654,6 +656,15 @@ mod tests {
         let state = LifecycleState::default();
         assert_eq!(start_option_count(&state), 2);
         assert!(!start_has_load(&state));
+    }
+
+    #[test]
+    fn character_save_paths_use_the_dedicated_saves_directory() {
+        let path = character_save_path(Path::new(SAVES_DIRECTORY_NAME), "Ash Walker");
+        assert_eq!(
+            path,
+            PathBuf::from("saves/ashen_chronicle_save_Ash Walker.json.gz")
+        );
     }
 
     #[test]
