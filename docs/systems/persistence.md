@@ -4,7 +4,7 @@ The persistence system stores the world and character state while keeping inheri
 
 ## Save format
 
-Saves use the existing JSON payload format compressed with gzip. Character-specific filenames follow the form `ashen_chronicle_save_<character>.json.gz` after filename sanitization.
+Saves use the existing JSON payload format compressed with gzip and are stored under the game root's `saves/` directory. Character-specific filenames follow the form `ashen_chronicle_save_<character>.json.gz` after filename sanitization.
 
 Legacy uncompressed `ashen_chronicle_save.json` saves remain loadable. Save migration uses defaulted fields and explicit migration handling when new progression or time data is introduced.
 

@@ -5,6 +5,11 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
+### v0.50.19: Save path correction
+- Save files now use the dedicated `saves/` directory under the selected game root instead of being written directly into the root.
+- Load discovery scans `saves/` for current character-specific compressed saves while retaining root-level discovery for the legacy uncompressed save filename.
+- Bumped the project and Android fallback version metadata to 0.50.19.
+
 ### v0.50.18: Bevy editable-text startup fix
 - Registered the `Pointer<Release>` message storage required by Bevy 0.19.1's `EditableTextInputPlugin` without enabling Bevy's picking plugin stack.
 - Preserved the project's custom touch interaction architecture while preventing the native editable-text pipeline from failing ECS system validation at startup.
@@ -96,7 +101,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Next
 
-Run the Android CI workflow for v0.50.17, install the resulting APK on a physical Android device, verify distinct start-menu targets, character-creation field selection and native IME text entry, keyboard dismissal/recovery, and touch scrolling; then complete the remaining Android storage/shared-folder verification.
+Run the Android CI workflow for v0.50.19, install the resulting APK on a physical Android device, verify distinct start-menu targets, character-creation field selection and native IME text entry, keyboard dismissal/recovery, and touch scrolling; then complete the remaining Android storage/shared-folder verification.
 
 ## Longer-term direction
 
