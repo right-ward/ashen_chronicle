@@ -148,6 +148,10 @@ or run the built release directly:
 ./ashen_chronicle
 ```
 
+### Release targets
+
+Official release builds target Android (x86_64, aarch64, armv7), Linux (x86_64, aarch64), macOS (aarch64 / Apple Silicon), and Windows (x86_64, aarch64). Intel macOS (x86_64-apple-darwin) is no longer an official release target.
+
 Run the test suite with:
 
 ```sh
