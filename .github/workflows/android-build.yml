@@ -118,6 +118,8 @@ jobs:
               echo "Unsupported Android target: $TARGET"
               exit 1
             fi
+          else
+            matrix="$(jq -c . <<< "$matrix")"
           fi
 
           echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
