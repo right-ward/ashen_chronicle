@@ -590,6 +590,27 @@ src/
 - Added native desktop game-root use/recreate/alternate-folder selection.
 - Hardened protected base-content replacement and corrected lifecycle Load Back navigation.
 - Corrected Combat semantic Cancel for Android system Back and audited all existing Bevy screens against the shared responsive/touch architecture.
+### v0.50.19: Save path correction
+- Save files now use the dedicated `saves/` directory under the selected game root instead of being written directly into the root.
+- Load discovery scans `saves/` for current character-specific compressed saves while retaining root-level discovery for the legacy uncompressed save filename.
+- Bumped the project and Android fallback version metadata to 0.50.19.
+
+### v0.50.18: Bevy editable-text startup fix
+- Registered the `Pointer<Release>` message storage required by Bevy 0.19.1's `EditableTextInputPlugin` without enabling Bevy's picking plugin stack.
+- Preserved the project's custom touch interaction architecture while preventing the native editable-text pipeline from failing ECS system validation at startup.
+- Bumped the project and Android fallback version metadata to 0.50.18.
+
+### v0.50.17: Native Bevy editable text input
+- Migrated character-creation fields to Bevy 0.19.1's native `EditableText` and `InputFocus` systems.
+- Enabled Bevy UI widgets and tab navigation for native cursor/editing, field traversal, and IME handling.
+- Removed the lifecycle-specific custom IME text bridge and duplicate semantic text editing path while retaining the separate console bridge.
+- Kept Android touch-coordinate normalization and explicit lifecycle field touch targets.
+- Added native focus clearing on Android IME dismissal so system Back does not leave lifecycle input stuck.
+
+### v0.50.16: Android touch and text-input flow fix
+- Normalized custom Android touch hit-testing and touch-scroll hit-testing to Bevy UI's physical coordinate space.
+- Made character-creation fields explicit graphical controls with stable field identity and added Android keyboard-text diagnostics.
+- Kept physical Android verification outstanding for touch targeting, field selection, IME entry, and keyboard recovery.
 
 ### v0.50.6: Android APK CI packaging and signing
 - Added CI packaging for installable signed Android APKs using the existing Gradle/GameActivity project.
