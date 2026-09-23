@@ -28,7 +28,6 @@ on:
           - android-armv7
           - linux-x86_64
           - linux-aarch64
-          - macos-x86_64
           - macos-aarch64
           - windows-x86_64
           - windows-aarch64
@@ -180,7 +179,6 @@ jobs:
             {"platform":"android","arch":"armv7","dispatch_target":"android-armv7","target":"armv7-linux-androideabi","runner":"ubuntu-latest","archive_ext":"tar.xz"},
             {"platform":"linux","arch":"x86_64","dispatch_target":"linux-x86_64","target":"x86_64-unknown-linux-gnu","runner":"ubuntu-latest","archive_ext":"tar.xz"},
             {"platform":"linux","arch":"aarch64","dispatch_target":"linux-aarch64","target":"aarch64-unknown-linux-gnu","runner":"ubuntu-latest","archive_ext":"tar.xz"},
-            {"platform":"macos","arch":"x86_64","dispatch_target":"macos-x86_64","target":"x86_64-apple-darwin","runner":"macos-15-intel","archive_ext":"tar.xz"},
             {"platform":"macos","arch":"aarch64","dispatch_target":"macos-aarch64","target":"aarch64-apple-darwin","runner":"macos-15","archive_ext":"tar.xz"},
             {"platform":"windows","arch":"x86_64","dispatch_target":"windows-x86_64","target":"x86_64-pc-windows-msvc","runner":"windows-latest","archive_ext":"zip"},
             {"platform":"windows","arch":"aarch64","dispatch_target":"windows-aarch64","target":"aarch64-pc-windows-msvc","runner":"windows-latest","archive_ext":"zip"}
@@ -468,7 +466,6 @@ jobs:
             dist/ashen_chronicle-${{ github.ref_name }}-android-armv7.tar.xz
             dist/ashen_chronicle-${{ github.ref_name }}-linux-x86_64.tar.xz
             dist/ashen_chronicle-${{ github.ref_name }}-linux-aarch64.tar.xz
-            dist/ashen_chronicle-${{ github.ref_name }}-macos-x86_64.tar.xz
             dist/ashen_chronicle-${{ github.ref_name }}-macos-aarch64.tar.xz
             dist/ashen_chronicle-${{ github.ref_name }}-windows-x86_64.zip
             dist/ashen_chronicle-${{ github.ref_name }}-windows-aarch64.zip
