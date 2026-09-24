@@ -57,10 +57,10 @@ android {
         }
     }
 
-    packaging {
+    packagingOptions {
         jniLibs {
             // APKs are distributed directly, so compress native libraries to reduce download size.
-            useLegacyPackaging = true
+            useLegacyPackaging true
         }
     }
 
