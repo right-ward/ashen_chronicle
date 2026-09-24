@@ -197,6 +197,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
+          : > android-build.log
           {
             echo "=== Android packaging CI diagnostics ==="
             echo "runner_os=$RUNNER_OS"
@@ -213,8 +214,9 @@ jobs:
             "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" version || true
             echo "AGP:"
             grep -n 'android-application' android/gradle/libs.versions.toml
-            echo "Gradle project:"
-            sed -n '1,180p' android/app/build.gradle
+            echo "Android packaging configuration:"
+            grep -n -A6 -B2 'packaging' android/app/build.gradle || true
+            grep -n -A12 -B2 'androidComponents' android/app/build.gradle || true
           } 2>&1 | tee -a android-build.log
 
       - name: Prepare signing keystore
@@ -273,7 +275,6 @@ jobs:
           TARGET: ${{ matrix.target }}
         run: |
           set -o pipefail
-          : > android-build.log
 
           export ANDROID_NDK_HOME="$ANDROID_SDK_ROOT/ndk/27.3.13750724"
           export PATH="$ANDROID_NDK_HOME/toolchains/llvm/prebuilt/linux-x86_64/bin:$PATH"
@@ -372,7 +373,10 @@ jobs:
                   }
 
                   def components = project.extensions.findByName("androidComponents")
-                  if (components != null) {
+                  if (components == null) {
+                      println "[CI][android-packaging] androidComponents extension not found"
+                  } else {
+                      println "[CI][android-packaging] androidComponents extension found"
                       components.onVariants(components.selector().withBuildType("release")) { variant ->
                           try {
                               def property = variant.packaging.jniLibs.useLegacyPackaging
@@ -418,8 +422,33 @@ jobs:
             stat "$apk"
             sha256sum "$apk"
 
-            echo "=== APK native-library entries ==="
-            unzip -lv "$apk" | grep -E '(^| )lib/.+\\.so
+            echo "=== APK native-library ZIP entries ==="
+            unzip -lv "$apk" | grep -E 'lib/.+\.so$' || true
+
+            echo "=== APK native-library ZIP details ==="
+            python - "$apk" <<'PY'
+          import sys
+          from zipfile import ZipFile
+
+          apk = sys.argv[1]
+          with ZipFile(apk) as archive:
+              native_libs = [
+                  info for info in archive.infolist()
+                  if info.filename.startswith("lib/") and info.filename.endswith(".so")
+              ]
+              for info in native_libs:
+                  ratio = 100 * (1 - info.compress_size / info.file_size) if info.file_size else 0
+                  print(
+                      f"{info.filename}: method={info.compress_type} "
+                      f"raw={info.file_size} compressed={info.compress_size} "
+                      f"savings={ratio:.1f}% offset={info.header_offset}"
+                  )
+          PY
+
+            echo "=== Largest APK entries ==="
+            unzip -l "$apk" | awk 'NR > 3 {size=$1; name=$4; if (size ~ /^[0-9]+$/) print size, name}' | sort -nr | head -n 20
+          } 2>&1 | tee -a ../android-build.log
+
       - name: Verify native library compression
         shell: bash
         env:
