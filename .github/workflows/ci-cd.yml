@@ -173,6 +173,7 @@ jobs:
     runs-on: ubuntu-latest
     outputs:
       matrix: ${{ steps.matrix.outputs.matrix }}
+      ref: ${{ steps.matrix.outputs.ref }}
 
     steps:
       - name: Prepare build matrix
