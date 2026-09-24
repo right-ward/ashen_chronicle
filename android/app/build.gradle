@@ -57,6 +57,13 @@ android {
         }
     }
 
+    packaging {
+        jniLibs {
+            // APKs are distributed directly, so compress native libraries to reduce download size.
+            useLegacyPackaging = true
+        }
+    }
+
     compileOptions {
         sourceCompatibility JavaVersion.VERSION_1_8
         targetCompatibility JavaVersion.VERSION_1_8
