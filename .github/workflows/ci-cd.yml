@@ -314,6 +314,7 @@ jobs:
           BUILD_PLATFORM: ${{ matrix.platform }}
           ARCH: ${{ matrix.arch }}
           DEBUG_BUILD: ${{ inputs.debug_build }}
+          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
 
@@ -350,7 +351,7 @@ jobs:
 
 
           cargo_args=(build --release --target "$TARGET")
-          if [[ "$DEBUG_BUILD" == "true" ]]; then
+          if [[ "$OPERATION" == "build" && "$DEBUG_BUILD" == "true" ]]; then
             cargo_args+=(--features bevy/debug)
             echo "Bevy ECS debug names enabled"
           fi
