@@ -467,6 +467,7 @@ jobs:
           tag_name: ${{ needs.prep_build_matrix.outputs.ref }}
           generate_release_notes: true
           preserve_order: true
+          overwrite_files: true
           files: |
             dist/ashen_chronicle-${{ needs.prep_build_matrix.outputs.ref }}-linux-x86_64.tar.xz
             dist/ashen_chronicle-${{ needs.prep_build_matrix.outputs.ref }}-linux-aarch64.tar.xz
