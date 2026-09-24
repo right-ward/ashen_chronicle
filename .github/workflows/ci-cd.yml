@@ -240,7 +240,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
+          fetch-depth: 0
           ref: ${{ needs.prep_build_matrix.outputs.ref }}
 
       - name: Verify release tag
