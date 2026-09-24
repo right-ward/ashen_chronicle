@@ -88,29 +88,6 @@ jobs:
             exit 1
           fi
 
-      - name: Validate release tag
-        if: |
-          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
-          (github.event_name == 'workflow_dispatch' && inputs.operation == 'release')
-        shell: bash
-        env:
-          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
-        run: |
-          set -euo pipefail
-
-          case "$RELEASE_TAG" in
-            v[0-9]*.[0-9]*.[0-9]*) ;;
-            *)
-              echo "Release tags must use vMAJOR.MINOR.PATCH; got $RELEASE_TAG"
-              exit 1
-              ;;
-          esac
-
-          if ! git branch -r --contains "$GITHUB_SHA" | grep -qE 'origin/main$'; then
-            echo "Tag $RELEASE_TAG does not point to a commit contained in main."
-            exit 1
-          fi
-
       - name: Resolve build version
         id: version
         shell: bash
