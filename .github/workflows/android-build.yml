@@ -6,21 +6,34 @@ on:
       - 'v*.*.*'
   workflow_dispatch:
     inputs:
+      operation:
+        description: Operation to perform
+        required: true
+        default: build
+        type: choice
+        options:
+          - build
+          - release
       branch:
-        description: Branch to build
+        description: Branch to build from (workflow definition branch for release)
         required: true
         type: string
       target:
-        description: Android architecture to build
-        required: true
+        description: Android architecture to build (build operation only)
+        required: false
+        default: android-aarch64
         type: choice
         options:
           - android-x86_64
           - android-aarch64
           - android-armv7
+      release_tag:
+        description: Existing release tag to rebuild and publish (release operation only)
+        required: false
+        type: string
 
 concurrency:
-  group: android-${{ github.ref }}-${{ inputs.branch }}-${{ inputs.target }}
+  group: android-${{ github.ref }}-${{ inputs.operation }}-${{ inputs.branch }}-${{ inputs.target }}-${{ inputs.release_tag }}
   cancel-in-progress: true
 
 permissions:
@@ -40,7 +53,7 @@ jobs:
       - name: Checkout source
         uses: actions/checkout@v7.0.1
         with:
-          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
+          ref: ${{ github.event_name == 'workflow_dispatch' && inputs.operation == 'release' && inputs.release_tag || github.event_name == 'workflow_dispatch' && inputs.branch || github.ref }}
           fetch-depth: 0
 
       - name: Validate release tag
@@ -70,25 +83,51 @@ jobs:
             exit 1
           fi
 
+      - name: Validate release tag
+        if: |
+          (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+          (github.event_name == 'workflow_dispatch' && inputs.operation == 'release')
+        shell: bash
+        env:
+          RELEASE_TAG: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
+        run: |
+          set -euo pipefail
+
+          case "$RELEASE_TAG" in
+            v[0-9]*.[0-9]*.[0-9]*) ;;
+            *)
+              echo "Release tags must use vMAJOR.MINOR.PATCH; got $RELEASE_TAG"
+              exit 1
+              ;;
+          esac
+
+          if ! git branch -r --contains "$GITHUB_SHA" | grep -qE 'origin/main$'; then
+            echo "Tag $RELEASE_TAG does not point to a commit contained in main."
+            exit 1
+          fi
+
       - name: Resolve build version
         id: version
         shell: bash
         env:
-          DISPATCH_BRANCH: ${{ inputs.branch }}
+          OPERATION: ${{ inputs.operation }}
+          BRANCH: ${{ inputs.branch }}
+          RELEASE_TAG: ${{ inputs.release_tag }}
         run: |
           set -euo pipefail
 
           if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
-            ref_name="$GITHUB_REF_NAME"
-            version="${ref_name#v}"
             ref="$GITHUB_REF_NAME"
+          elif [[ "$OPERATION" == "release" ]]; then
+            ref="$RELEASE_TAG"
           else
-            ref="$DISPATCH_BRANCH"
-            version="$(git show "origin/$DISPATCH_BRANCH":Cargo.toml | grep '^version = ' | head -n 1 | cut -d\" -f2)"
-            if [[ -z "$version" ]]; then
-              echo "Could not resolve Cargo.toml version from branch $DISPATCH_BRANCH."
-              exit 1
-            fi
+            ref="$BRANCH"
+          fi
+
+          version="$(grep '^version = ' Cargo.toml | head -n 1 | cut -d\" -f2)"
+          if [[ -z "$version" ]]; then
+            echo "Could not resolve Cargo.toml version from $ref."
+            exit 1
           fi
 
           IFS=. read -r major minor patch <<< "$version"
@@ -103,6 +142,7 @@ jobs:
         shell: bash
         env:
           TARGET: ${{ inputs.target }}
+          OPERATION: ${{ inputs.operation }}
         run: |
           set -euo pipefail
 
@@ -112,16 +152,15 @@ jobs:
             {"target":"armv7-linux-androideabi","dispatch_target":"android-armv7","arch":"armv7","abi":"armeabi-v7a"}
           ]'
 
-          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "workflow_dispatch" && "$OPERATION" == "build" ]]; then
             matrix="$(jq -c --arg target "$TARGET" 'map(select(.dispatch_target == $target))' <<< "$matrix")"
             if [[ "$matrix" == "[]" ]]; then
               echo "Unsupported Android target: $TARGET"
               exit 1
             fi
-          else
-            matrix="$(jq -c . <<< "$matrix")"
           fi
 
+          matrix="$(jq -c . <<< "$matrix")"
           echo "matrix={\"include\":$matrix}" >> "$GITHUB_OUTPUT"
 
   build:
@@ -175,6 +214,7 @@ jobs:
       - name: Prepare signing keystore
         shell: bash
         env:
+          OPERATION: ${{ inputs.operation }}
           ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
           ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
           ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
@@ -182,7 +222,7 @@ jobs:
         run: |
           set -euo pipefail
 
-          if [[ "$GITHUB_EVENT_NAME" == "push" ]]; then
+          if [[ "$GITHUB_EVENT_NAME" == "push" || "$OPERATION" == "release" ]]; then
             if [[ -z "$ANDROID_KEYSTORE_BASE64" || -z "$ANDROID_KEYSTORE_PASSWORD" || -z "$ANDROID_KEY_ALIAS" || -z "$ANDROID_KEY_PASSWORD" ]]; then
               echo "Android release signing secrets are not configured."
               echo "Required: ANDROID_KEYSTORE_BASE64, ANDROID_KEYSTORE_PASSWORD, ANDROID_KEY_ALIAS, ANDROID_KEY_PASSWORD."
@@ -365,7 +405,9 @@ jobs:
 
   publish:
     name: Publish Android APKs
-    if: github.event_name == 'push'
+    if: |
+      (github.event_name == 'push' && startsWith(github.ref, 'refs/tags/v')) ||
+      (github.event_name == 'workflow_dispatch' && inputs.operation == 'release')
     needs: build
     runs-on: ubuntu-latest
     permissions:
@@ -382,21 +424,21 @@ jobs:
       - name: Publish APKs and remove legacy Android archives
         env:
           GH_TOKEN: ${{ github.token }}
-          TAG_NAME: ${{ github.ref_name }}
+          TAG_NAME: ${{ github.event_name == 'workflow_dispatch' && inputs.release_tag || github.ref_name }}
         shell: bash
         run: |
           set -euo pipefail
 
           for attempt in {1..60}; do
-            if gh release view "$TAG_NAME" >/dev/null 2>&1; then
-              gh release upload "$TAG_NAME" dist/*.apk --clobber
+            if gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+              gh release upload "$TAG_NAME" dist/*.apk --clobber --repo "$GITHUB_REPOSITORY"
               break
             fi
             echo "Release $TAG_NAME is not available yet; retrying ($attempt/60)."
             sleep 5
           done
 
-          if ! gh release view "$TAG_NAME" >/dev/null 2>&1; then
+          if ! gh release view "$TAG_NAME" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
             echo "Timed out waiting for GitHub Release $TAG_NAME."
             exit 1
           fi
@@ -405,5 +447,5 @@ jobs:
             "ashen_chronicle-${TAG_NAME}-android-x86_64.tar.xz" \
             "ashen_chronicle-${TAG_NAME}-android-aarch64.tar.xz" \
             "ashen_chronicle-${TAG_NAME}-android-armv7.tar.xz"; do
-            gh release delete-asset "$TAG_NAME" "$asset" --yes || true
+            gh release delete-asset "$TAG_NAME" "$asset" --yes --repo "$GITHUB_REPOSITORY" || true
           done
