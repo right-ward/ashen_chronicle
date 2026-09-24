@@ -4,7 +4,8 @@
     <application
         android:label="The Ashen Chronicle"
         android:theme="@style/Theme.AppCompat.NoActionBar"
-        android:resizeableActivity="true">
+        android:resizeableActivity="true"
+        android:extractNativeLibs="true">
         <activity
             android:name=".MainActivity"
             android:exported="true"
