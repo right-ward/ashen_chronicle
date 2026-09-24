@@ -341,6 +341,40 @@ jobs:
           echo "APK_NAME=$apk_name" >> "$GITHUB_ENV"
           echo "Created $apk_name" | tee -a ../android-build.log
 
+      - name: Verify native library compression
+        shell: bash
+        env:
+          APK_NAME: ${{ env.APK_NAME }}
+        run: |
+          set -euo pipefail
+          python - "$APK_NAME" <<'PY'
+          import sys
+          from zipfile import ZIP_STORED, ZipFile
+
+          apk = sys.argv[1]
+          with ZipFile(apk) as archive:
+              native_libs = [
+                  info for info in archive.infolist()
+                  if info.filename.startswith("lib/") and info.filename.endswith(".so")
+              ]
+
+          if not native_libs:
+              raise SystemExit("No native libraries found in APK.")
+
+          for info in native_libs:
+              compressed = info.compress_type != ZIP_STORED
+              ratio = 100 * (1 - info.compress_size / info.file_size) if info.file_size else 0
+              print(
+                  f"{info.filename}: method={info.compress_type} "
+                  f"raw={info.file_size} compressed={info.compress_size} "
+                  f"savings={ratio:.1f}%"
+              )
+              if not compressed:
+                  raise SystemExit(
+                      f"Native library is stored uncompressed in APK: {info.filename}"
+                  )
+          PY
+
       - name: Verify APK signature
         working-directory: android
         shell: bash
