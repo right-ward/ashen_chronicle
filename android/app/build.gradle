@@ -20,7 +20,7 @@ def hasReleaseSigning = [
 android {
     namespace 'com.rightward.ashenchronicle'
     compileSdk 34
-    ndkVersion "27.3.13750724"
+    ndkVersion "28.2.13676358"
 
     defaultConfig {
         applicationId "com.rightward.ashenchronicle"
@@ -60,13 +60,7 @@ android {
     packaging {
         jniLibs {
             // APKs are distributed directly, so compress native libraries to reduce download size.
-            useLegacyPackaging = true
-        }
-    }
-
-    androidComponents {
-        onVariants(selector().withBuildType("release")) {
-            packaging.jniLibs.useLegacyPackaging.set(true)
+            useLegacyPackaging true
         }
     }
 
