@@ -179,18 +179,18 @@ jobs:
       - name: Set up Android SDK
         uses: android-actions/setup-android@v4.0.1
         with:
-          packages: 'platform-tools platforms;android-34 build-tools;34.0.0'
+          packages: 'platform-tools platforms;android-34 build-tools;36.0.0'
 
       - name: Install Android NDK
         shell: bash
         run: |
           set -euo pipefail
-          sdkmanager --install "ndk;27.3.13750724"
+          sdkmanager --install "ndk;28.2.13676358"
 
       - name: Set up Gradle
         uses: gradle/actions/setup-gradle@v6
         with:
-          gradle-version: '8.6'
+          gradle-version: '9.6.0'
           cache-overwrite-existing: true
 
       - name: Log Android packaging environment
@@ -207,11 +207,11 @@ jobs:
             echo "gradle:"
             gradle --version
             echo "ANDROID_SDK_ROOT=$ANDROID_SDK_ROOT"
-            echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/27.3.13750724"
+            echo "ANDROID_NDK_HOME=$ANDROID_SDK_ROOT/ndk/28.2.13676358"
             echo "build-tools:"
-            "$ANDROID_SDK_ROOT/build-tools/34.0.0/aapt2" version || true
-            "$ANDROID_SDK_ROOT/build-tools/34.0.0/zipalign" -h | head -n 2 || true
-            "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" version || true
+            "$ANDROID_SDK_ROOT/build-tools/36.0.0/aapt2" version || true
+            "$ANDROID_SDK_ROOT/build-tools/36.0.0/zipalign" -h | head -n 2 || true
+            "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" version || true
             echo "AGP:"
             grep -n 'android-application' android/gradle/libs.versions.toml
             echo "Android packaging configuration:"
@@ -446,7 +446,7 @@ jobs:
           PY
 
             echo "=== Largest APK entries ==="
-            unzip -l "$apk" | awk 'NR > 3 {size=$1; name=$4; if (size ~ /^[0-9]+$/) print size, name}' | sort -nr | head -n 20
+            unzip -l "$apk" | awk 'NR > 3 {size=$1; name=$4; if (size ~ /^[0-9]+$/) print size, name}' | sort -nr | sed -n "1,20p"
           } 2>&1 | tee -a ../android-build.log
 
       - name: Verify native library compression
@@ -494,7 +494,7 @@ jobs:
         shell: bash
         run: |
           set -euo pipefail
-          "$ANDROID_SDK_ROOT/build-tools/34.0.0/apksigner" verify --verbose "../$APK_NAME"
+          "$ANDROID_SDK_ROOT/build-tools/36.0.0/apksigner" verify --verbose "../$APK_NAME"
 
       - name: Upload Android APK artifact
         uses: actions/upload-artifact@v7.0.1
