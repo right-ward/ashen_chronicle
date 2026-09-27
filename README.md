@@ -188,10 +188,8 @@ Development releases remain below `1.0.0` while the core systems and content are
 
 ## License
 
-- Source Code: Apache License 2.0 (`LICENSE`).
-- Game Content (everything under `data/`): Ashen Chronicle Game Content
-    License 1.1 (`LICENSE-CONTENT`). Free to use, modify, and share; may not
-    be sold or paywalled. This is not an open-source license.
+- Source Code: BUSL 1.1 (`LICENSE`) (converts to Apache License 2.0 on 2030-09-27)
+- Game Content (everything under `data/`): CC BY-NC-ND 4.0 (`LICENSE-CONTENT`)
 - Names and logos: `TRADEMARKS.md`. Third-party software: `THIRD-PARTY-NOTICES`.
 - File-level licensing: `REUSE.toml`.
 
