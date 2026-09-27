@@ -2,7 +2,7 @@ version = 1
 SPDX-PackageName = "ashen_chronicle"
 SPDX-PackageDownloadLocation = "https://github.com/right-ward/ashen_chronicle"
 
-# --- Source Code and developer documentation: BSL 1.1 ---------------------
+# --- Source Code and developer documentation: BUSL 1.1 ---------------------
 [[annotations]]
 path = [
   "src/**",
@@ -24,7 +24,7 @@ SPDX-FileCopyrightText = [
   "2026 right-ward",
   "Ashen Chronicle contributors",
 ]
-SPDX-License-Identifier = "BSL-1.1"
+SPDX-License-Identifier = "BUSL-1.1"
 
 # --- Game Content: CC-BY-NC ----------------------
 # Everything under data/ (base content, bundled mods, scene art, mod docs).
