@@ -3,8 +3,8 @@ name = "ashen_chronicle"
 
 version = "0.50.19"
 edition = "2021"
-license = "Apache-2.0"
-# ---- related to license, `data/` is under LICENSE-CONTENT ----
+license = "BSL-1.1"
+# ---- related to license, `data/` is under CC-BY-NC-ND 4.0 ----
 authors = ["right-ward"]
 repository = "https://github.com/right-ward/ashen_chronicle"
 description = "roguelike dark fantasy game"

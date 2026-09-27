@@ -2,7 +2,7 @@ version = 1
 SPDX-PackageName = "ashen_chronicle"
 SPDX-PackageDownloadLocation = "https://github.com/right-ward/ashen_chronicle"
 
-# --- Source Code and developer documentation: Apache-2.0 ---------------------
+# --- Source Code and developer documentation: BSL 1.1 ---------------------
 [[annotations]]
 path = [
   "src/**",
@@ -24,9 +24,9 @@ SPDX-FileCopyrightText = [
   "2026 right-ward",
   "Ashen Chronicle contributors",
 ]
-SPDX-License-Identifier = "Apache-2.0"
+SPDX-License-Identifier = "BSL-1.1"
 
-# --- Game Content: Ashen Chronicle Game Content License ----------------------
+# --- Game Content: CC-BY-NC ----------------------
 # Everything under data/ (base content, bundled mods, scene art, mod docs).
 # This is NOT Apache-2.0, even for files that act as configuration.
 [[annotations]]
@@ -36,4 +36,4 @@ SPDX-FileCopyrightText = [
   "2026 right-ward",
   "Ashen Chronicle contributors",
 ]
-SPDX-License-Identifier = "LicenseRef-Ashen-Chronicle-Content-1.1"
+SPDX-License-Identifier = "CC-BY-NC-ND-4.0"
