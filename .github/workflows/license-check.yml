@@ -16,7 +16,7 @@ jobs:
     steps:
       - uses: actions/checkout@v7.0.1
       - name: Content license copies must match
-        run: cmp LICENSE-CONTENT LICENSES/LicenseRef-Ashen-Chronicle-Content-1.1.txt
+        run: cmp LICENSE-CONTENT LICENSES/CC-BY-NC-ND-4.0.txt
       - uses: fsfe/reuse-action@v5
 
   third-party:
