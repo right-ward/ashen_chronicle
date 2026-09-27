@@ -5,11 +5,14 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.50.19 complete
+v0.51.0 development — shared graphical UI foundation complete
 
 ## Next
 
-v0.51.x milestone
+v0.51.x milestone (#262)
+
+Completed in this iteration:
+- #278 — shared graphical UI foundation
 
 ## Longer-term direction
 

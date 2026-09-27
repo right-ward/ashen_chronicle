@@ -12,7 +12,9 @@ Lifecycle screens are owned by `bevy_lifecycle.rs`. Gameplay and world navigatio
 
 `presentation.rs` contains frontend-independent view models. These models carry domain data such as strings, numbers, identifiers, and collections without depending on Bevy or any terminal UI library.
 
-Bevy presentation adapters turn those views into UI nodes. Shared node construction, visual theme constants, screen roots, panels, labels, choice buttons, gauges, navigation state, and semantic input routing live in `bevy_presentation.rs`.
+Bevy presentation adapters turn those views into UI nodes. Shared node construction, semantic visual theme tokens, screen roots, surfaces, overlays, labels, action/menu controls, health gauges, condition indicators, contextual messages, navigation state, and semantic input routing live in `bevy_presentation.rs`.
+
+The v0.51 graphical foundation keeps legacy panel helpers for existing screens while adding meaning-oriented primitives for the redesigned interface. New action and menu controls expose explicit interaction-state styling, health gauges keep their display values synchronized with their component state, and responsive spacing/touch-target tokens are centralized so new screens do not invent per-screen sizing rules.
 
 ## Input
 
@@ -42,7 +44,15 @@ The console opens from the gameplay flow and closes back to gameplay without a t
 
 ## Visual design
 
-The shared Bevy presentation layer uses a restrained dark theme, panels, labels, selected-choice indicators, and health gauges. Text remains the primary presentation medium, with optional world/location artwork represented by view data where available.
+The shared Bevy presentation layer uses a restrained dark theme with semantic surface, border, hover, pressed, selected, disabled, and overlay tokens. Legacy panels remain available for existing screens, while `spawn_surface` and `spawn_overlay` provide the non-dashboard structural primitives used by the v0.51 graphical redesign.
+
+Meaning-oriented helpers include compact icon+text action buttons, compact menu buttons, health gauges with overlaid current/max values, condition indicators, and contextual messages. Shared touch targets retain a 48px logical minimum while surrounding spacing and typography use viewport-relative units.
+
+Text remains the primary presentation medium, with optional world/location artwork represented by view data where available.
+
+## v0.51 graphical foundation
+
+Issue #278 establishes the reusable presentation primitives for the redesigned gameplay HUD and secondary navigation. It intentionally does not change the gameplay screen, secondary navigation flow, pause menu, or Options behavior; those are implemented in #279, #280, #226, and #227.
 
 ## Design direction
 

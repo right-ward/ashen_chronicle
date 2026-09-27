@@ -3,6 +3,9 @@
 //! This module depends only on Bevy and the frontend-neutral semantic input
 //! model. Gameplay systems remain responsible for translating authoritative game
 //! state into presentation view models and interpreting semantic input events.
+#![allow(dead_code)] // added specially for the new cobstants,
+                     // structs and functions that are unused
+                     // TODO: remove it after their used
 
 use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
 use bevy::input::ButtonState;
@@ -22,6 +25,62 @@ pub const THEME_PANEL_ALT: Color = Color::srgb(0.135, 0.11, 0.15);
 pub const THEME_TEXT: Color = Color::srgb(0.9, 0.88, 0.82);
 pub const THEME_MUTED: Color = Color::srgb(0.62, 0.6, 0.58);
 pub const THEME_ACCENT: Color = Color::srgb(0.72, 0.62, 0.46);
+pub const THEME_SURFACE: Color = Color::srgba(0.07, 0.06, 0.08, 0.78);
+pub const THEME_SURFACE_STRONG: Color = Color::srgba(0.105, 0.085, 0.12, 0.94);
+pub const THEME_OVERLAY: Color = Color::srgba(0.02, 0.018, 0.025, 0.82);
+pub const THEME_BORDER: Color = Color::srgba(0.35, 0.30, 0.24, 0.72);
+pub const THEME_HOVER: Color = Color::srgba(0.20, 0.16, 0.12, 0.92);
+pub const THEME_PRESSED: Color = Color::srgba(0.30, 0.24, 0.17, 0.96);
+pub const THEME_SELECTED: Color = Color::srgba(0.16, 0.13, 0.10, 0.90);
+pub const THEME_DISABLED: Color = Color::srgba(0.10, 0.095, 0.10, 0.62);
+
+pub const UI_TOUCH_TARGET_PX: f32 = 48.0;
+pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
+pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
+pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
+pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+
+#[derive(Component)]
+pub struct UiSurface;
+
+#[derive(Component)]
+pub struct UiOverlayRoot;
+
+#[derive(Component)]
+pub struct UiActionButton;
+
+#[derive(Component)]
+pub struct UiMenuButton;
+
+#[derive(Component)]
+pub struct UiConditionIndicator;
+
+#[derive(Component)]
+pub struct UiContextMessage;
+
+#[derive(Component)]
+pub struct UiStyledButton;
+
+#[derive(Component)]
+pub struct UiSelected;
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub struct UiHealthGauge {
+    pub current: i32,
+    pub maximum: i32,
+}
+
+#[derive(Component)]
+struct UiHealthGaugeFill;
+
+#[derive(Component)]
+struct UiGaugeValueText;
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+pub enum SurfaceTone {
+    Quiet,
+    Strong,
+}
 
 #[derive(Component)]
 pub struct BevyScreenRoot;
@@ -156,6 +215,8 @@ pub fn install(app: &mut App) {
         .add_systems(Update, keyboard_to_semantic_input)
         .add_systems(Update, choice_button_input)
         .add_systems(Update, contextual_touch_input)
+        .add_systems(PostUpdate, sync_ui_health_gauges)
+        .add_systems(PostUpdate, sync_ui_button_visuals)
         .add_systems(Update, touch_scroll)
         .add_systems(PostUpdate, contextual_touch_targets)
         .add_systems(PostUpdate, sync_ime_window)
@@ -358,6 +419,325 @@ pub fn spawn_choice_button(
         .id();
     commands.entity(parent).add_child(button);
     button
+}
+
+pub fn responsive_compact_gap() -> Val {
+    vmin(UI_COMPACT_GAP_VMIN)
+}
+
+pub fn responsive_surface_padding() -> Val {
+    vmin(UI_SURFACE_PADDING_VMIN)
+}
+
+pub fn touch_target_size() -> Val {
+    px(UI_TOUCH_TARGET_PX)
+}
+
+pub fn spawn_surface(commands: &mut Commands, parent: Entity, tone: SurfaceTone) -> Entity {
+    let background = match tone {
+        SurfaceTone::Quiet => THEME_SURFACE,
+        SurfaceTone::Strong => THEME_SURFACE_STRONG,
+    };
+    let surface = commands
+        .spawn((
+            UiSurface,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: px(0),
+                padding: UiRect::all(responsive_surface_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: responsive_compact_gap(),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(background),
+        ))
+        .id();
+    commands.entity(parent).add_child(surface);
+    surface
+}
+
+pub fn spawn_overlay(commands: &mut Commands, parent: Entity) -> Entity {
+    let overlay = commands
+        .spawn((
+            UiOverlayRoot,
+            TabGroup::modal(),
+            Node {
+                width: percent(100),
+                height: percent(100),
+                min_width: px(0),
+                min_height: px(0),
+                position_type: PositionType::Absolute,
+                left: px(0),
+                right: px(0),
+                top: px(0),
+                bottom: px(0),
+                padding: UiRect::all(screen_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: responsive_compact_gap(),
+                ..default()
+            },
+            BackgroundColor(THEME_OVERLAY),
+        ))
+        .id();
+    commands.entity(parent).add_child(overlay);
+    overlay
+}
+
+pub fn spawn_action_button(
+    commands: &mut Commands,
+    parent: Entity,
+    index: usize,
+    icon: impl Into<String>,
+    label: impl Into<String>,
+) -> Entity {
+    let button = commands
+        .spawn((
+            Button,
+            ChoiceButton { index },
+            UiActionButton,
+            UiStyledButton,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: touch_target_size(),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                padding: UiRect::axes(
+                    vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
+                    vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
+                ),
+                border: UiRect::all(px(1)),
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(THEME_SURFACE),
+            children![(
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    flex_direction: FlexDirection::Row,
+                    column_gap: responsive_compact_gap(),
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![
+                    (
+                        Text::new(icon.into()),
+                        TextContent,
+                        TextFont::from_font_size(muted_font_size()),
+                        TextColor(THEME_ACCENT),
+                    ),
+                    (
+                        Text::new(label.into()),
+                        TextContent,
+                        TextFont::from_font_size(label_font_size()),
+                        TextColor(THEME_TEXT),
+                    ),
+                ],
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    button
+}
+
+pub fn spawn_menu_button(
+    commands: &mut Commands,
+    parent: Entity,
+    index: usize,
+    icon: impl Into<String>,
+) -> Entity {
+    let button = commands
+        .spawn((
+            Button,
+            ChoiceButton { index },
+            UiMenuButton,
+            UiStyledButton,
+            Node {
+                width: touch_target_size(),
+                min_width: touch_target_size(),
+                height: touch_target_size(),
+                min_height: touch_target_size(),
+                border: UiRect::all(px(1)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(THEME_SURFACE),
+            children![(
+                Text::new(icon.into()),
+                TextContent,
+                TextFont::from_font_size(label_font_size()),
+                TextColor(THEME_TEXT),
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    button
+}
+
+pub fn spawn_health_gauge(
+    commands: &mut Commands,
+    parent: Entity,
+    current: i32,
+    maximum: i32,
+) -> Entity {
+    let gauge = commands
+        .spawn((
+            UiHealthGauge { current, maximum },
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: px(28),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(THEME_SURFACE_STRONG),
+            children![
+                (
+                    UiHealthGaugeFill,
+                    Node {
+                        width: percent(gauge_ratio(current, maximum) * 100.0),
+                        height: percent(100),
+                        ..default()
+                    },
+                    BackgroundColor(THEME_ACCENT),
+                ),
+                (
+                    UiGaugeValueText,
+                    Text::new(format!("{current} / {maximum}")),
+                    Node {
+                        width: percent(100),
+                        height: percent(100),
+                        min_width: px(0),
+                        position_type: PositionType::Absolute,
+                        left: px(0),
+                        right: px(0),
+                        top: px(0),
+                        bottom: px(0),
+                        justify_content: JustifyContent::Center,
+                        align_items: AlignItems::Center,
+                        ..default()
+                    },
+                    TextContent,
+                    TextFont::from_font_size(muted_font_size()),
+                    TextColor(THEME_TEXT),
+                ),
+            ],
+        ))
+        .id();
+    commands.entity(parent).add_child(gauge);
+    gauge
+}
+
+pub fn spawn_condition_indicator(
+    commands: &mut Commands,
+    parent: Entity,
+    icon: impl Into<String>,
+) -> Entity {
+    let indicator = commands
+        .spawn((
+            UiConditionIndicator,
+            Node {
+                width: touch_target_size(),
+                min_width: touch_target_size(),
+                height: touch_target_size(),
+                min_height: touch_target_size(),
+                padding: UiRect::all(vmin(0.556)),
+                border: UiRect::all(px(1)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(THEME_SURFACE),
+            children![(
+                Text::new(icon.into()),
+                TextContent,
+                TextFont::from_font_size(muted_font_size()),
+                TextColor(THEME_TEXT),
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(indicator);
+    indicator
+}
+
+pub fn spawn_context_message(
+    commands: &mut Commands,
+    parent: Entity,
+    message: impl Into<String>,
+) -> Entity {
+    let message = commands
+        .spawn((
+            UiContextMessage,
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                padding: UiRect::axes(responsive_surface_padding(), vmin(1.111)),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_ACCENT),
+            BackgroundColor(THEME_SURFACE_STRONG),
+            children![(
+                Text::new(message.into()),
+                TextContent,
+                TextFont::from_font_size(label_font_size()),
+                TextColor(THEME_TEXT),
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(message);
+    message
+}
+
+fn sync_ui_health_gauges(
+    gauges: Query<(&UiHealthGauge, &Children), Changed<UiHealthGauge>>,
+    mut fills: Query<&mut Node, With<UiHealthGaugeFill>>,
+    mut values: Query<&mut Text, With<UiGaugeValueText>>,
+) {
+    for (gauge, children) in &gauges {
+        for child in children.iter() {
+            if let Ok(mut fill) = fills.get_mut(child) {
+                fill.width = percent(gauge_ratio(gauge.current, gauge.maximum) * 100.0);
+            }
+            if let Ok(mut value) = values.get_mut(child) {
+                *value = Text::new(format!("{} / {}", gauge.current, gauge.maximum));
+            }
+        }
+    }
+}
+
+fn sync_ui_button_visuals(
+    mut buttons: Query<
+        (
+            &Interaction,
+            Option<&UiSelected>,
+            &mut BorderColor,
+            &mut BackgroundColor,
+        ),
+        With<UiStyledButton>,
+    >,
+) {
+    for (interaction, selected, mut border, mut background) in &mut buttons {
+        let selected = selected.is_some();
+        let (border_color, background_color) = match *interaction {
+            Interaction::Pressed => (THEME_ACCENT, THEME_PRESSED),
+            Interaction::Hovered => (THEME_ACCENT, THEME_HOVER),
+            Interaction::None if selected => (THEME_ACCENT, THEME_SELECTED),
+            Interaction::None => (THEME_BORDER, THEME_SURFACE),
+        };
+        border.set_all(border_color);
+        *background = BackgroundColor(background_color);
+    }
 }
 
 pub fn spawn_gauge(commands: &mut Commands, parent: Entity, current: i32, maximum: i32) -> Entity {
@@ -787,6 +1167,35 @@ mod tests {
     #[test]
     fn touch_buttons_keep_a_fixed_logical_minimum_height() {
         assert_eq!(px(48), Val::Px(48.0));
+    }
+
+    #[test]
+    fn ui_theme_exposes_semantic_surface_and_interaction_tokens() {
+        assert_eq!(UI_TOUCH_TARGET_PX, 48.0);
+        assert_eq!(UI_COMPACT_GAP_VMIN, 1.111);
+        assert_eq!(UI_SURFACE_PADDING_VMIN, 1.667);
+    }
+
+    #[test]
+    fn responsive_foundation_tokens_use_viewport_units() {
+        assert_eq!(responsive_compact_gap(), vmin(UI_COMPACT_GAP_VMIN));
+        assert_eq!(responsive_surface_padding(), vmin(UI_SURFACE_PADDING_VMIN));
+        assert_eq!(touch_target_size(), px(UI_TOUCH_TARGET_PX));
+    }
+
+    #[test]
+    fn selected_state_is_explicitly_component_driven() {
+        let _selected = UiSelected;
+    }
+
+    #[test]
+    fn health_gauge_initial_state_is_owned_by_the_component() {
+        let gauge = UiHealthGauge {
+            current: 7,
+            maximum: 10,
+        };
+        assert_eq!(gauge.current, 7);
+        assert_eq!(gauge.maximum, 10);
     }
 
     #[test]
