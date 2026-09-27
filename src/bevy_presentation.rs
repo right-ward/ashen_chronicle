@@ -58,6 +58,9 @@ pub struct UiContextMessage;
 #[derive(Component)]
 pub struct UiStyledButton;
 
+#[derive(Component)]
+pub struct UiSelected;
+
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiHealthGauge {
     pub current: i32,
@@ -493,7 +496,6 @@ pub fn spawn_action_button(
             ChoiceButton { index },
             UiActionButton,
             UiStyledButton,
-            TabIndex(index as i32),
             Node {
                 width: percent(100),
                 min_width: px(0),
@@ -553,7 +555,6 @@ pub fn spawn_menu_button(
             ChoiceButton { index },
             UiMenuButton,
             UiStyledButton,
-            TabIndex(index as i32),
             Node {
                 width: touch_target_size(),
                 min_width: touch_target_size(),
@@ -716,17 +717,18 @@ fn sync_ui_health_gauges(
 }
 
 fn sync_ui_button_visuals(
-    navigation: Res<NavigationState>,
     mut buttons: Query<
-        (&Interaction, &ChoiceButton, &mut BorderColor, &mut BackgroundColor),
+        (
+            &Interaction,
+            Option<&UiSelected>,
+            &mut BorderColor,
+            &mut BackgroundColor,
+        ),
         With<UiStyledButton>,
     >,
 ) {
-    for (interaction, choice, mut border, mut background) in &mut buttons {
-        let selected = navigation.current_screen.is_some_and(|screen| {
-            matches!(screen, ScreenId::Gameplay)
-                && choice.index == navigation.selected
-        });
+    for (interaction, selected, mut border, mut background) in &mut buttons {
+        let selected = selected.is_some();
         let (border_color, background_color) = match *interaction {
             Interaction::Pressed => (THEME_ACCENT, THEME_PRESSED),
             Interaction::Hovered => (THEME_ACCENT, THEME_HOVER),
@@ -1182,6 +1184,11 @@ mod tests {
             vmin(UI_SURFACE_PADDING_VMIN)
         );
         assert_eq!(touch_target_size(), px(UI_TOUCH_TARGET_PX));
+    }
+
+    #[test]
+    fn selected_state_is_explicitly_component_driven() {
+        let _selected = UiSelected;
     }
 
     #[test]
