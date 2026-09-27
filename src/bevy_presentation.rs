@@ -678,10 +678,7 @@ pub fn spawn_context_message(
             Node {
                 width: percent(100),
                 min_width: px(0),
-                padding: UiRect::axes(
-                    responsive_surface_padding(),
-                    vmin(1.111),
-                ),
+                padding: UiRect::axes(responsive_surface_padding(), vmin(1.111)),
                 border: UiRect::all(px(1)),
                 ..default()
             },
@@ -1179,10 +1176,7 @@ mod tests {
     #[test]
     fn responsive_foundation_tokens_use_viewport_units() {
         assert_eq!(responsive_compact_gap(), vmin(UI_COMPACT_GAP_VMIN));
-        assert_eq!(
-            responsive_surface_padding(),
-            vmin(UI_SURFACE_PADDING_VMIN)
-        );
+        assert_eq!(responsive_surface_padding(), vmin(UI_SURFACE_PADDING_VMIN));
         assert_eq!(touch_target_size(), px(UI_TOUCH_TARGET_PX));
     }
 
