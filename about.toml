@@ -31,4 +31,5 @@ targets = [
 
 ignore-dev-dependencies = true
 ignore-build-dependencies = true
+private = { ignore = true }
 
