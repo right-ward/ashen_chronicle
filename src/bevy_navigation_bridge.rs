@@ -89,7 +89,6 @@ fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -
     }
 }
 
-
 #[cfg(test)]
 mod tests {
     use super::*;
