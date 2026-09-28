@@ -193,10 +193,10 @@ fn gameplay_input(
                     navigation_state.selected = 0;
                 }
                 GameplayScreen::Pause => {
-                    close_pause(gameplay, &mut navigation_state);
+                    close_pause(&mut gameplay, &mut navigation_state);
                 }
                 GameplayScreen::Dashboard => {
-                    open_pause(gameplay, &mut navigation_state);
+                    open_pause(&mut gameplay, &mut navigation_state);
                 }
             },
             InputEvent::Confirm => {
