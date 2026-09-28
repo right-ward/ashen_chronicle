@@ -198,7 +198,7 @@ fn label_font_size() -> FontSize {
     FontSize::VMin(2.778)
 }
 
-fn muted_font_size() -> FontSize {
+pub(crate) fn muted_font_size() -> FontSize {
     FontSize::VMin(2.5)
 }
 
