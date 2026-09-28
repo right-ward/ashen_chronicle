@@ -16,7 +16,8 @@ pub(crate) enum GameAction {
 }
 
 pub(crate) struct MenuEntry {
-    pub(crate) label: String,
+    #[allow(dead_code)]
+    pub(crate) label: String, // TODO: remove if it remains unused later on
     pub(crate) action: GameAction,
 }
 
