@@ -1023,55 +1023,6 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
     bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
 }
 
-fn render_world_context(commands: &mut Commands, parent: Entity, view: &WorldView) {
-    let Some(location) = &view.location else {
-        bevy_presentation::spawn_muted_label(commands, parent, "You are lost in an unknown place.");
-        return;
-    };
-    bevy_presentation::spawn_label(commands, parent, location.name.clone());
-    bevy_presentation::spawn_muted_label(
-        commands,
-        parent,
-        format!("Region: {}", location.region_name),
-    );
-    if !location.description.trim().is_empty() {
-        bevy_presentation::spawn_muted_label(commands, parent, location.description.clone());
-    }
-    if location.dangerous {
-        bevy_presentation::spawn_muted_label(commands, parent, "Danger: this location is unsafe.");
-    }
-    match &view.threat {
-        Some(threat) => {
-            bevy_presentation::spawn_label(commands, parent, format!("Threat: {}", threat.label));
-            if !threat.description.trim().is_empty() {
-                bevy_presentation::spawn_muted_label(commands, parent, threat.description.clone());
-            }
-        }
-        None => {
-            bevy_presentation::spawn_muted_label(commands, parent, "Threat: none active.");
-        }
-    }
-}
-
-fn render_history(commands: &mut Commands, parent: Entity, view: &WorldView) {
-    bevy_presentation::spawn_label(commands, parent, "Recent Events");
-    if view.history.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, parent, "Nothing has been recorded yet.");
-        return;
-    }
-    for entry in &view.history {
-        let marker = match entry.entry_type {
-            HistoryEntryViewType::Event => "[EVENT]",
-            HistoryEntryViewType::Narrative => "[NOTE]",
-        };
-        bevy_presentation::spawn_muted_label(
-            commands,
-            parent,
-            format!("Day {} {} {}", entry.day, marker, entry.text),
-        );
-    }
-}
-
 fn build_world_view(state: &crate::model::GameState) -> WorldView {
     let location = state
         .world
