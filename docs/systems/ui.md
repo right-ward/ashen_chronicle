@@ -28,7 +28,7 @@ Arrow keys, Home/End, Page Up/Page Down, Enter, Escape, Tab, Backspace, Delete, 
 
 ## Gameplay and results
 
-The gameplay dashboard presents the current world context, recent history, player health, available actions, and short-lived action messages. World navigation is a dedicated state within the gameplay flow.
+The gameplay surface is world-first: location art/context occupies the dominant area, the 12-point world clock drives an obvious sun/moon sky treatment, and atmosphere can move into a short-lived contextual message. A compact top-right HUD carries health and active-condition indicators beside the secondary-navigation control. Primary actions remain below the world presentation, with contextual Investigate/Search Remains actions added only when the authoritative game state makes them available. Recent history is no longer a permanent gameplay panel; full history remains in its dedicated record screen. World navigation is a dedicated state within the gameplay flow.
 
 NPC dialogue presents people at the current location, availability, faction and memory information, quest offering/turn-in choices, and conversation results. Remains recovery presents available corpses, recovered items, discovered hidden items, and recovery notes while keeping the authoritative corpse mutation in the game legacy module.
 
@@ -54,7 +54,7 @@ Text remains the primary presentation medium, with optional world/location artwo
 
 ## v0.51 graphical foundation
 
-Issue #278 establishes the reusable presentation primitives for the redesigned gameplay HUD and secondary navigation. It intentionally does not change the gameplay screen, secondary navigation flow, pause menu, or Options behavior; those are implemented in #279, #280, #226, and #227.
+Issue #278 establishes the reusable presentation primitives for the redesigned gameplay HUD and secondary navigation. Issue #279 now applies those primitives to the gameplay surface with a world-first composition, responsive primary/contextual actions, dynamic time-of-day sky treatment, and the compact player HUD. Secondary navigation is implemented separately in #280; the pause menu and dedicated Options screen remain #226 and #227.
 
 ## Design direction
 
