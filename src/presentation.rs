@@ -164,8 +164,13 @@ pub(crate) struct CombatResultView {
 pub(crate) struct WorldView {
     pub world_name: String,
     pub time: String,
+    pub time_points: u32,
+    pub day: u32,
     pub character: CharacterView,
     pub location: Option<LocationView>,
+    pub art: Option<String>,
+    pub atmosphere: Option<String>,
+    pub conditions: Vec<ConditionView>,
     pub threat: Option<ThreatView>,
     pub history: Vec<HistoryEntryView>,
 }
