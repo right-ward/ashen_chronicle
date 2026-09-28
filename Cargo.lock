@@ -173,6 +173,7 @@ dependencies = [
  "bevy_picking",
  "dirs",
  "flate2",
+ "jni",
  "rfd",
  "serde",
  "serde_json",
