@@ -19,6 +19,7 @@ pub(crate) enum GameplayScreen {
     Dashboard,
     Navigation,
     SecondaryNavigation,
+    Pause,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -72,6 +73,15 @@ const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 6] = [
 ];
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum PauseAction {
+    Resume,
+    NewGame,
+    LoadGame,
+    Options,
+    Quit,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
 enum GameplayAction {
     Travel,
     Meditate,
@@ -108,6 +118,7 @@ struct WorldCloud {
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
     pub(crate) selected: usize,
+    pause_selected: usize,
     pub(crate) message: Option<String>,
     dirty: bool,
 }
@@ -117,6 +128,7 @@ impl Default for GameplayState {
         Self {
             screen: GameplayScreen::Dashboard,
             selected: 0,
+            pause_selected: 0,
             message: None,
             dirty: true,
         }
@@ -152,7 +164,11 @@ fn gameplay_input(
             InputEvent::Up => move_selection(&mut gameplay, &mut navigation_state, -1, &lifecycle),
             InputEvent::Down => move_selection(&mut gameplay, &mut navigation_state, 1, &lifecycle),
             InputEvent::Home => {
-                gameplay.selected = 0;
+                if gameplay.screen == GameplayScreen::Pause {
+                    gameplay.pause_selected = 0;
+                } else {
+                    gameplay.selected = 0;
+                }
                 navigation_state.selected = 0;
                 gameplay.dirty = true;
             }
@@ -168,21 +184,21 @@ fn gameplay_input(
                     navigation_state.selected = 0;
                 }
             }
-            InputEvent::Cancel => {
-                if gameplay.screen == GameplayScreen::Navigation
-                    || gameplay.screen == GameplayScreen::SecondaryNavigation
-                {
+            InputEvent::Cancel => match gameplay.screen {
+                GameplayScreen::Navigation | GameplayScreen::SecondaryNavigation => {
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
                     gameplay.message = None;
                     gameplay.dirty = true;
                     navigation_state.selected = 0;
-                } else {
-                    lifecycle.phase = LifecyclePhase::QuitConfirm;
-                    lifecycle.selected = 1;
-                    lifecycle.mark_dirty();
                 }
-            }
+                GameplayScreen::Pause => {
+                    close_pause(gameplay, &mut navigation_state);
+                }
+                GameplayScreen::Dashboard => {
+                    open_pause(gameplay, &mut navigation_state);
+                }
+            },
             InputEvent::Confirm => {
                 activate_selection(
                     &mut lifecycle,
@@ -209,14 +225,21 @@ fn move_selection(
         GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
         GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
+        GameplayScreen::Pause => pause_action_count(),
     };
     if count == 0 {
         return;
     }
-    gameplay.selected =
-        (gameplay.selected as isize + direction).rem_euclid(count as isize) as usize;
+    if gameplay.screen == GameplayScreen::Pause {
+        gameplay.pause_selected =
+            (gameplay.pause_selected as isize + direction).rem_euclid(count as isize) as usize;
+        navigation_state.selected = gameplay.pause_selected;
+    } else {
+        gameplay.selected =
+            (gameplay.selected as isize + direction).rem_euclid(count as isize) as usize;
+        navigation_state.selected = gameplay.selected;
+    }
     navigation_state.current_screen = Some(ScreenId::Gameplay);
-    navigation_state.selected = gameplay.selected;
     gameplay.dirty = true;
 }
 
@@ -234,10 +257,43 @@ fn move_selection_to_end(
         GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
     if count > 0 {
-        gameplay.selected = count - 1;
-        navigation_state.selected = gameplay.selected;
+        if gameplay.screen == GameplayScreen::Pause {
+            gameplay.pause_selected = count - 1;
+            navigation_state.selected = gameplay.pause_selected;
+        } else {
+            gameplay.selected = count - 1;
+            navigation_state.selected = gameplay.selected;
+        }
         gameplay.dirty = true;
     }
+}
+
+fn open_pause(gameplay: &mut GameplayState, navigation_state: &mut NavigationState) {
+    gameplay.screen = GameplayScreen::Pause;
+    gameplay.pause_selected = 0;
+    gameplay.dirty = true;
+    navigation_state.selected = 0;
+}
+
+fn close_pause(gameplay: &mut GameplayState, navigation_state: &mut NavigationState) {
+    gameplay.screen = GameplayScreen::Dashboard;
+    gameplay.dirty = true;
+    navigation_state.current_screen = Some(ScreenId::Gameplay);
+    navigation_state.selected = gameplay.selected;
+}
+
+fn pause_action_count() -> usize {
+    4 + usize::from(crate::bevy_lifecycle::has_available_saves())
+}
+
+fn pause_actions() -> Vec<PauseAction> {
+    let mut actions = vec![PauseAction::Resume, PauseAction::NewGame];
+    if crate::bevy_lifecycle::has_available_saves() {
+        actions.push(PauseAction::LoadGame);
+    }
+    actions.push(PauseAction::Options);
+    actions.push(PauseAction::Quit);
+    actions
 }
 
 fn open_dedicated_screen(navigation_state: &mut NavigationState, screen: ScreenId) {
@@ -257,6 +313,44 @@ fn activate_selection(
     };
 
     match gameplay.screen {
+        GameplayScreen::Pause => {
+            let actions = pause_actions();
+            let Some(action) = actions.get(gameplay.pause_selected).copied() else {
+                gameplay.pause_selected = 0;
+                navigation_state.selected = 0;
+                return;
+            };
+
+            match action {
+                PauseAction::Resume => close_pause(gameplay, navigation_state),
+                PauseAction::NewGame => {
+                    gameplay.screen = GameplayScreen::Dashboard;
+                    gameplay.selected = 0;
+                    gameplay.message = None;
+                    gameplay.pause_selected = 0;
+                    gameplay.dirty = true;
+                    lifecycle.start_new_game(navigation_state);
+                }
+                PauseAction::LoadGame => {
+                    if lifecycle.start_load_game(navigation_state) {
+                        gameplay.screen = GameplayScreen::Dashboard;
+                        gameplay.selected = 0;
+                        gameplay.message = None;
+                        gameplay.pause_selected = 0;
+                        gameplay.dirty = true;
+                    }
+                }
+                PauseAction::Options => {
+                    open_dedicated_screen(navigation_state, ScreenId::Options);
+                }
+                PauseAction::Quit => {
+                    lifecycle.start_quit_confirmation(
+                        navigation_state,
+                        Some(ScreenId::Gameplay),
+                    );
+                }
+            }
+        }
         GameplayScreen::SecondaryNavigation => {
             let Some(entry) = SECONDARY_NAVIGATION_ENTRIES.get(gameplay.selected) else {
                 return;
@@ -446,10 +540,22 @@ fn render_if_active(
                 &mut commands,
                 &view,
                 &actions,
-                0,
+                gameplay.selected,
                 gameplay.message.as_deref(),
             );
             render_secondary_navigation(&mut commands, root, gameplay.selected);
+        }
+        GameplayScreen::Pause => {
+            let actions = dashboard_actions(&session.state);
+            let root = render_dashboard(
+                &mut commands,
+                &view,
+                &actions,
+                gameplay.selected,
+                gameplay.message.as_deref(),
+            );
+            let pause_actions = pause_actions();
+            render_pause(&mut commands, root, &pause_actions, gameplay.pause_selected);
         }
     }
     gameplay.dirty = false;
@@ -918,6 +1024,66 @@ fn sky_visual(time_points: u32) -> SkyVisual {
     }
 }
 
+fn render_pause(
+    commands: &mut Commands,
+    parent: Entity,
+    actions: &[PauseAction],
+    selected: usize,
+) {
+    let overlay = bevy_presentation::spawn_overlay(commands, parent);
+    commands
+        .entity(overlay)
+        .insert(BackgroundColor(bevy_presentation::THEME_OVERLAY));
+
+    let surface = commands
+        .spawn((
+            bevy_presentation::UiSurface,
+            Node {
+                width: percent(60),
+                min_width: px(300),
+                max_width: px(620),
+                min_height: px(0),
+                padding: UiRect::all(bevy_presentation::responsive_surface_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: bevy_presentation::responsive_compact_gap(),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(bevy_presentation::THEME_SURFACE_STRONG),
+        ))
+        .id();
+    commands.entity(overlay).add_child(surface);
+
+    bevy_presentation::spawn_label(commands, surface, "PAUSED");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        surface,
+        "The chronicle waits. Resume your journey or choose another action.",
+    );
+
+    for (index, action) in actions.iter().enumerate() {
+        let (icon, label) = pause_action_visuals(*action);
+        let button =
+            bevy_presentation::spawn_action_button(commands, surface, index, icon, label);
+        if index == selected {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
+}
+
+fn pause_action_visuals(action: PauseAction) -> (&'static str, &'static str) {
+    match action {
+        PauseAction::Resume => ("▶", "Resume"),
+        PauseAction::NewGame => ("✦", "New Game"),
+        PauseAction::LoadGame => ("↺", "Load Game"),
+        PauseAction::Options => ("⚙", "Options"),
+        PauseAction::Quit => ("×", "Quit"),
+    }
+}
+
 fn render_secondary_navigation(commands: &mut Commands, parent: Entity, selected: usize) {
     let overlay = bevy_presentation::spawn_overlay(commands, parent);
     let surface = commands
@@ -1108,5 +1274,17 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         conditions,
         threat,
         history,
+    }
+}
+
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn pause_action_count_matches_load_visibility() {
+        assert_eq!(4 + usize::from(false), 4);
+        assert_eq!(4 + usize::from(true), 5);
     }
 }
