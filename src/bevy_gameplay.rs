@@ -192,10 +192,6 @@ fn gameplay_input(
     }
 }
 
-fn menu_entries(session: &GameSession) -> Vec<menu::MenuEntry> {
-    menu::build_main_menu(&session.state)
-}
-
 fn move_selection(
     gameplay: &mut GameplayState,
     navigation_state: &mut NavigationState,
