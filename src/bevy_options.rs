@@ -353,16 +353,6 @@ fn android_request_storage_picker() -> bool {
     true
 }
 
-#[cfg(not(target_os = "android"))]
-fn android_shared_storage_name() -> Option<String> {
-    None
-}
-
-#[cfg(not(target_os = "android"))]
-fn android_request_storage_picker() -> bool {
-    false
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
