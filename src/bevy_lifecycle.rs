@@ -197,10 +197,10 @@ fn activate_selection(
     match lifecycle.phase {
         LifecyclePhase::Start => match lifecycle.selected {
             0 => {
-                lifecycle.start_new_game(&mut navigation);
+                lifecycle.start_new_game(navigation);
             }
             1 if start_has_load(lifecycle) => {
-                lifecycle.start_load_game(&mut navigation);
+                lifecycle.start_load_game(navigation);
             }
             _ => return Some(true),
         },
@@ -246,7 +246,7 @@ fn activate_selection(
             if lifecycle.selected == 0 {
                 return Some(true);
             }
-            lifecycle.cancel_quit_confirmation(&mut navigation);
+            lifecycle.cancel_quit_confirmation(navigation);
         }
         LifecyclePhase::Death => match lifecycle.selected {
             0 => {
@@ -750,7 +750,7 @@ mod tests {
             selected: 1,
         };
 
-        lifecycle.cancel_quit_confirmation(&mut navigation);
+        lifecycle.cancel_quit_confirmation(navigation);
 
         assert_eq!(lifecycle.phase, LifecyclePhase::Complete);
         assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
