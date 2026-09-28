@@ -98,8 +98,6 @@ struct WorldCloud {
     speed: f32,
 }
 
-
-
 #[derive(Resource)]
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
@@ -730,12 +728,7 @@ fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) 
         .id();
     commands.entity(controls).add_child(hud);
 
-    bevy_presentation::spawn_health_gauge(
-        commands,
-        hud,
-        view.character.hp,
-        view.character.max_hp,
-    );
+    bevy_presentation::spawn_health_gauge(commands, hud, view.character.hp, view.character.max_hp);
 
     let condition_row = commands
         .spawn(Node {
@@ -770,11 +763,8 @@ fn render_action_area(
     actions: &[GameplayAction],
     selected: usize,
 ) {
-    let panel = bevy_presentation::spawn_surface(
-        commands,
-        parent,
-        bevy_presentation::SurfaceTone::Strong,
-    );
+    let panel =
+        bevy_presentation::spawn_surface(commands, parent, bevy_presentation::SurfaceTone::Strong);
     let row = commands
         .spawn(Node {
             width: percent(100),
@@ -790,13 +780,8 @@ fn render_action_area(
 
     for (index, action) in actions.iter().enumerate() {
         let (icon, label) = gameplay_action_visuals(*action);
-        let button = bevy_presentation::spawn_primary_action_button(
-            commands,
-            row,
-            index,
-            icon,
-            label,
-        );
+        let button =
+            bevy_presentation::spawn_primary_action_button(commands, row, index, icon, label);
         if index == selected {
             commands
                 .entity(button)
@@ -1116,4 +1101,3 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         history,
     }
 }
-
