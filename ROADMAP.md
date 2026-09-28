@@ -15,6 +15,7 @@ Completed in this iteration:
 - #278 — shared graphical UI foundation
 - #279 — world-first gameplay HUD redesign
 - #227 — dedicated tabbed Options screen and configurable game data root
+- Android configuration persistence mirror — private app config with shared game-folder synchronization
 
 ## Longer-term direction
 

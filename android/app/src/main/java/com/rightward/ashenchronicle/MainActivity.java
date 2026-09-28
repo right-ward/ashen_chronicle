@@ -16,12 +16,21 @@ import java.io.File;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
+import java.io.InputStreamReader;
 import java.io.OutputStream;
+import java.io.OutputStreamWriter;
+import java.nio.charset.StandardCharsets;
+
+import org.json.JSONException;
+import org.json.JSONObject;
 
 public class MainActivity extends GameActivity {
     private static final String TAG = "AshenChronicle";
     private static final String GAME_DIRECTORY_NAME = "The Ashen Chronicle";
     private static final String SHARED_STORAGE_URI_PREFERENCE = "shared_storage_tree_uri";
+    private static final String GAME_CONFIG_FILE_NAME = "config.json";
+    private static final String GAME_CONFIG_STORAGE_URI_KEY = "shared_storage_tree_uri";
+    private static final int GAME_CONFIG_VERSION = 1;
     private static final int REQUEST_CODE_OPEN_TREE = 1001;
 
     static {
@@ -103,6 +112,7 @@ public class MainActivity extends GameActivity {
     }
 
     private void prepareGameRoot() {
+        restorePrivateConfig();
         File root = resolveGameRoot();
         File data = new File(root, "data");
         File mods = new File(data, "mods");
@@ -198,9 +208,10 @@ public class MainActivity extends GameActivity {
             return false;
         }
 
+        DocumentFile config = findDocumentFile(tree, GAME_CONFIG_FILE_NAME);
         DocumentFile data = findDirectory(tree, "data");
         DocumentFile saves = findDirectory(tree, "saves");
-        return hasChildren(data) || hasChildren(saves);
+        return (config != null && config.isFile()) || hasChildren(data) || hasChildren(saves);
     }
 
     private void syncSharedStorageToLocal() {
@@ -215,6 +226,11 @@ public class MainActivity extends GameActivity {
         File saves = new File(root, "saves");
 
         try {
+            if (!importSharedConfig(tree)) {
+                writePrivateConfig(tree.getUri());
+                copyPrivateConfigToShared(tree);
+            }
+
             DocumentFile sharedData = findDirectory(tree, "data");
             if (sharedData != null) {
                 DocumentFile sharedMods = findDirectory(sharedData, "mods");
@@ -243,6 +259,9 @@ public class MainActivity extends GameActivity {
         File saves = new File(root, "saves");
 
         try {
+            writePrivateConfig(tree.getUri());
+            copyPrivateConfigToShared(tree);
+
             DocumentFile sharedData = findOrCreateDirectory(tree, "data");
             DocumentFile sharedSaves = findOrCreateDirectory(tree, "saves");
             copyLocalDirectoryToDocument(data, sharedData);
@@ -250,6 +269,116 @@ public class MainActivity extends GameActivity {
         } catch (IOException exception) {
             Log.w(TAG, "Could not export shared game storage", exception);
         }
+    }
+
+    private void restorePrivateConfig() {
+        Uri configuredUri = readPrivateConfigUri();
+        if (configuredUri == null) {
+            return;
+        }
+
+        getPreferences(MODE_PRIVATE)
+                .edit()
+                .putString(SHARED_STORAGE_URI_PREFERENCE, configuredUri.toString())
+                .apply();
+    }
+
+    private boolean importSharedConfig(DocumentFile tree) throws IOException {
+        DocumentFile config = findDocumentFile(tree, GAME_CONFIG_FILE_NAME);
+        if (config == null || !config.isFile()) {
+            return false;
+        }
+
+        Uri configuredUri;
+        try (InputStream input = getContentResolver().openInputStream(config.getUri())) {
+            if (input == null) {
+                throw new IOException("Could not open shared game configuration");
+            }
+            configuredUri = readConfigUri(input);
+        }
+
+        if (configuredUri == null
+                || !configuredUri.toString().equals(tree.getUri().toString())) {
+            Log.w(TAG, "Ignoring shared game configuration for a different or invalid storage tree");
+            return false;
+        }
+
+        getPreferences(MODE_PRIVATE)
+                .edit()
+                .putString(SHARED_STORAGE_URI_PREFERENCE, configuredUri.toString())
+                .apply();
+        writePrivateConfig(configuredUri);
+        return true;
+    }
+
+    private void writePrivateConfig(Uri treeUri) throws IOException {
+        File config = new File(getFilesDir(), GAME_CONFIG_FILE_NAME);
+        try (OutputStream output = new java.io.FileOutputStream(config);
+             OutputStreamWriter writer = new OutputStreamWriter(output, StandardCharsets.UTF_8)) {
+            writeConfig(writer, treeUri);
+        }
+    }
+
+    private void copyPrivateConfigToShared(DocumentFile tree) throws IOException {
+        File config = new File(getFilesDir(), GAME_CONFIG_FILE_NAME);
+        if (!config.isFile()) {
+            return;
+        }
+        copyLocalFileToDocument(config, tree);
+    }
+
+    private Uri readPrivateConfigUri() {
+        File config = new File(getFilesDir(), GAME_CONFIG_FILE_NAME);
+        if (!config.isFile()) {
+            return null;
+        }
+
+        try (InputStream input = new java.io.FileInputStream(config)) {
+            return readConfigUri(input);
+        } catch (IOException exception) {
+            Log.w(TAG, "Could not read private game configuration", exception);
+            return null;
+        }
+    }
+
+    private Uri readConfigUri(InputStream input) throws IOException {
+        StringBuilder content = new StringBuilder();
+        try (InputStreamReader reader = new InputStreamReader(input, StandardCharsets.UTF_8)) {
+            char[] buffer = new char[4096];
+            int length;
+            while ((length = reader.read(buffer)) != -1) {
+                content.append(buffer, 0, length);
+            }
+        }
+
+        try {
+            JSONObject config = new JSONObject(content.toString());
+            if (config.optInt("version", -1) != GAME_CONFIG_VERSION) {
+                return null;
+            }
+
+            String uriString = config.optString(GAME_CONFIG_STORAGE_URI_KEY, null);
+            if (uriString == null || uriString.isEmpty()) {
+                return null;
+            }
+            return Uri.parse(uriString);
+        } catch (JSONException | IllegalArgumentException exception) {
+            Log.w(TAG, "Ignoring malformed game configuration", exception);
+            return null;
+        }
+    }
+
+    private void writeConfig(OutputStreamWriter writer, Uri treeUri) throws IOException {
+        JSONObject config = new JSONObject();
+        try {
+            config.put("version", GAME_CONFIG_VERSION);
+            config.put(GAME_CONFIG_STORAGE_URI_KEY, treeUri.toString());
+        } catch (JSONException exception) {
+            throw new IOException("Could not build game configuration", exception);
+        }
+
+        writer.write(config.toString(2));
+        writer.write('\n');
     }
 
     private DocumentFile findDirectory(DocumentFile parent, String name) {

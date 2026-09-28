@@ -12,7 +12,7 @@ Legacy uncompressed `ashen_chronicle_save.json` saves remain loadable. Save migr
 
 The desktop game-data root can be changed from the dedicated Options screen. The selected path is stored in the user's OS configuration directory rather than inside the selected game root, so changing roots does not lose the setting itself. The new root is applied on the next launch; the running session continues using its already-initialized root.
 
-On Android, the user-facing game folder is managed through the Storage Access Framework. Rust keeps its normal app-scoped filesystem root and the Android activity mirrors editable `data/mods/` and `saves/` content to the selected shared folder.
+On Android, the user-facing game folder is managed through the Storage Access Framework. Rust keeps its normal app-scoped filesystem root and the Android activity mirrors editable `data/mods/` and `saves/` content to the selected shared folder. Android also keeps a private `config.json` in app data and mirrors it to the selected game folder. The shared configuration is imported when that folder is available, while the SAF permission/URI remains private Android app state rather than relying on the shared file as the permission grant.
 
 ## World and character boundaries
 
