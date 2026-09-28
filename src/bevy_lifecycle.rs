@@ -349,8 +349,8 @@ impl LifecycleState {
     pub(crate) fn start_load_game(&mut self, navigation: &mut NavigationState) -> bool {
         self.refresh_saves();
         if self.save_files.is_empty() {
-            self.message = Some("No compatible saves are available.".to_string());
-            self.dirty = true;
+            self.message = None;
+            self.dirty = false;
             return false;
         }
 
