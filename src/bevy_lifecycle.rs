@@ -197,15 +197,10 @@ fn activate_selection(
     match lifecycle.phase {
         LifecyclePhase::Start => match lifecycle.selected {
             0 => {
-                lifecycle.phase = LifecyclePhase::CreateCharacter;
-                lifecycle.selected = 0;
-                lifecycle.message = None;
-                lifecycle.dirty = true;
+                lifecycle.start_new_game(navigation);
             }
             1 if start_has_load(lifecycle) => {
-                lifecycle.phase = LifecyclePhase::Load;
-                lifecycle.selected = 0;
-                lifecycle.refresh_saves();
+                lifecycle.start_load_game(navigation);
             }
             _ => return Some(true),
         },
@@ -247,7 +242,12 @@ fn activate_selection(
             3 => lifecycle.create_character(),
             _ => {}
         },
-        LifecyclePhase::QuitConfirm => return Some(lifecycle.selected == 0),
+        LifecyclePhase::QuitConfirm => {
+            if lifecycle.selected == 0 {
+                return Some(true);
+            }
+            lifecycle.cancel_quit_confirmation(navigation);
+        }
         LifecyclePhase::Death => match lifecycle.selected {
             0 => {
                 lifecycle.create_character();
@@ -273,22 +273,43 @@ fn activate_selection(
 
 fn handle_cancel(lifecycle: &mut LifecycleState, navigation: &mut NavigationState) {
     match lifecycle.phase {
-        LifecyclePhase::Start => lifecycle.phase = LifecyclePhase::QuitConfirm,
+        LifecyclePhase::Start => lifecycle.start_quit_confirmation(navigation, None),
         LifecyclePhase::Load | LifecyclePhase::CreateCharacter => {
             lifecycle.phase = LifecyclePhase::Start;
             lifecycle.selected = 0;
             lifecycle.message = None;
+            navigation.return_screen = None;
+            navigation.current_screen = Some(ScreenId::Lifecycle);
+            navigation.selected = 0;
+            lifecycle.dirty = true;
         }
-        LifecyclePhase::QuitConfirm | LifecyclePhase::Death => {
+        LifecyclePhase::QuitConfirm => lifecycle.cancel_quit_confirmation(navigation),
+        LifecyclePhase::Death => {
             lifecycle.phase = LifecyclePhase::Start;
             lifecycle.selected = 0;
             lifecycle.message = None;
+            navigation.return_screen = None;
+            navigation.current_screen = Some(ScreenId::Lifecycle);
+            navigation.selected = 0;
+            lifecycle.dirty = true;
         }
         LifecyclePhase::Complete => {}
     }
-    navigation.current_screen = Some(ScreenId::Lifecycle);
-    navigation.selected = lifecycle.selected;
-    lifecycle.dirty = true;
+}
+
+fn available_save_files() -> Vec<PathBuf> {
+    let current_dir = PathBuf::from(".");
+    let saves_dir = PathBuf::from(SAVES_DIRECTORY_NAME);
+    let mut save_files = find_save_files(&saves_dir).unwrap_or_default();
+    let legacy = legacy_save_path(&current_dir);
+    if legacy.exists() && !save_files.iter().any(|path| path == &legacy) {
+        save_files.push(legacy);
+    }
+    save_files
+}
+
+pub(crate) fn has_available_saves() -> bool {
+    !available_save_files().is_empty()
 }
 
 fn start_option_count(lifecycle: &LifecycleState) -> usize {
@@ -309,15 +330,71 @@ impl LifecycleState {
     }
 
     fn refresh_saves(&mut self) {
-        let current_dir = PathBuf::from(".");
-        let saves_dir = PathBuf::from(SAVES_DIRECTORY_NAME);
-        self.save_files = find_save_files(&saves_dir).unwrap_or_default();
-        let legacy = legacy_save_path(&current_dir);
-        if legacy.exists() && !self.save_files.iter().any(|path| path == &legacy) {
-            self.save_files.push(legacy);
-        }
+        self.save_files = available_save_files();
         self.selected = 0;
         self.dirty = true;
+    }
+
+    pub(crate) fn start_new_game(&mut self, navigation: &mut NavigationState) {
+        self.phase = LifecyclePhase::CreateCharacter;
+        self.selected = 0;
+        self.message = None;
+        self.pending_state = None;
+        navigation.return_screen = None;
+        navigation.current_screen = Some(ScreenId::Lifecycle);
+        navigation.selected = 0;
+        self.dirty = true;
+    }
+
+    pub(crate) fn start_load_game(&mut self, navigation: &mut NavigationState) -> bool {
+        self.refresh_saves();
+        if self.save_files.is_empty() {
+            self.message = None;
+            self.dirty = false;
+            return false;
+        }
+
+        self.phase = LifecyclePhase::Load;
+        self.selected = 0;
+        self.message = None;
+        navigation.return_screen = None;
+        navigation.current_screen = Some(ScreenId::Lifecycle);
+        navigation.selected = 0;
+        self.dirty = true;
+        true
+    }
+
+    pub(crate) fn start_quit_confirmation(
+        &mut self,
+        navigation: &mut NavigationState,
+        return_screen: Option<ScreenId>,
+    ) {
+        self.phase = LifecyclePhase::QuitConfirm;
+        self.selected = 1;
+        self.message = None;
+        navigation.return_screen = return_screen;
+        navigation.current_screen = Some(ScreenId::Lifecycle);
+        navigation.selected = 1;
+        self.dirty = true;
+    }
+
+    pub(crate) fn cancel_quit_confirmation(&mut self, navigation: &mut NavigationState) {
+        let return_screen = navigation.return_screen.take();
+        if return_screen == Some(ScreenId::Gameplay) && self.session.is_some() {
+            self.phase = LifecyclePhase::Complete;
+            self.selected = 0;
+            self.message = None;
+            navigation.current_screen = Some(ScreenId::Gameplay);
+            navigation.selected = 0;
+            self.dirty = false;
+        } else {
+            self.phase = LifecyclePhase::Start;
+            self.selected = 0;
+            self.message = None;
+            navigation.current_screen = Some(ScreenId::Lifecycle);
+            navigation.selected = 0;
+            self.dirty = true;
+        }
     }
 
     fn create_character(&mut self) {
@@ -650,6 +727,37 @@ fn build_death_view(state: &GameState) -> DeathView {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn quit_confirmation_can_return_to_gameplay() {
+        let mut lifecycle = LifecycleState::default();
+        let state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "Tester".to_string(),
+            "Ash Walker".to_string(),
+        );
+        lifecycle.session = Some(GameSession {
+            state,
+            save_path: PathBuf::from("saves/test.json.gz"),
+        });
+        lifecycle.phase = LifecyclePhase::QuitConfirm;
+        lifecycle.selected = 1;
+
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: Some(ScreenId::Gameplay),
+            selected: 1,
+        };
+
+        lifecycle.cancel_quit_confirmation(&mut navigation);
+
+        assert_eq!(lifecycle.phase, LifecyclePhase::Complete);
+        assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
+        assert_eq!(navigation.return_screen, None);
+        assert_eq!(lifecycle.selected, 0);
+        assert!(!lifecycle.dirty);
+    }
 
     #[test]
     fn start_screen_has_expected_options_without_saves() {
