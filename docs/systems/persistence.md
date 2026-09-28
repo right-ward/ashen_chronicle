@@ -8,6 +8,12 @@ Saves use the existing JSON payload format compressed with gzip and are stored u
 
 Legacy uncompressed `ashen_chronicle_save.json` saves remain loadable. Save migration uses defaulted fields and explicit migration handling when new progression or time data is introduced.
 
+## Game data root configuration
+
+The desktop game-data root can be changed from the dedicated Options screen. The selected path is stored in the user's OS configuration directory rather than inside the selected game root, so changing roots does not lose the setting itself. The new root is applied on the next launch; the running session continues using its already-initialized root.
+
+On Android, the user-facing game folder is managed through the Storage Access Framework. Rust keeps its normal app-scoped filesystem root and the Android activity mirrors editable `data/mods/` and `saves/` content to the selected shared folder.
+
 ## World and character boundaries
 
 Character-specific state includes progression, conditions, and the personal quest log. World-persistent state includes faction memories, completed quest deeds, corpses, history, event cooldowns, and world time.

@@ -14,6 +14,7 @@ v0.51.x milestone (#262)
 Completed in this iteration:
 - #278 — shared graphical UI foundation
 - #279 — world-first gameplay HUD redesign
+- #227 — dedicated tabbed Options screen and configurable game data root
 
 ## Longer-term direction
 

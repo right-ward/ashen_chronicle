@@ -7,6 +7,7 @@ mod bevy_input_diagnostics;
 mod bevy_interactions;
 mod bevy_lifecycle;
 mod bevy_navigation_bridge;
+mod bevy_options;
 mod bevy_presentation;
 mod bevy_records;
 mod bevy_runtime;

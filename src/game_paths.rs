@@ -10,6 +10,11 @@ pub const DATA_DIRECTORY_NAME: &str = "data";
 pub const MODS_DIRECTORY_NAME: &str = "mods";
 pub const SAVES_DIRECTORY_NAME: &str = "saves";
 
+#[cfg(not(target_os = "android"))]
+const CONFIG_DIRECTORY_NAME: &str = "The Ashen Chronicle";
+#[cfg(not(target_os = "android"))]
+const GAME_ROOT_CONFIG_FILE_NAME: &str = "game_root";
+
 #[derive(Debug, Clone, PartialEq, Eq)]
 pub struct GamePaths {
     pub root: PathBuf,
@@ -23,10 +28,19 @@ pub struct GamePaths {
 impl GamePaths {
     pub fn initialize() -> io::Result<Self> {
         let bundled_data_dir = discover_bundled_data_dir();
-        let (preferred_root, fallback_root) = platform_roots();
+        let (default_root, fallback_root) = platform_roots();
 
         #[cfg(not(target_os = "android"))]
-        let preferred_root = desktop_storage::resolve_root(&preferred_root)?;
+        let configured_root = configured_game_root();
+
+        #[cfg(not(target_os = "android"))]
+        let preferred_root = match configured_root.as_ref() {
+            Some(root) => root.clone(),
+            None => desktop_storage::resolve_root(&default_root)?,
+        };
+
+        #[cfg(target_os = "android")]
+        let preferred_root = default_root;
 
         match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
             Ok(paths) => {
@@ -34,6 +48,15 @@ impl GamePaths {
                 Ok(paths)
             }
             Err(preferred_error) => {
+                #[cfg(not(target_os = "android"))]
+                if configured_root.is_some() {
+                    clear_configured_game_root();
+                    let resolved_root = desktop_storage::resolve_root(&default_root)?;
+                    let paths = prepare_root(&resolved_root, bundled_data_dir.as_deref())?;
+                    std::env::set_current_dir(&paths.root)?;
+                    return Ok(paths);
+                }
+
                 let Some(fallback) = fallback_root else {
                     return Err(preferred_error);
                 };
@@ -118,6 +141,52 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
             .join(GAME_DIRECTORY_NAME);
         (preferred, None)
     }
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn configured_game_root() -> Option<PathBuf> {
+    let config_file = game_root_config_path()?;
+    let value = fs::read_to_string(config_file).ok()?;
+    let trimmed = value.trim();
+    if trimmed.is_empty() {
+        None
+    } else {
+        Some(PathBuf::from(trimmed))
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn set_configured_game_root(root: &Path) -> io::Result<()> {
+    let config_file = game_root_config_path().ok_or_else(|| {
+        io::Error::new(
+            io::ErrorKind::NotFound,
+            "no desktop configuration directory is available",
+        )
+    })?;
+    let Some(parent) = config_file.parent() else {
+        return Err(io::Error::new(
+            io::ErrorKind::NotFound,
+            "desktop configuration path has no parent directory",
+        ));
+    };
+    fs::create_dir_all(parent)?;
+    fs::write(config_file, root.to_string_lossy().as_bytes())
+}
+
+#[cfg(not(target_os = "android"))]
+pub fn clear_configured_game_root() {
+    if let Some(config_file) = game_root_config_path() {
+        let _ = fs::remove_file(config_file);
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn game_root_config_path() -> Option<PathBuf> {
+    dirs::config_dir().map(|directory| {
+        directory
+            .join(CONFIG_DIRECTORY_NAME)
+            .join(GAME_ROOT_CONFIG_FILE_NAME)
+    })
 }
 
 fn discover_bundled_data_dir() -> Option<PathBuf> {

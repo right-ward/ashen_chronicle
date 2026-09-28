@@ -154,6 +154,19 @@ public class MainActivity extends GameActivity {
         startActivityForResult(intent, REQUEST_CODE_OPEN_TREE);
     }
 
+    public void requestStorageTreeFromOptions() {
+        requestStorageTree();
+    }
+
+    public String getSharedStorageDisplayName() {
+        DocumentFile tree = getSharedStorageTree();
+        if (tree == null) {
+            return null;
+        }
+        String name = tree.getName();
+        return name == null ? null : name;
+    }
+
     private DocumentFile getSharedStorageTree() {
         String uriString = getPreferences(MODE_PRIVATE)
                 .getString(SHARED_STORAGE_URI_PREFERENCE, null);
