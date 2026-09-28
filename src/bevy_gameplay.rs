@@ -195,6 +195,7 @@ fn move_selection_to_end(
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
+        GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
     if count > 0 {
         gameplay.selected = count - 1;
