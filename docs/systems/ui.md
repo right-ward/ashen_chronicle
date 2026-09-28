@@ -4,7 +4,7 @@ The shipped frontend is Bevy. The UI layer is built around renderer-neutral pres
 
 ## Screen architecture
 
-The Bevy frontend uses dedicated screen flows for start, save selection, character creation, gameplay, navigation, secondary navigation, Options, NPC dialogue, remains recovery, records, combat, developer console, quit, and death. `NavigationState` tracks the active screen and return destination so nested views can return to the correct parent.
+The Bevy frontend uses dedicated screen flows for start, save selection, character creation, gameplay, navigation, secondary navigation, pause, Options, NPC dialogue, remains recovery, records, combat, developer console, quit, and death. `NavigationState` tracks the active screen and return destination so nested views can return to the correct parent.
 
 Lifecycle screens are owned by `bevy_lifecycle.rs`. Gameplay and world navigation are owned by `bevy_gameplay.rs`. NPC dialogue and remains recovery are owned by `bevy_interactions.rs`. Character, inventory, quest, meditation, history, and journal flows are owned by `bevy_records.rs`. Combat is owned by `bevy_combat.rs`, and the developer console is owned by `bevy_console.rs`.
 
