@@ -505,6 +505,8 @@ jobs:
             echo "Cargo.lock already up to date."
             exit 0
           fi
+          git config --global user.email "110196116+right-ward@users.noreply.github.com"
+          git config --global user.name "right-ward"
           git add Cargo.lock
           git commit -m "chore: sync Cargo.lock [skip ci]"
           git push origin HEAD:main
