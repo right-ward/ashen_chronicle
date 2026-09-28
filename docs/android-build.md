@@ -40,6 +40,8 @@ Android uses the Storage Access Framework rather than `MANAGE_EXTERNAL_STORAGE`.
 
 The selected folder permission is persisted by Android. Rust continues to use an app-scoped filesystem directory for normal `std::fs` access, while the Android activity mirrors the editable `data/mods` and `saves` directories between that local root and the selected shared folder. The bundled `data/base_content.json` remains protected and is not synchronized into user-editable shared storage.
 
+Android also keeps a private `config.json` in app data and mirrors that configuration into the selected game folder. When the selected folder already contains a valid matching configuration, it is read back into the private copy. The shared file is a configuration mirror; the SAF permission itself remains private Android state.
+
 When the selected folder is empty, the existing local mods and saves are copied into it. When it already contains game data, that shared data is imported into the local game root instead. Subsequent saves/mod changes are synchronized back when the activity stops.
 
 The selected directory should be the game folder itself (for example, `Documents/The Ashen Chronicle`), not its parent `Documents` directory. The dedicated Options screen can reopen this chooser later to change the selected shared folder.
