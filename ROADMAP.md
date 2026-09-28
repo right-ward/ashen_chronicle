@@ -5,11 +5,11 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.0 development — shared graphical UI foundation complete
+v0.51.x development — gameplay UI implementation complete; integration/regression polish in progress
 
 ## Next
 
-v0.51.x milestone (#262)
+v0.51.x milestone (#262) — integration/regression/polish pass
 
 Completed in this iteration:
 - #278 — shared graphical UI foundation
