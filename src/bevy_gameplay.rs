@@ -255,6 +255,7 @@ fn move_selection_to_end(
         GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
         GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
+        GameplayScreen::Pause => pause_action_count(),
     };
     if count > 0 {
         if gameplay.screen == GameplayScreen::Pause {
