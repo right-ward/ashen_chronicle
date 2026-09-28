@@ -16,6 +16,7 @@ Completed in this iteration:
 - #279 — world-first gameplay HUD redesign
 - #227 — dedicated tabbed Options screen and configurable game data root
 - Android configuration persistence mirror — private app config with shared game-folder synchronization
+- #226 — gameplay pause menu with Resume, lifecycle actions, Options, and Quit confirmation
 
 ## Longer-term direction
 
