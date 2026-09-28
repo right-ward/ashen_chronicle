@@ -6,7 +6,7 @@
 use bevy::prelude::*;
 
 use crate::bevy_combat::CombatState;
-use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
+use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
