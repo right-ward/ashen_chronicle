@@ -46,7 +46,9 @@ The console opens from the gameplay flow and closes back to gameplay without a t
 
 The shared Bevy presentation layer uses a restrained dark theme with semantic surface, border, hover, pressed, selected, disabled, and overlay tokens. Legacy panels remain available for existing screens, while `spawn_surface` and `spawn_overlay` provide the non-dashboard structural primitives used by the v0.51 graphical redesign.
 
-Meaning-oriented helpers include compact icon+text action buttons, compact menu buttons, health gauges with overlaid current/max values, condition indicators, and contextual messages. Shared touch targets retain a 48px logical minimum while surrounding spacing and typography use viewport-relative units.
+Meaning-oriented helpers include compact icon+text action buttons, compact menu buttons, health gauges with overlaid current/max values, condition indicators, and contextual messages. Action icons use the muted grayscale palette, while health gauges use a blood fill with a darker offset shadow layer. Shared touch targets retain a 48px logical minimum while surrounding spacing and typography use viewport-relative units.
+
+The secondary gameplay navigation is implemented as a centered overlay with a soft dimming layer so the underlying gameplay remains visible. The overlay is a navigation layer rather than a replacement gameplay screen, and its dedicated-system entries reuse the same shared action-button primitives.
 
 Text remains the primary presentation medium, with optional world/location artwork represented by view data where available.
 

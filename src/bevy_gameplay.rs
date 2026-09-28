@@ -18,7 +18,52 @@ use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
 pub(crate) enum GameplayScreen {
     Dashboard,
     Navigation,
+    SecondaryNavigation,
 }
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum SecondaryNavigationAction {
+    Character,
+    Inventory,
+    Quests,
+    History,
+    Journal,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+struct SecondaryNavigationEntry {
+    label: &'static str,
+    icon: &'static str,
+    action: SecondaryNavigationAction,
+}
+
+const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 5] = [
+    SecondaryNavigationEntry {
+        label: "Character",
+        icon: "♙",
+        action: SecondaryNavigationAction::Character,
+    },
+    SecondaryNavigationEntry {
+        label: "Inventory",
+        icon: "◇",
+        action: SecondaryNavigationAction::Inventory,
+    },
+    SecondaryNavigationEntry {
+        label: "Quests",
+        icon: "✦",
+        action: SecondaryNavigationAction::Quests,
+    },
+    SecondaryNavigationEntry {
+        label: "History",
+        icon: "⌁",
+        action: SecondaryNavigationAction::History,
+    },
+    SecondaryNavigationEntry {
+        label: "Journal",
+        icon: "✎",
+        action: SecondaryNavigationAction::Journal,
+    },
+];
 
 #[derive(Resource)]
 pub(crate) struct GameplayState {
@@ -74,8 +119,19 @@ fn gameplay_input(
             InputEvent::End => {
                 move_selection_to_end(&mut gameplay, &mut navigation_state, &lifecycle)
             }
+            InputEvent::OpenSecondaryNavigation => {
+                if gameplay.screen == GameplayScreen::Dashboard {
+                    gameplay.screen = GameplayScreen::SecondaryNavigation;
+                    gameplay.selected = 0;
+                    gameplay.message = None;
+                    gameplay.dirty = true;
+                    navigation_state.selected = 0;
+                }
+            }
             InputEvent::Cancel => {
-                if gameplay.screen == GameplayScreen::Navigation {
+                if gameplay.screen == GameplayScreen::Navigation
+                    || gameplay.screen == GameplayScreen::SecondaryNavigation
+                {
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
                     gameplay.message = None;
@@ -116,6 +172,7 @@ fn move_selection(
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
+        GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
     if count == 0 {
         return;
@@ -138,6 +195,7 @@ fn move_selection_to_end(
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => menu_entries(session).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
+        GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
     if count > 0 {
         gameplay.selected = count - 1;
@@ -163,6 +221,35 @@ fn activate_selection(
     };
 
     match gameplay.screen {
+        GameplayScreen::SecondaryNavigation => {
+            let Some(entry) = SECONDARY_NAVIGATION_ENTRIES.get(gameplay.selected) else {
+                return;
+            };
+
+            gameplay.screen = GameplayScreen::Dashboard;
+            gameplay.selected = 0;
+            gameplay.message = None;
+            gameplay.dirty = true;
+            navigation_state.selected = 0;
+
+            match entry.action {
+                SecondaryNavigationAction::Character => {
+                    open_dedicated_screen(navigation_state, ScreenId::Character);
+                }
+                SecondaryNavigationAction::Inventory => {
+                    open_dedicated_screen(navigation_state, ScreenId::Inventory);
+                }
+                SecondaryNavigationAction::Quests => {
+                    open_dedicated_screen(navigation_state, ScreenId::Quests);
+                }
+                SecondaryNavigationAction::History => {
+                    open_dedicated_screen(navigation_state, ScreenId::History);
+                }
+                SecondaryNavigationAction::Journal => {
+                    open_dedicated_screen(navigation_state, ScreenId::Journal);
+                }
+            }
+        }
         GameplayScreen::Dashboard => {
             let entries = menu_entries(session);
             let Some(entry) = entries.get(gameplay.selected) else {
@@ -286,18 +373,32 @@ fn render_if_active(
     };
     let view = build_world_view(&session.state);
     match gameplay.screen {
-        GameplayScreen::Dashboard => render_dashboard(
-            &mut commands,
-            &view,
-            &menu_entries(session),
-            gameplay.selected,
-            gameplay.message.as_deref(),
-        ),
-        GameplayScreen::Navigation => render_navigation(
-            &mut commands,
-            &navigation::build_view(&session.state),
-            gameplay.selected,
-        ),
+        GameplayScreen::Dashboard => {
+            render_dashboard(
+                &mut commands,
+                &view,
+                &menu_entries(session),
+                gameplay.selected,
+                gameplay.message.as_deref(),
+            );
+        }
+        GameplayScreen::Navigation => {
+            render_navigation(
+                &mut commands,
+                &navigation::build_view(&session.state),
+                gameplay.selected,
+            );
+        }
+        GameplayScreen::SecondaryNavigation => {
+            let root = render_dashboard(
+                &mut commands,
+                &view,
+                &menu_entries(session),
+                0,
+                gameplay.message.as_deref(),
+            );
+            render_secondary_navigation(&mut commands, root, gameplay.selected);
+        }
     }
     gameplay.dirty = false;
 }
@@ -308,7 +409,7 @@ fn render_dashboard(
     actions_list: &[menu::MenuEntry],
     selected: usize,
     message: Option<&str>,
-) {
+) -> Entity {
     let root = bevy_presentation::spawn_screen(commands, "THE ASHEN CHRONICLE");
     let header = bevy_presentation::spawn_panel(commands, root);
     let location = view
@@ -352,6 +453,54 @@ fn render_dashboard(
         };
         bevy_presentation::spawn_choice_button(commands, choices, index, label);
     }
+
+    root
+}
+
+fn render_secondary_navigation(commands: &mut Commands, parent: Entity, selected: usize) {
+    let overlay = bevy_presentation::spawn_overlay(commands, parent);
+    let surface = commands
+        .spawn((
+            bevy_presentation::UiSurface,
+            Node {
+                width: percent(66),
+                min_width: px(280),
+                min_height: px(0),
+                padding: UiRect::all(bevy_presentation::responsive_surface_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: bevy_presentation::responsive_compact_gap(),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(bevy_presentation::THEME_SURFACE_STRONG),
+        ))
+        .id();
+    commands.entity(overlay).add_child(surface);
+
+    bevy_presentation::spawn_label(commands, surface, "SECONDARY");
+    bevy_presentation::spawn_muted_label(
+        commands,
+        surface,
+        "Character, records, and other detailed systems.",
+    );
+
+    for (index, entry) in SECONDARY_NAVIGATION_ENTRIES.iter().enumerate() {
+        let button = bevy_presentation::spawn_action_button(
+            commands,
+            surface,
+            index,
+            entry.icon,
+            entry.label,
+        );
+        if index == selected {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
+
+    bevy_presentation::spawn_muted_label(commands, surface, "Back to gameplay");
 }
 
 fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: usize) {
