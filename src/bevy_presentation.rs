@@ -28,6 +28,9 @@ pub const THEME_ACCENT: Color = Color::srgb(0.72, 0.62, 0.46);
 pub const THEME_SURFACE: Color = Color::srgba(0.07, 0.06, 0.08, 0.78);
 pub const THEME_SURFACE_STRONG: Color = Color::srgba(0.105, 0.085, 0.12, 0.94);
 pub const THEME_OVERLAY: Color = Color::srgba(0.02, 0.018, 0.025, 0.82);
+pub const THEME_OVERLAY_SOFT: Color = Color::srgba(0.02, 0.018, 0.025, 0.58);
+pub const THEME_BLOOD: Color = Color::srgb(0.42, 0.035, 0.025);
+pub const THEME_BLOOD_DARK: Color = Color::srgb(0.11, 0.012, 0.012);
 pub const THEME_BORDER: Color = Color::srgba(0.35, 0.30, 0.24, 0.72);
 pub const THEME_HOVER: Color = Color::srgba(0.20, 0.16, 0.12, 0.92);
 pub const THEME_PRESSED: Color = Color::srgba(0.30, 0.24, 0.17, 0.96);
@@ -554,13 +557,11 @@ pub fn spawn_action_button(
 pub fn spawn_menu_button(
     commands: &mut Commands,
     parent: Entity,
-    index: usize,
     icon: impl Into<String>,
 ) -> Entity {
     let button = commands
         .spawn((
             Button,
-            ChoiceButton { index },
             UiMenuButton,
             UiStyledButton,
             Node {
