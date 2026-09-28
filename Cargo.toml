@@ -38,6 +38,9 @@ flate2 = "1.1"
 [target.'cfg(not(target_os = "android"))'.dependencies]
 rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
 
+[target.'cfg(target_os = "android")'.dependencies]
+jni = "0.22.4"
+
 [features]
 dev = ["bevy/dynamic_linking"]
 
