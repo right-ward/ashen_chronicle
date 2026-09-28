@@ -283,12 +283,16 @@ fn close_pause(gameplay: &mut GameplayState, navigation_state: &mut NavigationSt
 }
 
 fn pause_action_count() -> usize {
-    4 + usize::from(crate::bevy_lifecycle::has_available_saves())
+    pause_actions_from(crate::bevy_lifecycle::has_available_saves()).len()
 }
 
 fn pause_actions() -> Vec<PauseAction> {
+    pause_actions_from(crate::bevy_lifecycle::has_available_saves())
+}
+
+fn pause_actions_from(has_load: bool) -> Vec<PauseAction> {
     let mut actions = vec![PauseAction::Resume, PauseAction::NewGame];
-    if crate::bevy_lifecycle::has_available_saves() {
+    if has_load {
         actions.push(PauseAction::LoadGame);
     }
     actions.push(PauseAction::Options);
@@ -308,10 +312,6 @@ fn activate_selection(
     navigation_state: &mut NavigationState,
     combat_state: &mut CombatState,
 ) {
-    let Some(session) = lifecycle.session.as_mut() else {
-        return;
-    };
-
     match gameplay.screen {
         GameplayScreen::Pause => {
             let actions = pause_actions();
@@ -384,6 +384,9 @@ fn activate_selection(
             }
         }
         GameplayScreen::Dashboard => {
+            let Some(session) = lifecycle.session.as_mut() else {
+                return;
+            };
             let actions = dashboard_actions(&session.state);
             let Some(action) = actions.get(gameplay.selected).copied() else {
                 return;
@@ -454,6 +457,9 @@ fn activate_selection(
             }
         }
         GameplayScreen::Navigation => {
+            let Some(session) = lifecycle.session.as_mut() else {
+                return;
+            };
             let view = navigation::build_view(&session.state);
             if gameplay.selected >= view.destinations.len() {
                 gameplay.screen = GameplayScreen::Dashboard;
@@ -489,7 +495,11 @@ fn activate_selection(
         }
     }
     if navigation_state.current_screen == Some(ScreenId::Gameplay) {
-        navigation_state.selected = gameplay.selected;
+        navigation_state.selected = if gameplay.screen == GameplayScreen::Pause {
+            gameplay.pause_selected
+        } else {
+            gameplay.selected
+        };
     }
 }
 
@@ -1284,7 +1294,21 @@ mod tests {
 
     #[test]
     fn pause_action_count_matches_load_visibility() {
-        assert_eq!(4 + usize::from(false), 4);
-        assert_eq!(4 + usize::from(true), 5);
+        assert_eq!(pause_actions_from(false).len(), 4);
+        assert_eq!(pause_actions_from(true).len(), 5);
+    }
+
+    #[test]
+    fn pause_action_order_keeps_options_before_quit() {
+        assert!(matches!(
+            pause_actions_from(true).as_slice(),
+            [
+                PauseAction::Resume,
+                PauseAction::NewGame,
+                PauseAction::LoadGame,
+                PauseAction::Options,
+                PauseAction::Quit
+            ]
+        ));
     }
 }
