@@ -74,6 +74,9 @@ pub struct UiHealthGauge {
 struct UiHealthGaugeFill;
 
 #[derive(Component)]
+struct UiHealthGaugeShadow;
+
+#[derive(Component)]
 struct UiGaugeValueText;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -477,9 +480,11 @@ pub fn spawn_overlay(commands: &mut Commands, parent: Entity) -> Entity {
                 padding: UiRect::all(screen_padding()),
                 flex_direction: FlexDirection::Column,
                 row_gap: responsive_compact_gap(),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
                 ..default()
             },
-            BackgroundColor(THEME_OVERLAY),
+            BackgroundColor(THEME_OVERLAY_SOFT),
         ))
         .id();
     commands.entity(parent).add_child(overlay);
@@ -530,7 +535,7 @@ pub fn spawn_action_button(
                         Text::new(icon.into()),
                         TextContent,
                         TextFont::from_font_size(muted_font_size()),
-                        TextColor(THEME_ACCENT),
+                        TextColor(THEME_MUTED),
                     ),
                     (
                         Text::new(label.into()),
@@ -588,6 +593,7 @@ pub fn spawn_health_gauge(
     current: i32,
     maximum: i32,
 ) -> Entity {
+    let gauge_ratio = gauge_ratio(current, maximum);
     let gauge = commands
         .spawn((
             UiHealthGauge { current, maximum },
@@ -595,6 +601,7 @@ pub fn spawn_health_gauge(
                 width: percent(100),
                 min_width: px(0),
                 min_height: px(28),
+                position_type: PositionType::Relative,
                 border: UiRect::all(px(1)),
                 ..default()
             },
@@ -602,13 +609,28 @@ pub fn spawn_health_gauge(
             BackgroundColor(THEME_SURFACE_STRONG),
             children![
                 (
-                    UiHealthGaugeFill,
+                    UiHealthGaugeShadow,
                     Node {
-                        width: percent(gauge_ratio(current, maximum) * 100.0),
+                        width: percent(gauge_ratio * 100.0),
                         height: percent(100),
+                        position_type: PositionType::Absolute,
+                        left: px(2),
+                        top: px(1),
                         ..default()
                     },
-                    BackgroundColor(THEME_ACCENT),
+                    BackgroundColor(THEME_BLOOD_DARK),
+                ),
+                (
+                    UiHealthGaugeFill,
+                    Node {
+                        width: percent(gauge_ratio * 100.0),
+                        height: percent(100),
+                        position_type: PositionType::Absolute,
+                        left: px(0),
+                        top: px(0),
+                        ..default()
+                    },
+                    BackgroundColor(THEME_BLOOD),
                 ),
                 (
                     UiGaugeValueText,
@@ -702,12 +724,17 @@ pub fn spawn_context_message(
 fn sync_ui_health_gauges(
     gauges: Query<(&UiHealthGauge, &Children), Changed<UiHealthGauge>>,
     mut fills: Query<&mut Node, With<UiHealthGaugeFill>>,
+    mut shadows: Query<&mut Node, With<UiHealthGaugeShadow>>,
     mut values: Query<&mut Text, With<UiGaugeValueText>>,
 ) {
     for (gauge, children) in &gauges {
         for child in children.iter() {
+            let ratio = gauge_ratio(gauge.current, gauge.maximum);
             if let Ok(mut fill) = fills.get_mut(child) {
-                fill.width = percent(gauge_ratio(gauge.current, gauge.maximum) * 100.0);
+                fill.width = percent(ratio * 100.0);
+            }
+            if let Ok(mut shadow) = shadows.get_mut(child) {
+                shadow.width = percent(ratio * 100.0);
             }
             if let Ok(mut value) = values.get_mut(child) {
                 *value = Text::new(format!("{} / {}", gauge.current, gauge.maximum));
@@ -906,6 +933,7 @@ fn contextual_touch_input(
             Option<&LifecycleTextField>,
             Option<&ContextualConsoleInput>,
             Option<&ContextualConsoleTab>,
+            Option<&UiMenuButton>,
         ),
         Changed<Interaction>,
     >,
@@ -914,7 +942,7 @@ fn contextual_touch_input(
     mut console_focus: ResMut<ConsoleTextInputFocus>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (entity, interaction, field, console, tab) in &mut interaction_query {
+    for (entity, interaction, field, console, tab, menu_button) in &mut interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
         }
@@ -931,6 +959,8 @@ fn contextual_touch_input(
                 console_focus.active = true;
                 console_focus.suppress_next_back = false;
             }
+        } else if menu_button.is_some() && navigation.current_screen == Some(ScreenId::Gameplay) {
+            gameplay_queue.0.push(InputEvent::OpenSecondaryNavigation);
         } else if tab.is_some() && navigation.current_screen == Some(ScreenId::Console) {
             gameplay_queue.0.push(InputEvent::Tab);
         }
