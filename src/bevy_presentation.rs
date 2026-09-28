@@ -36,6 +36,11 @@ pub const THEME_HOVER: Color = Color::srgba(0.20, 0.16, 0.12, 0.92);
 pub const THEME_PRESSED: Color = Color::srgba(0.30, 0.24, 0.17, 0.96);
 pub const THEME_SELECTED: Color = Color::srgba(0.16, 0.13, 0.10, 0.90);
 pub const THEME_DISABLED: Color = Color::srgba(0.10, 0.095, 0.10, 0.62);
+pub const THEME_SKY_DAY: Color = Color::srgb(0.19, 0.25, 0.32);
+pub const THEME_SKY_DAWN: Color = Color::srgb(0.38, 0.19, 0.17);
+pub const THEME_SKY_DUSK: Color = Color::srgb(0.32, 0.13, 0.14);
+pub const THEME_SKY_NIGHT: Color = Color::srgb(0.08, 0.045, 0.085);
+pub const THEME_SKY_HORIZON_WARM: Color = Color::srgba(0.48, 0.15, 0.075, 0.56);
 
 pub const UI_TOUCH_TARGET_PX: f32 = 48.0;
 pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
@@ -193,7 +198,7 @@ fn label_font_size() -> FontSize {
     FontSize::VMin(2.778)
 }
 
-fn muted_font_size() -> FontSize {
+pub(crate) fn muted_font_size() -> FontSize {
     FontSize::VMin(2.5)
 }
 
@@ -227,6 +232,26 @@ pub fn install(app: &mut App) {
         .add_systems(PostUpdate, contextual_touch_targets)
         .add_systems(PostUpdate, sync_ime_window)
         .add_systems(PostUpdate, sync_lifecycle_field_visuals);
+}
+
+pub fn spawn_world_root(commands: &mut Commands, background: Color) -> Entity {
+    commands
+        .spawn((
+            BevyScreenRoot,
+            Node {
+                width: percent(100),
+                height: percent(100),
+                min_width: px(0),
+                min_height: px(0),
+                padding: UiRect::all(screen_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: responsive_compact_gap(),
+                overflow: Overflow::clip(),
+                ..default()
+            },
+            BackgroundColor(background),
+        ))
+        .id()
 }
 
 pub fn spawn_screen(commands: &mut Commands, title: impl Into<String>) -> Entity {
@@ -554,6 +579,66 @@ pub fn spawn_action_button(
     button
 }
 
+pub fn spawn_primary_action_button(
+    commands: &mut Commands,
+    parent: Entity,
+    index: usize,
+    icon: impl Into<String>,
+    label: impl Into<String>,
+) -> Entity {
+    let button = commands
+        .spawn((
+            Button,
+            ChoiceButton { index },
+            UiActionButton,
+            UiStyledButton,
+            Node {
+                width: Val::Auto,
+                min_width: px(110),
+                min_height: touch_target_size(),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                padding: UiRect::axes(
+                    vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
+                    vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
+                ),
+                border: UiRect::all(px(1)),
+                justify_content: JustifyContent::Start,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(THEME_SURFACE),
+            children![(
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    flex_direction: FlexDirection::Row,
+                    column_gap: responsive_compact_gap(),
+                    align_items: AlignItems::Center,
+                    ..default()
+                },
+                children![
+                    (
+                        Text::new(icon.into()),
+                        TextContent,
+                        TextFont::from_font_size(muted_font_size()),
+                        TextColor(THEME_MUTED),
+                    ),
+                    (
+                        Text::new(label.into()),
+                        TextContent,
+                        TextFont::from_font_size(label_font_size()),
+                        TextColor(THEME_TEXT),
+                    ),
+                ],
+            )],
+        ))
+        .id();
+    commands.entity(parent).add_child(button);
+    button
+}
+
 pub fn spawn_menu_button(
     commands: &mut Commands,
     parent: Entity,
@@ -565,10 +650,10 @@ pub fn spawn_menu_button(
             UiMenuButton,
             UiStyledButton,
             Node {
-                width: touch_target_size(),
-                min_width: touch_target_size(),
-                height: touch_target_size(),
-                min_height: touch_target_size(),
+                width: px(28),
+                min_width: px(28),
+                height: px(28),
+                min_height: px(28),
                 border: UiRect::all(px(1)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,

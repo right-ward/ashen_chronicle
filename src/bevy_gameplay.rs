@@ -6,13 +6,13 @@
 use bevy::prelude::*;
 
 use crate::bevy_combat::CombatState;
-use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
+use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
 use crate::game::{actions, menu, navigation, time};
 use crate::input::InputEvent;
-use crate::presentation::{HistoryEntryViewType, NavigationView, WorldView};
+use crate::presentation::{ConditionView, HistoryEntryViewType, NavigationView, WorldView};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GameplayScreen {
@@ -65,6 +65,39 @@ const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 5] = [
     },
 ];
 
+#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+enum GameplayAction {
+    Travel,
+    Meditate,
+    Talk,
+    Explore,
+    Investigate,
+    SearchRemains,
+}
+
+const PRIMARY_GAMEPLAY_ACTIONS: [GameplayAction; 4] = [
+    GameplayAction::Travel,
+    GameplayAction::Meditate,
+    GameplayAction::Talk,
+    GameplayAction::Explore,
+];
+
+#[derive(Debug, Clone, Copy)]
+struct SkyVisual {
+    background: Color,
+    celestial: &'static str,
+    celestial_x: f32,
+    celestial_y: f32,
+    warm_horizon: bool,
+}
+
+#[derive(Component, Debug, Clone, Copy)]
+struct WorldCloud {
+    base_x: f32,
+    drift: f32,
+    speed: f32,
+}
+
 #[derive(Resource)]
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
@@ -86,7 +119,8 @@ impl Default for GameplayState {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
-        .add_systems(Update, (gameplay_input, render_if_active).chain());
+        .add_systems(Update, (gameplay_input, render_if_active).chain())
+        .add_systems(Update, animate_world_clouds);
 }
 
 fn gameplay_input(
@@ -156,10 +190,6 @@ fn gameplay_input(
     }
 }
 
-fn menu_entries(session: &GameSession) -> Vec<menu::MenuEntry> {
-    menu::build_main_menu(&session.state)
-}
-
 fn move_selection(
     gameplay: &mut GameplayState,
     navigation_state: &mut NavigationState,
@@ -170,7 +200,7 @@ fn move_selection(
         return;
     };
     let count = match gameplay.screen {
-        GameplayScreen::Dashboard => menu_entries(session).len(),
+        GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
         GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
@@ -193,7 +223,7 @@ fn move_selection_to_end(
         return;
     };
     let count = match gameplay.screen {
-        GameplayScreen::Dashboard => menu_entries(session).len(),
+        GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
         GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
     };
@@ -251,21 +281,23 @@ fn activate_selection(
             }
         }
         GameplayScreen::Dashboard => {
-            let entries = menu_entries(session);
-            let Some(entry) = entries.get(gameplay.selected) else {
+            let actions = dashboard_actions(&session.state);
+            let Some(action) = actions.get(gameplay.selected).copied() else {
                 return;
             };
-            match entry.action {
-                menu::GameAction::Travel => {
+            match action {
+                GameplayAction::Travel => {
                     gameplay.screen = GameplayScreen::Navigation;
                     gameplay.selected = 0;
                     gameplay.message = None;
                     gameplay.dirty = true;
                     navigation_state.selected = 0;
                 }
-                menu::GameAction::InvestigateThreat => {
+                GameplayAction::Investigate => {
                     match crate::bevy_combat::begin(&mut session.state, combat_state) {
                         Ok(()) => {
+                            gameplay.selected = 0;
+                            gameplay.message = None;
                             navigation_state.return_screen = Some(ScreenId::Gameplay);
                             navigation_state.current_screen = Some(ScreenId::Combat);
                             navigation_state.selected = 0;
@@ -276,34 +308,45 @@ fn activate_selection(
                         }
                     }
                 }
-                menu::GameAction::Quit => {
-                    lifecycle.phase = LifecyclePhase::QuitConfirm;
-                    lifecycle.selected = 1;
-                    lifecycle.mark_dirty();
+                GameplayAction::SearchRemains => {
+                    gameplay.selected = 0;
+                    gameplay.message = None;
+                    gameplay.dirty = true;
+                    open_dedicated_screen(navigation_state, ScreenId::Remains);
                 }
-                menu::GameAction::CharacterSheet => {
-                    open_dedicated_screen(navigation_state, ScreenId::Character);
-                }
-                menu::GameAction::Inventory => {
-                    open_dedicated_screen(navigation_state, ScreenId::Inventory);
-                }
-                menu::GameAction::QuestLog => {
-                    open_dedicated_screen(navigation_state, ScreenId::Quests);
-                }
-                menu::GameAction::Meditate => {
+                GameplayAction::Meditate => {
+                    reset_dashboard_selection(gameplay);
                     open_dedicated_screen(navigation_state, ScreenId::Meditation);
                 }
-                menu::GameAction::History => {
-                    open_dedicated_screen(navigation_state, ScreenId::History);
-                }
-                menu::GameAction::Journal => {
-                    open_dedicated_screen(navigation_state, ScreenId::Journal);
-                }
-                menu::GameAction::Talk => {
+                GameplayAction::Talk => {
+                    reset_dashboard_selection(gameplay);
                     open_dedicated_screen(navigation_state, ScreenId::Talk);
                 }
-                menu::GameAction::SearchRemains => {
-                    open_dedicated_screen(navigation_state, ScreenId::Remains);
+                GameplayAction::Explore => {
+                    gameplay.message = session
+                        .state
+                        .campaign_content
+                        .clone()
+                        .unwrap_or_else(crate::content::load_campaign_content)
+                        .atmospheres
+                        .iter()
+                        .find(|entry| {
+                            session
+                                .state
+                                .world
+                                .location_by_id(session.state.character.location_id)
+                                .map(|location| entry.location_name == location.name)
+                                .unwrap_or(false)
+                        })
+                        .map(|entry| entry.text.clone())
+                        .or_else(|| {
+                            session
+                                .state
+                                .world
+                                .location_by_id(session.state.character.location_id)
+                                .map(|location| location.description.clone())
+                        });
+                    gameplay.dirty = true;
                 }
             }
         }
@@ -357,10 +400,8 @@ fn render_if_active(
     if lifecycle.phase != LifecyclePhase::Complete
         || lifecycle.session.is_none()
         || navigation_state.current_screen != Some(ScreenId::Gameplay)
+        || !gameplay.dirty
     {
-        return;
-    }
-    if !gameplay.dirty {
         return;
     }
 
@@ -374,10 +415,11 @@ fn render_if_active(
     let view = build_world_view(&session.state);
     match gameplay.screen {
         GameplayScreen::Dashboard => {
+            let actions = dashboard_actions(&session.state);
             render_dashboard(
                 &mut commands,
                 &view,
-                &menu_entries(session),
+                &actions,
                 gameplay.selected,
                 gameplay.message.as_deref(),
             );
@@ -390,10 +432,11 @@ fn render_if_active(
             );
         }
         GameplayScreen::SecondaryNavigation => {
+            let actions = dashboard_actions(&session.state);
             let root = render_dashboard(
                 &mut commands,
                 &view,
-                &menu_entries(session),
+                &actions,
                 0,
                 gameplay.message.as_deref(),
             );
@@ -406,55 +449,464 @@ fn render_if_active(
 fn render_dashboard(
     commands: &mut Commands,
     view: &WorldView,
-    actions_list: &[menu::MenuEntry],
+    actions: &[GameplayAction],
     selected: usize,
     message: Option<&str>,
 ) -> Entity {
-    let root = bevy_presentation::spawn_screen(commands, "THE ASHEN CHRONICLE");
-    let header = bevy_presentation::spawn_panel(commands, root);
-    let location = view
+    let sky = sky_visual(view.time_points);
+    let root = bevy_presentation::spawn_world_root(commands, sky.background);
+
+    let world = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            min_height: px(0),
+            flex_grow: 1.0,
+            flex_shrink: 1.0,
+            position_type: PositionType::Relative,
+            ..default()
+        })
+        .id();
+    commands.entity(root).add_child(world);
+
+    spawn_world_clouds(commands, world);
+    spawn_world_ground(commands, world);
+    if sky.warm_horizon {
+        commands.entity(world).with_children(|world| {
+            world.spawn((
+                Node {
+                    width: percent(100),
+                    height: percent(9),
+                    position_type: PositionType::Absolute,
+                    left: px(0),
+                    bottom: percent(27),
+                    ..default()
+                },
+                BackgroundColor(bevy_presentation::THEME_SKY_HORIZON_WARM),
+            ));
+        });
+    }
+    spawn_celestial(commands, world, sky);
+    render_location(commands, world, view);
+    render_world_context(commands, world, view, message);
+    render_player_hud(commands, world, view);
+    render_action_area(commands, root, actions, selected);
+
+    root
+}
+
+fn spawn_world_clouds(commands: &mut Commands, parent: Entity) {
+    let clouds = [
+        (44.0, 3.5, 0.70, 14.0, 110.0, 0.08),
+        (50.0, 2.8, 0.45, 10.0, 82.0, 0.06),
+        (12.0, 2.0, 0.36, 8.0, 64.0, 0.04),
+    ];
+    for (base_x, drift, alpha, height, width, speed) in clouds {
+        commands.entity(parent).with_children(|world| {
+            world.spawn((
+                WorldCloud {
+                    base_x,
+                    drift,
+                    speed,
+                },
+                Node {
+                    width: px(width),
+                    height: px(height),
+                    position_type: PositionType::Absolute,
+                    left: percent(base_x),
+                    top: percent(15.0),
+                    ..default()
+                },
+                BackgroundColor(Color::srgba(0.9, 0.87, 0.82, alpha)),
+            ));
+        });
+    }
+}
+
+fn animate_world_clouds(time: Res<Time>, mut clouds: Query<(&WorldCloud, &mut Node)>) {
+    let elapsed = time.elapsed_secs();
+    for (cloud, mut node) in &mut clouds {
+        let x = cloud.base_x + (elapsed * cloud.speed).sin() * cloud.drift;
+        node.left = percent(x.clamp(4.0, 88.0));
+    }
+}
+
+fn spawn_world_ground(commands: &mut Commands, parent: Entity) {
+    commands.entity(parent).with_children(|world| {
+        world.spawn((
+            Node {
+                width: percent(100),
+                height: percent(27),
+                position_type: PositionType::Absolute,
+                left: px(0),
+                bottom: px(0),
+                ..default()
+            },
+            BackgroundColor(bevy_presentation::THEME_PANEL),
+        ));
+    });
+}
+
+fn spawn_celestial(commands: &mut Commands, parent: Entity, sky: SkyVisual) {
+    commands.entity(parent).with_children(|world| {
+        world.spawn((
+            Node {
+                width: px(46),
+                height: px(46),
+                position_type: PositionType::Absolute,
+                left: percent(sky.celestial_x),
+                top: percent(sky.celestial_y),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            children![(
+                Text::new(sky.celestial),
+                bevy_presentation::TextContent,
+                TextFont::from_font_size(FontSize::VMin(4.8)),
+                TextColor(bevy_presentation::THEME_TEXT),
+            )],
+        ));
+    });
+}
+
+fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
+    let card = commands
+        .spawn((
+            bevy_presentation::UiSurface,
+            Node {
+                width: percent(62),
+                min_width: px(190),
+                height: percent(48),
+                min_height: px(130),
+                position_type: PositionType::Absolute,
+                left: percent(5),
+                bottom: percent(9),
+                padding: UiRect::all(vmin(1.5)),
+                flex_direction: FlexDirection::Column,
+                row_gap: bevy_presentation::responsive_compact_gap(),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(Color::srgba(0.11, 0.095, 0.10, 0.88)),
+        ))
+        .id();
+    commands.entity(parent).add_child(card);
+
+    let location_name = view
         .location
         .as_ref()
         .map(|location| location.name.as_str())
-        .unwrap_or("Unknown");
-    bevy_presentation::spawn_label(
-        commands,
-        header,
-        format!("{} · {}", view.character.display_name(), view.time),
-    );
-    bevy_presentation::spawn_muted_label(
-        commands,
-        header,
-        format!("World: {} · Location: {}", view.world_name, location),
-    );
-    bevy_presentation::spawn_gauge(commands, header, view.character.hp, view.character.max_hp);
-
-    let context = bevy_presentation::spawn_panel(commands, root);
-    render_world_context(commands, context, view);
-
-    if let Some(message) = message {
-        bevy_presentation::spawn_muted_label(commands, context, message);
+        .unwrap_or("Unknown Place");
+    bevy_presentation::spawn_label(commands, card, location_name);
+    if let Some(location) = &view.location {
+        bevy_presentation::spawn_muted_label(
+            commands,
+            card,
+            format!("{} · {}", view.world_name, location.region_name),
+        );
+        if let Some(art) = &view.art {
+            let art_entity = commands
+                .spawn((
+                    Text::new(art.clone()),
+                    Node {
+                        width: percent(100),
+                        min_width: px(0),
+                        flex_grow: 1.0,
+                        min_height: px(40),
+                        ..default()
+                    },
+                    bevy_presentation::TextContent,
+                    TextFont::from_font_size(bevy_presentation::muted_font_size()),
+                    TextColor(bevy_presentation::THEME_MUTED),
+                ))
+                .id();
+            commands.entity(card).add_child(art_entity);
+        }
+        if !location.description.trim().is_empty() {
+            bevy_presentation::spawn_muted_label(commands, card, location.description.clone());
+        }
+    } else {
+        bevy_presentation::spawn_muted_label(commands, card, "You are lost in an unknown place.");
     }
 
-    let history = bevy_presentation::spawn_panel(commands, root);
-    render_history(commands, history, view);
+    commands.entity(card).with_children(|card| {
+        card.spawn((
+            Node {
+                width: px(170),
+                height: px(6),
+                position_type: PositionType::Absolute,
+                left: percent(4),
+                bottom: px(8),
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.02, 0.018, 0.02, 0.28)),
+        ));
+    });
+}
 
-    let choices = bevy_presentation::spawn_panel(commands, root);
-    bevy_presentation::spawn_muted_label(
-        commands,
-        choices,
-        "Choose an action. Arrow keys and Enter also work.",
-    );
-    for (index, entry) in actions_list.iter().enumerate() {
-        let label = if index == selected {
-            format!("▶ {}", entry.label)
-        } else {
-            entry.label.clone()
-        };
-        bevy_presentation::spawn_choice_button(commands, choices, index, label);
+fn render_world_context(
+    commands: &mut Commands,
+    parent: Entity,
+    view: &WorldView,
+    message: Option<&str>,
+) {
+    let text = message
+        .map(str::to_string)
+        .or_else(|| {
+            view.threat
+                .as_ref()
+                .map(|threat| format!("{}: {}", threat.label, threat.description))
+        })
+        .or_else(|| view.atmosphere.clone());
+
+    let Some(text) = text else {
+        return;
+    };
+
+    let context = commands
+        .spawn((
+            bevy_presentation::UiContextMessage,
+            Node {
+                width: percent(58),
+                min_width: px(180),
+                max_width: percent(70),
+                min_height: px(38),
+                position_type: PositionType::Absolute,
+                left: percent(5),
+                top: percent(28),
+                padding: UiRect::axes(vmin(1.3), vmin(0.9)),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(Color::srgba(0.06, 0.045, 0.05, 0.84)),
+        ))
+        .id();
+    commands.entity(parent).add_child(context);
+    bevy_presentation::spawn_muted_label(commands, context, text);
+}
+
+fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) {
+    let controls = commands
+        .spawn(Node {
+            width: percent(100),
+            height: percent(100),
+            position_type: PositionType::Absolute,
+            right: px(0),
+            top: px(0),
+            flex_direction: FlexDirection::Row,
+            justify_content: JustifyContent::End,
+            align_items: AlignItems::Start,
+            padding: UiRect::all(vmin(1.0)),
+            column_gap: bevy_presentation::responsive_compact_gap(),
+            ..default()
+        })
+        .id();
+    commands.entity(parent).add_child(controls);
+
+    bevy_presentation::spawn_menu_button(commands, controls, "≡");
+
+    let hud = commands
+        .spawn((
+            bevy_presentation::UiSurface,
+            Node {
+                width: percent(30),
+                min_width: px(180),
+                max_width: px(230),
+                min_height: px(104),
+                padding: UiRect::all(vmin(1.1)),
+                flex_direction: FlexDirection::Column,
+                row_gap: vmin(0.7),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(Color::srgba(0.08, 0.055, 0.065, 0.94)),
+        ))
+        .id();
+    commands.entity(controls).add_child(hud);
+
+    bevy_presentation::spawn_health_gauge(commands, hud, view.character.hp, view.character.max_hp);
+
+    let condition_row = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            height: px(28),
+            flex_direction: FlexDirection::Row,
+            column_gap: px(6),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .id();
+    commands.entity(hud).add_child(condition_row);
+
+    for condition in &view.conditions {
+        spawn_condition_icon(commands, condition_row, condition);
     }
+}
 
-    root
+fn spawn_condition_icon(commands: &mut Commands, parent: Entity, condition: &ConditionView) {
+    let icon = match condition.name.as_str() {
+        "Wounded" => "†",
+        "Exhausted" => "◌",
+        _ => "◈",
+    };
+    bevy_presentation::spawn_condition_indicator(commands, parent, icon);
+}
+
+fn render_action_area(
+    commands: &mut Commands,
+    parent: Entity,
+    actions: &[GameplayAction],
+    selected: usize,
+) {
+    let panel =
+        bevy_presentation::spawn_surface(commands, parent, bevy_presentation::SurfaceTone::Strong);
+    let row = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            flex_direction: FlexDirection::Row,
+            flex_wrap: FlexWrap::Wrap,
+            column_gap: bevy_presentation::responsive_compact_gap(),
+            row_gap: bevy_presentation::responsive_compact_gap(),
+            ..default()
+        })
+        .id();
+    commands.entity(panel).add_child(row);
+
+    for (index, action) in actions.iter().enumerate() {
+        let (icon, label) = gameplay_action_visuals(*action);
+        let button =
+            bevy_presentation::spawn_primary_action_button(commands, row, index, icon, label);
+        if index == selected {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
+}
+
+fn gameplay_action_visuals(action: GameplayAction) -> (&'static str, &'static str) {
+    match action {
+        GameplayAction::Travel => ("⚑", "Travel"),
+        GameplayAction::Meditate => ("◌", "Meditate"),
+        GameplayAction::Talk => ("◉", "Talk"),
+        GameplayAction::Explore => ("⌕", "Explore"),
+        GameplayAction::Investigate => ("†", "Investigate"),
+        GameplayAction::SearchRemains => ("◇", "Search remains"),
+    }
+}
+
+fn dashboard_actions(state: &crate::model::GameState) -> Vec<GameplayAction> {
+    let mut actions = PRIMARY_GAMEPLAY_ACTIONS.to_vec();
+    for entry in menu::build_main_menu(state) {
+        match entry.action {
+            menu::GameAction::InvestigateThreat => actions.push(GameplayAction::Investigate),
+            menu::GameAction::SearchRemains => actions.push(GameplayAction::SearchRemains),
+            _ => {}
+        }
+    }
+    actions
+}
+
+fn reset_dashboard_selection(gameplay: &mut GameplayState) {
+    gameplay.selected = 0;
+    gameplay.message = None;
+    gameplay.dirty = true;
+}
+
+fn sky_visual(time_points: u32) -> SkyVisual {
+    match time_points % 12 {
+        0 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_NIGHT,
+            celestial: "☾",
+            celestial_x: 78.0,
+            celestial_y: 9.0,
+            warm_horizon: false,
+        },
+        1 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAWN,
+            celestial: "☾",
+            celestial_x: 67.0,
+            celestial_y: 11.0,
+            warm_horizon: true,
+        },
+        2 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAWN,
+            celestial: "☼",
+            celestial_x: 58.0,
+            celestial_y: 11.0,
+            warm_horizon: true,
+        },
+        3 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAY,
+            celestial: "☼",
+            celestial_x: 50.0,
+            celestial_y: 7.0,
+            warm_horizon: false,
+        },
+        4 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAY,
+            celestial: "☼",
+            celestial_x: 42.0,
+            celestial_y: 9.0,
+            warm_horizon: false,
+        },
+        5 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAY,
+            celestial: "☼",
+            celestial_x: 34.0,
+            celestial_y: 11.0,
+            warm_horizon: false,
+        },
+        6 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DAY,
+            celestial: "☼",
+            celestial_x: 25.0,
+            celestial_y: 14.0,
+            warm_horizon: false,
+        },
+        7 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DUSK,
+            celestial: "☼",
+            celestial_x: 17.0,
+            celestial_y: 18.0,
+            warm_horizon: true,
+        },
+        8 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_DUSK,
+            celestial: "☾",
+            celestial_x: 10.0,
+            celestial_y: 13.0,
+            warm_horizon: true,
+        },
+        9 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_NIGHT,
+            celestial: "☾",
+            celestial_x: 21.0,
+            celestial_y: 10.0,
+            warm_horizon: false,
+        },
+        10 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_NIGHT,
+            celestial: "☾",
+            celestial_x: 37.0,
+            celestial_y: 8.0,
+            warm_horizon: false,
+        },
+        11 => SkyVisual {
+            background: bevy_presentation::THEME_SKY_NIGHT,
+            celestial: "☾",
+            celestial_x: 55.0,
+            celestial_y: 8.0,
+            warm_horizon: false,
+        },
+        _ => unreachable!(),
+    }
 }
 
 fn render_secondary_navigation(commands: &mut Commands, parent: Entity, selected: usize) {
@@ -552,55 +1004,6 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
     bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
 }
 
-fn render_world_context(commands: &mut Commands, parent: Entity, view: &WorldView) {
-    let Some(location) = &view.location else {
-        bevy_presentation::spawn_muted_label(commands, parent, "You are lost in an unknown place.");
-        return;
-    };
-    bevy_presentation::spawn_label(commands, parent, location.name.clone());
-    bevy_presentation::spawn_muted_label(
-        commands,
-        parent,
-        format!("Region: {}", location.region_name),
-    );
-    if !location.description.trim().is_empty() {
-        bevy_presentation::spawn_muted_label(commands, parent, location.description.clone());
-    }
-    if location.dangerous {
-        bevy_presentation::spawn_muted_label(commands, parent, "Danger: this location is unsafe.");
-    }
-    match &view.threat {
-        Some(threat) => {
-            bevy_presentation::spawn_label(commands, parent, format!("Threat: {}", threat.label));
-            if !threat.description.trim().is_empty() {
-                bevy_presentation::spawn_muted_label(commands, parent, threat.description.clone());
-            }
-        }
-        None => {
-            bevy_presentation::spawn_muted_label(commands, parent, "Threat: none active.");
-        }
-    }
-}
-
-fn render_history(commands: &mut Commands, parent: Entity, view: &WorldView) {
-    bevy_presentation::spawn_label(commands, parent, "Recent Events");
-    if view.history.is_empty() {
-        bevy_presentation::spawn_muted_label(commands, parent, "Nothing has been recorded yet.");
-        return;
-    }
-    for entry in &view.history {
-        let marker = match entry.entry_type {
-            HistoryEntryViewType::Event => "[EVENT]",
-            HistoryEntryViewType::Narrative => "[NOTE]",
-        };
-        bevy_presentation::spawn_muted_label(
-            commands,
-            parent,
-            format!("Day {} {} {}", entry.day, marker, entry.text),
-        );
-    }
-}
-
 fn build_world_view(state: &crate::model::GameState) -> WorldView {
     let location = state
         .world
@@ -621,6 +1024,36 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
                 dangerous: location.dangerous,
             }
         });
+
+    let campaign = state
+        .campaign_content
+        .clone()
+        .unwrap_or_else(crate::content::load_campaign_content);
+
+    let art = location
+        .as_ref()
+        .and_then(|location| campaign.location_art_for(&location.name))
+        .map(str::to_string);
+    let atmosphere = location.as_ref().and_then(|location| {
+        campaign
+            .atmospheres
+            .iter()
+            .find(|entry| entry.location_name == location.name)
+            .map(|entry| entry.text.clone())
+    });
+
+    let conditions = state
+        .character
+        .conditions
+        .iter()
+        .map(|condition| ConditionView {
+            name: condition.name.clone(),
+            remaining: condition.remaining,
+            penalty: condition.penalty,
+            bonus: condition.bonus,
+        })
+        .collect();
+
     let threat = state
         .threat
         .active
@@ -652,6 +1085,8 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
     WorldView {
         world_name: state.world.name.clone(),
         time: time::time_display(state.world.time_points, state.world.day),
+        time_points: state.world.time_points,
+        day: state.world.day,
         character: crate::presentation::CharacterView {
             name: state.character.name.clone(),
             title: state.character.title.clone(),
@@ -659,6 +1094,9 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
             max_hp: state.character.max_hp,
         },
         location,
+        art,
+        atmosphere,
+        conditions,
         threat,
         history,
     }
