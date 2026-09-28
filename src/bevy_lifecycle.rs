@@ -196,7 +196,9 @@ fn activate_selection(
 ) -> Option<bool> {
     match lifecycle.phase {
         LifecyclePhase::Start => match lifecycle.selected {
-            0 => lifecycle.start_new_game(&mut navigation),
+            0 => {
+                lifecycle.start_new_game(&mut navigation);
+            }
             1 if start_has_load(lifecycle) => {
                 lifecycle.start_load_game(&mut navigation);
             }
