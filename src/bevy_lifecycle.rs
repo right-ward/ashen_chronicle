@@ -750,7 +750,7 @@ mod tests {
             selected: 1,
         };
 
-        lifecycle.cancel_quit_confirmation(navigation);
+        lifecycle.cancel_quit_confirmation(&mut navigation);
 
         assert_eq!(lifecycle.phase, LifecyclePhase::Complete);
         assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
