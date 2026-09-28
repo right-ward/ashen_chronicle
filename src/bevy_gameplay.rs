@@ -457,11 +457,7 @@ fn render_dashboard(
     root
 }
 
-fn render_secondary_navigation(
-    commands: &mut Commands,
-    parent: Entity,
-    selected: usize,
-) {
+fn render_secondary_navigation(commands: &mut Commands, parent: Entity, selected: usize) {
     let overlay = bevy_presentation::spawn_overlay(commands, parent);
     let surface = commands
         .spawn((
@@ -498,7 +494,9 @@ fn render_secondary_navigation(
             entry.label,
         );
         if index == selected {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
 
