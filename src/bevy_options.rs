@@ -328,10 +328,11 @@ fn android_request_storage_picker() -> bool {
     let Some(app) = bevy::android::ANDROID_APP.get().cloned() else {
         return false;
     };
+    let java_app = app.clone();
     app.run_on_java_main_thread(Box::new(move || {
-        let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
+        let vm = unsafe { jni::JavaVM::from_raw(java_app.vm_as_ptr().cast()) };
         if let Err(error) = vm.attach_current_thread(|env| -> jni::errors::Result<()> {
-            let raw_activity = app.activity_as_ptr() as jni::sys::jobject;
+            let raw_activity = java_app.activity_as_ptr() as jni::sys::jobject;
             let activity = unsafe {
                 env.as_cast_raw::<jni::refs::Global<jni::objects::JObject>>(&raw_activity)?
             };
