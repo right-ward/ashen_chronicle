@@ -13,6 +13,7 @@ pub(crate) enum InputEvent {
     PageDown,
     Confirm,
     Cancel,
+    OpenSecondaryNavigation,
     Tab,
     Character(char),
     Backspace,
