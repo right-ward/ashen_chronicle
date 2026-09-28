@@ -28,6 +28,7 @@ enum SecondaryNavigationAction {
     Quests,
     History,
     Journal,
+    Options,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
@@ -37,7 +38,7 @@ struct SecondaryNavigationEntry {
     action: SecondaryNavigationAction,
 }
 
-const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 5] = [
+const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 6] = [
     SecondaryNavigationEntry {
         label: "Character",
         icon: "♙",
@@ -62,6 +63,11 @@ const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 5] = [
         label: "Journal",
         icon: "✎",
         action: SecondaryNavigationAction::Journal,
+    },
+    SecondaryNavigationEntry {
+        label: "Options",
+        icon: "⚙",
+        action: SecondaryNavigationAction::Options,
     },
 ];
 
@@ -277,6 +283,9 @@ fn activate_selection(
                 }
                 SecondaryNavigationAction::Journal => {
                     open_dedicated_screen(navigation_state, ScreenId::Journal);
+                }
+                SecondaryNavigationAction::Options => {
+                    open_dedicated_screen(navigation_state, ScreenId::Options);
                 }
             }
         }
