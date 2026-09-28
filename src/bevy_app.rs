@@ -10,8 +10,7 @@ use bevy_picking::events::{Pointer, Release};
 use crate::{
     bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_input_diagnostics,
     bevy_interactions, bevy_lifecycle, bevy_navigation_bridge, bevy_options, bevy_presentation,
-    bevy_records,
-    bevy_runtime, bevy_touch,
+    bevy_records, bevy_runtime, bevy_touch,
 };
 
 const WINDOW_WIDTH: u32 = 1280;

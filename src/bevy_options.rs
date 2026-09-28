@@ -42,7 +42,13 @@ impl Default for OptionsState {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<OptionsState>().add_systems(
         Update,
-        (sync_screen, refresh_storage, options_input, render_if_active).chain(),
+        (
+            sync_screen,
+            refresh_storage,
+            options_input,
+            render_if_active,
+        )
+            .chain(),
     );
 }
 
@@ -225,10 +231,7 @@ fn render_if_active(
             Node {
                 min_width: px(120),
                 min_height: bevy_presentation::touch_target_size(),
-                padding: UiRect::axes(
-                    bevy_presentation::responsive_surface_padding(),
-                    px(6),
-                ),
+                padding: UiRect::axes(bevy_presentation::responsive_surface_padding(), px(6)),
                 border: UiRect::all(px(1)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
