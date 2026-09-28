@@ -5,7 +5,7 @@
 
 use bevy::prelude::*;
 
-use crate::bevy_gameplay::GameplayState;
+use crate::bevy_gameplay::{GameplayScreen, GameplayState};
 use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{GameplayInputQueue, NavigationState, ScreenId};
 use crate::game::menu;
@@ -51,11 +51,25 @@ fn bridge_navigation(
     }
 
     if navigation.current_screen != bridge.last_screen {
-        if navigation.current_screen == Some(ScreenId::Gameplay) {
+        if should_reset_gameplay_selection(
+            bridge.last_screen,
+            navigation.current_screen,
+            gameplay.screen,
+        ) {
             gameplay_queue.0.push(InputEvent::Home);
         }
         bridge.last_screen = navigation.current_screen;
     }
+}
+
+fn should_reset_gameplay_selection(
+    previous_screen: Option<ScreenId>,
+    current_screen: Option<ScreenId>,
+    gameplay_screen: GameplayScreen,
+) -> bool {
+    current_screen == Some(ScreenId::Gameplay)
+        && previous_screen != current_screen
+        && gameplay_screen != GameplayScreen::Pause
 }
 
 fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -> Option<ScreenId> {
@@ -72,5 +86,28 @@ fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -
         menu::GameAction::Talk => Some(ScreenId::Talk),
         menu::GameAction::SearchRemains => Some(ScreenId::Remains),
         _ => None,
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn gameplay_reentry_does_not_reset_pause_selection() {
+        assert!(!should_reset_gameplay_selection(
+            Some(ScreenId::Options),
+            Some(ScreenId::Gameplay),
+            GameplayScreen::Pause
+        ));
+    }
+
+    #[test]
+    fn gameplay_reentry_resets_selection_for_normal_gameplay() {
+        assert!(should_reset_gameplay_selection(
+            Some(ScreenId::Character),
+            Some(ScreenId::Gameplay),
+            GameplayScreen::Dashboard
+        ));
     }
 }
