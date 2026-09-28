@@ -562,7 +562,7 @@ fn spawn_celestial(commands: &mut Commands, parent: Entity, sky: SkyVisual) {
             },
             children![(
                 Text::new(sky.celestial),
-                TextContent,
+                bevy_presentation::TextContent,
                 TextFont::from_font_size(FontSize::VMin(4.8)),
                 TextColor(bevy_presentation::THEME_TEXT),
             )],
@@ -617,8 +617,8 @@ fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
                         min_height: px(40),
                         ..default()
                     },
-                    TextContent,
-                    TextFont::from_font_size(muted_font_size()),
+                    bevy_presentation::TextContent,
+                    TextFont::from_font_size(bevy_presentation::muted_font_size()),
                     TextColor(bevy_presentation::THEME_MUTED),
                 ))
                 .id();
