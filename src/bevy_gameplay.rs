@@ -345,10 +345,7 @@ fn activate_selection(
                     open_dedicated_screen(navigation_state, ScreenId::Options);
                 }
                 PauseAction::Quit => {
-                    lifecycle.start_quit_confirmation(
-                        navigation_state,
-                        Some(ScreenId::Gameplay),
-                    );
+                    lifecycle.start_quit_confirmation(navigation_state, Some(ScreenId::Gameplay));
                 }
             }
         }
@@ -1035,12 +1032,7 @@ fn sky_visual(time_points: u32) -> SkyVisual {
     }
 }
 
-fn render_pause(
-    commands: &mut Commands,
-    parent: Entity,
-    actions: &[PauseAction],
-    selected: usize,
-) {
+fn render_pause(commands: &mut Commands, parent: Entity, actions: &[PauseAction], selected: usize) {
     let overlay = bevy_presentation::spawn_overlay(commands, parent);
     commands
         .entity(overlay)
@@ -1075,8 +1067,7 @@ fn render_pause(
 
     for (index, action) in actions.iter().enumerate() {
         let (icon, label) = pause_action_visuals(*action);
-        let button =
-            bevy_presentation::spawn_action_button(commands, surface, index, icon, label);
+        let button = bevy_presentation::spawn_action_button(commands, surface, index, icon, label);
         if index == selected {
             commands
                 .entity(button)
@@ -1287,7 +1278,6 @@ fn build_world_view(state: &crate::model::GameState) -> WorldView {
         history,
     }
 }
-
 
 #[cfg(test)]
 mod tests {

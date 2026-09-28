@@ -727,7 +727,7 @@ fn build_death_view(state: &GameState) -> DeathView {
 #[cfg(test)]
 mod tests {
     use super::*;
-    
+
     #[test]
     fn quit_confirmation_can_return_to_gameplay() {
         let mut lifecycle = LifecycleState::default();
