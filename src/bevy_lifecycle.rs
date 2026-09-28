@@ -727,6 +727,37 @@ fn build_death_view(state: &GameState) -> DeathView {
 #[cfg(test)]
 mod tests {
     use super::*;
+    
+    #[test]
+    fn quit_confirmation_can_return_to_gameplay() {
+        let mut lifecycle = LifecycleState::default();
+        let state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "Tester".to_string(),
+            "Ash Walker".to_string(),
+        );
+        lifecycle.session = Some(GameSession {
+            state,
+            save_path: PathBuf::from("saves/test.json.gz"),
+        });
+        lifecycle.phase = LifecyclePhase::QuitConfirm;
+        lifecycle.selected = 1;
+
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: Some(ScreenId::Gameplay),
+            selected: 1,
+        };
+
+        lifecycle.cancel_quit_confirmation(&mut navigation);
+
+        assert_eq!(lifecycle.phase, LifecyclePhase::Complete);
+        assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
+        assert_eq!(navigation.return_screen, None);
+        assert_eq!(lifecycle.selected, 0);
+        assert!(!lifecycle.dirty);
+    }
 
     #[test]
     fn start_screen_has_expected_options_without_saves() {
