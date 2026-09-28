@@ -421,7 +421,14 @@ fn render_if_active(
     let view = build_world_view(&session.state);
     match gameplay.screen {
         GameplayScreen::Dashboard => {
-            render_dashboard(&mut commands, &view, gameplay.selected, gameplay.message.as_deref());
+            let actions = dashboard_actions(&session.state);
+            render_dashboard(
+                &mut commands,
+                &view,
+                &actions,
+                gameplay.selected,
+                gameplay.message.as_deref(),
+            );
         }
         GameplayScreen::Navigation => {
             render_navigation(
@@ -431,7 +438,14 @@ fn render_if_active(
             );
         }
         GameplayScreen::SecondaryNavigation => {
-            let root = render_dashboard(&mut commands, &view, 0, gameplay.message.as_deref());
+            let actions = dashboard_actions(&session.state);
+            let root = render_dashboard(
+                &mut commands,
+                &view,
+                &actions,
+                0,
+                gameplay.message.as_deref(),
+            );
             render_secondary_navigation(&mut commands, root, gameplay.selected);
         }
     }
@@ -441,6 +455,7 @@ fn render_if_active(
 fn render_dashboard(
     commands: &mut Commands,
     view: &WorldView,
+    actions: &[GameplayAction],
     selected: usize,
     message: Option<&str>,
 ) -> Entity {
@@ -481,7 +496,7 @@ fn render_dashboard(
     render_location(commands, world, view);
     render_world_context(commands, world, view, message);
     render_player_hud(commands, world, view);
-    render_action_area(commands, root, view, selected);
+    render_action_area(commands, root, actions, selected);
 
     root
 }
@@ -682,14 +697,16 @@ fn render_world_context(
 fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) {
     let controls = commands
         .spawn(Node {
-            width: px(0),
-            height: px(0),
+            width: percent(100),
+            height: percent(100),
             position_type: PositionType::Absolute,
-            right: percent(1),
-            top: percent(1),
+            right: px(0),
+            top: px(0),
             flex_direction: FlexDirection::Row,
-            column_gap: bevy_presentation::responsive_compact_gap(),
+            justify_content: JustifyContent::End,
             align_items: AlignItems::Start,
+            padding: UiRect::all(vmin(1.0)),
+            column_gap: bevy_presentation::responsive_compact_gap(),
             ..default()
         })
         .id();
@@ -703,7 +720,7 @@ fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) 
             Node {
                 width: percent(30),
                 min_width: px(180),
-                max_width: px(280),
+                max_width: px(230),
                 min_height: px(104),
                 padding: UiRect::all(vmin(1.1)),
                 flex_direction: FlexDirection::Column,
@@ -754,7 +771,7 @@ fn spawn_condition_icon(commands: &mut Commands, parent: Entity, condition: &Con
 fn render_action_area(
     commands: &mut Commands,
     parent: Entity,
-    view: &WorldView,
+    actions: &[GameplayAction],
     selected: usize,
 ) {
     let panel = bevy_presentation::spawn_surface(
@@ -775,7 +792,6 @@ fn render_action_area(
         .id();
     commands.entity(panel).add_child(row);
 
-    let actions = dashboard_actions_for_view(view);
     for (index, action) in actions.iter().enumerate() {
         let (icon, label) = gameplay_action_visuals(*action);
         let button = bevy_presentation::spawn_primary_action_button(
@@ -791,14 +807,6 @@ fn render_action_area(
                 .insert(bevy_presentation::UiSelected);
         }
     }
-}
-
-fn dashboard_actions_for_view(view: &WorldView) -> Vec<GameplayAction> {
-    let mut actions = PRIMARY_GAMEPLAY_ACTIONS.to_vec();
-    if view.threat.is_some() {
-        actions.push(GameplayAction::Investigate);
-    }
-    actions
 }
 
 fn gameplay_action_visuals(action: GameplayAction) -> (&'static str, &'static str) {
