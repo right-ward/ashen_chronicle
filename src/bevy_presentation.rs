@@ -810,8 +810,8 @@ pub fn spawn_context_message(
 
 fn sync_ui_health_gauges(
     gauges: Query<(&UiHealthGauge, &Children), Changed<UiHealthGauge>>,
-    mut fills: Query<&mut Node, With<UiHealthGaugeFill>>,
-    mut shadows: Query<&mut Node, With<UiHealthGaugeShadow>>,
+    mut fills: Query<&mut Node, (With<UiHealthGaugeFill>, Without<UiHealthGaugeShadow>)>,
+    mut shadows: Query<&mut Node, (With<UiHealthGaugeShadow>, Without<UiHealthGaugeFill>)>,
     mut values: Query<&mut Text, With<UiGaugeValueText>>,
 ) {
     for (gauge, children) in &gauges {

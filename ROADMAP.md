@@ -7,6 +7,8 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 ## Current state
 v0.51.x development — gameplay UI implementation complete; integration/regression polish in progress
 
+Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
+
 ## Next
 
 v0.51.x milestone (#262) — integration/regression/polish pass
