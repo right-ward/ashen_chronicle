@@ -373,12 +373,11 @@ public class MainActivity extends GameActivity {
         try {
             config.put("version", GAME_CONFIG_VERSION);
             config.put(GAME_CONFIG_STORAGE_URI_KEY, treeUri.toString());
+            writer.write(config.toString(2));
+            writer.write('\n');
         } catch (JSONException exception) {
             throw new IOException("Could not build game configuration", exception);
         }
-
-        writer.write(config.toString(2));
-        writer.write('\n');
     }
 
     private DocumentFile findDirectory(DocumentFile parent, String name) {
