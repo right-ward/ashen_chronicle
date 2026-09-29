@@ -363,7 +363,7 @@ jobs:
           mkdir -p "$legal_dir"
           cp LICENSE LICENSE-CONTENT NOTICE THIRD-PARTY-NOTICES TRADEMARKS.md \
             THIRD-PARTY-LICENSES.txt legal/ANDROID-DEPENDENCIES.txt "$legal_dir/"
-          cp LICENSES/Apache-2.0.txt "$legal_dir/"
+          cp LICENSES/BUSL-1.1.txt "$legal_dir/"
           ls -l "$legal_dir"
 
       - name: Build signed APK
