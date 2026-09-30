@@ -378,6 +378,29 @@ mod tests {
     use super::*;
 
     #[test]
+    fn closing_options_from_start_returns_to_lifecycle() {
+        let mut lifecycle = LifecycleState::default();
+        lifecycle.selected = 1;
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Options),
+            return_screen: Some(ScreenId::Lifecycle),
+            selected: 0,
+        };
+        let mut options = OptionsState {
+            active: true,
+            ..OptionsState::default()
+        };
+
+        close_options(&mut lifecycle, &mut navigation, &mut options);
+
+        assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
+        assert_eq!(navigation.selected, 1);
+        assert_eq!(lifecycle.selected, 1);
+        assert!(lifecycle_dirty(&lifecycle));
+        assert!(!options.active);
+    }
+
+    #[test]
     fn options_navigation_has_two_actions() {
         let mut options = OptionsState::default();
         options.selected = 0;
