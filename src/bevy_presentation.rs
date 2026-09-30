@@ -14,7 +14,7 @@ use bevy::input_focus::{
     AutoFocus, FocusCause, InputFocus,
 };
 use bevy::prelude::*;
-use bevy::text::{EditableText, TextCursorStyle};
+use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::window::PrimaryWindow;
 
 use crate::input::InputEvent;
@@ -311,8 +311,12 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
             Node {
                 width: percent(100),
                 min_width: px(0),
+                max_width: percent(100),
+                min_height: px(0),
+                flex_shrink: 1.0,
                 ..default()
             },
+            TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(label_font_size()),
             TextColor(THEME_TEXT),
@@ -333,8 +337,12 @@ pub fn spawn_muted_label(
             Node {
                 width: percent(100),
                 min_width: px(0),
+                max_width: percent(100),
+                min_height: px(0),
+                flex_shrink: 1.0,
                 ..default()
             },
+            TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(muted_font_size()),
             TextColor(THEME_MUTED),
@@ -427,11 +435,13 @@ pub fn spawn_choice_button(
             Node {
                 width: percent(100),
                 min_width: px(0),
+                max_width: percent(100),
                 min_height: px(48),
                 padding: UiRect::axes(button_padding_horizontal(), button_padding_vertical()),
                 justify_content: JustifyContent::Start,
                 align_items: AlignItems::Center,
                 border: UiRect::all(px(1)),
+                flex_shrink: 1.0,
                 ..default()
             },
             BorderColor::all(THEME_ACCENT),
@@ -441,8 +451,10 @@ pub fn spawn_choice_button(
                 Node {
                     width: percent(100),
                     min_width: px(0),
+                    max_width: percent(100),
                     ..default()
                 },
+                TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
                 TextContent,
                 TextFont::from_font_size(label_font_size()),
                 TextColor(THEME_TEXT),
@@ -480,6 +492,41 @@ pub fn spawn_surface(commands: &mut Commands, parent: Entity, tone: SurfaceTone)
                 padding: UiRect::all(responsive_surface_padding()),
                 flex_direction: FlexDirection::Column,
                 row_gap: responsive_compact_gap(),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_BORDER),
+            BackgroundColor(background),
+        ))
+        .id();
+    commands.entity(parent).add_child(surface);
+    surface
+}
+
+
+pub fn spawn_scrollable_surface(
+    commands: &mut Commands,
+    parent: Entity,
+    tone: SurfaceTone,
+) -> Entity {
+    let background = match tone {
+        SurfaceTone::Quiet => THEME_SURFACE,
+        SurfaceTone::Strong => THEME_SURFACE_STRONG,
+    };
+    let surface = commands
+        .spawn((
+            TouchScrollablePanel,
+            TabGroup::modal(),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: px(0),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                padding: UiRect::all(responsive_surface_padding()),
+                flex_direction: FlexDirection::Column,
+                row_gap: responsive_compact_gap(),
+                overflow: Overflow::scroll(),
                 border: UiRect::all(px(1)),
                 ..default()
             },
@@ -554,6 +601,7 @@ pub fn spawn_action_button(
                 Node {
                     width: percent(100),
                     min_width: px(0),
+                    max_width: percent(100),
                     flex_direction: FlexDirection::Row,
                     column_gap: responsive_compact_gap(),
                     align_items: AlignItems::Center,
@@ -562,12 +610,24 @@ pub fn spawn_action_button(
                 children![
                     (
                         Text::new(icon.into()),
+                        Node {
+                            flex_shrink: 0.0,
+                            ..default()
+                        },
                         TextContent,
                         TextFont::from_font_size(muted_font_size()),
                         TextColor(THEME_MUTED),
                     ),
                     (
                         Text::new(label.into()),
+                        Node {
+                            min_width: px(0),
+                            max_width: percent(100),
+                            flex_grow: 1.0,
+                            flex_shrink: 1.0,
+                            ..default()
+                        },
+                        TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
                         TextContent,
                         TextFont::from_font_size(label_font_size()),
                         TextColor(THEME_TEXT),
@@ -614,6 +674,7 @@ pub fn spawn_primary_action_button(
                 Node {
                     width: percent(100),
                     min_width: px(0),
+                    max_width: percent(100),
                     flex_direction: FlexDirection::Row,
                     column_gap: responsive_compact_gap(),
                     align_items: AlignItems::Center,
@@ -622,12 +683,24 @@ pub fn spawn_primary_action_button(
                 children![
                     (
                         Text::new(icon.into()),
+                        Node {
+                            flex_shrink: 0.0,
+                            ..default()
+                        },
                         TextContent,
                         TextFont::from_font_size(muted_font_size()),
                         TextColor(THEME_MUTED),
                     ),
                     (
                         Text::new(label.into()),
+                        Node {
+                            min_width: px(0),
+                            max_width: percent(100),
+                            flex_grow: 1.0,
+                            flex_shrink: 1.0,
+                            ..default()
+                        },
+                        TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
                         TextContent,
                         TextFont::from_font_size(label_font_size()),
                         TextColor(THEME_TEXT),
@@ -790,14 +863,23 @@ pub fn spawn_context_message(
             Node {
                 width: percent(100),
                 min_width: px(0),
+                max_width: percent(100),
                 padding: UiRect::axes(responsive_surface_padding(), vmin(1.111)),
                 border: UiRect::all(px(1)),
+                flex_shrink: 1.0,
                 ..default()
             },
             BorderColor::all(THEME_ACCENT),
             BackgroundColor(THEME_SURFACE_STRONG),
             children![(
                 Text::new(message.into()),
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    max_width: percent(100),
+                    ..default()
+                },
+                TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
                 TextContent,
                 TextFont::from_font_size(label_font_size()),
                 TextColor(THEME_TEXT),
