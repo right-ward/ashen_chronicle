@@ -34,6 +34,7 @@ impl GamePaths {
         let configured_root = configured_game_root();
 
         #[cfg(not(target_os = "android"))]
+        let resolved_during_startup = configured_root.is_none();
         let preferred_root = match configured_root.as_ref() {
             Some(root) => root.clone(),
             None => desktop_storage::resolve_root(&default_root)?,
@@ -44,6 +45,10 @@ impl GamePaths {
 
         match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
             Ok(paths) => {
+                #[cfg(not(target_os = "android"))]
+                if resolved_during_startup {
+                    persist_resolved_game_root(&paths.root);
+                }
                 std::env::set_current_dir(&paths.root)?;
                 Ok(paths)
             }
@@ -53,6 +58,7 @@ impl GamePaths {
                     clear_configured_game_root();
                     let resolved_root = desktop_storage::resolve_root(&default_root)?;
                     let paths = prepare_root(&resolved_root, bundled_data_dir.as_deref())?;
+                    persist_resolved_game_root(&paths.root);
                     std::env::set_current_dir(&paths.root)?;
                     return Ok(paths);
                 }
@@ -177,6 +183,13 @@ pub fn set_configured_game_root(root: &Path) -> io::Result<()> {
 pub fn clear_configured_game_root() {
     if let Some(config_file) = game_root_config_path() {
         let _ = fs::remove_file(config_file);
+    }
+}
+
+#[cfg(not(target_os = "android"))]
+fn persist_resolved_game_root(root: &Path) {
+    if let Err(error) = set_configured_game_root(root) {
+        eprintln!("warning: could not persist game data root: {error}");
     }
 }
 
