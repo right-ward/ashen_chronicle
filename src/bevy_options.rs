@@ -203,7 +203,7 @@ fn render_if_active(
     }
 
     let root = bevy_presentation::spawn_screen(&mut commands, "OPTIONS");
-    let panel = bevy_presentation::spawn_surface(
+    let panel = bevy_presentation::spawn_scrollable_surface(
         &mut commands,
         root,
         bevy_presentation::SurfaceTone::Strong,
