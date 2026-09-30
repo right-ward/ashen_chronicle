@@ -3,9 +3,6 @@
 //! This module depends only on Bevy and the frontend-neutral semantic input
 //! model. Gameplay systems remain responsible for translating authoritative game
 //! state into presentation view models and interpreting semantic input events.
-#![allow(dead_code)] // added specially for the new cobstants,
-                     // structs and functions that are unused
-                     // TODO: remove it after their used
 
 use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
 use bevy::input::ButtonState;
@@ -35,6 +32,7 @@ pub const THEME_BORDER: Color = Color::srgba(0.35, 0.30, 0.24, 0.72);
 pub const THEME_HOVER: Color = Color::srgba(0.20, 0.16, 0.12, 0.92);
 pub const THEME_PRESSED: Color = Color::srgba(0.30, 0.24, 0.17, 0.96);
 pub const THEME_SELECTED: Color = Color::srgba(0.16, 0.13, 0.10, 0.90);
+#[allow(dead_code)] // TODO: this color isn't used; remove this after it is.
 pub const THEME_DISABLED: Color = Color::srgba(0.10, 0.095, 0.10, 0.62);
 pub const THEME_SKY_DAY: Color = Color::srgb(0.19, 0.25, 0.32);
 pub const THEME_SKY_DAWN: Color = Color::srgb(0.38, 0.19, 0.17);
@@ -89,6 +87,7 @@ struct UiGaugeValueText;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceTone {
+    #[allow(dead_code)] // TODO: this varient is never constructed; remove thid after it is used
     Quiet,
     Strong,
 }
