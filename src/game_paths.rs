@@ -279,6 +279,15 @@ fn set_read_only(path: &Path) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn relative_configured_roots_are_made_absolute() {
+        let relative = PathBuf::from("The Ashen Chronicle");
+        let absolute = make_absolute(relative).expect("working directory should be available");
+        assert!(absolute.is_absolute());
+        assert!(absolute.ends_with("The Ashen Chronicle"));
+    }
+
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir() -> PathBuf {
