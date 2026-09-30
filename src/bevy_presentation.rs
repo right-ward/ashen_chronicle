@@ -503,7 +503,6 @@ pub fn spawn_surface(commands: &mut Commands, parent: Entity, tone: SurfaceTone)
     surface
 }
 
-
 pub fn spawn_scrollable_surface(
     commands: &mut Commands,
     parent: Entity,
