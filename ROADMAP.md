@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.3 development — gameplay UI implementation complete; v0.51.x regression fixes completed in this iteration
+v0.52.0 development — graphical frontend regression fixes and start-screen Options access completed in this iteration
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -13,12 +13,19 @@ Startup regression fixed: the graphical frontend no longer aborts on Bevy UI hea
 
 v0.51.x milestone (#262) — integration/regression/polish pass
 
+v0.52.0 graphical frontend integration fixes
+
 Completed in this iteration:
 - #291 — persist the resolved desktop game-data root after first-launch selection
 - #292 — constrain the gameplay sky to the world presentation area
 - #293 — keep shared graphical choices/options content within its parent bounds
 - #294 — keep event metadata out of transient gameplay messages
 - #295 — restore the dedicated graphical quit presentation and wire choice activation correctly
+- #298 — restore user-facing graphical text rendering
+- #299 — display the contextual quit-confirmation question
+- #300 — restore persisted desktop game-data root startup resolution
+- #301 — restore compact Game Data options controls
+- #302 — add Options to the graphical start screen
 - #278 — shared graphical UI foundation
 - #279 — world-first gameplay HUD redesign
 - #227 — dedicated tabbed Options screen and configurable game data root
