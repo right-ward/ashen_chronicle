@@ -18,6 +18,7 @@ use crate::input::InputEvent;
 use crate::model::{create_inherited_state, create_new_state, GameState, WorldMode};
 use crate::persistence::{character_save_path, find_save_files, legacy_save_path, load_game};
 use crate::presentation::{DeathView, FactionView, ItemView, ScreenView};
+use std::time::{SystemTime, UNIX_EPOCH};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LifecyclePhase {
@@ -40,6 +41,7 @@ pub(crate) struct LifecycleState {
     pub(crate) pending_state: Option<(GameState, PathBuf)>,
     pub(crate) session: Option<GameSession>,
     pub(crate) message: Option<String>,
+    quit_variant: usize,
     dirty: bool,
 }
 
@@ -55,6 +57,7 @@ impl Default for LifecycleState {
             pending_state: None,
             session: None,
             message: None,
+            quit_variant: 0,
             dirty: true,
         }
     }
@@ -102,6 +105,11 @@ fn lifecycle_input(
         match event {
             InputEvent::Up => move_selection(&mut lifecycle, &mut navigation, -1),
             InputEvent::Down => move_selection(&mut lifecycle, &mut navigation, 1),
+            InputEvent::Home => set_selection(&mut lifecycle, &mut navigation, 0),
+            InputEvent::End => {
+                let max = max_selection(&lifecycle);
+                set_selection(&mut lifecycle, &mut navigation, max);
+            }
             InputEvent::Cancel => handle_cancel(&mut lifecycle, &mut navigation),
             InputEvent::Confirm => {
                 if let Some(exit) = activate_selection(&mut lifecycle, &mut navigation) {
@@ -170,24 +178,37 @@ fn on_lifecycle_field_focus_gained(
     navigation.selected = field.index;
 }
 
-fn move_selection(
-    lifecycle: &mut LifecycleState,
-    navigation: &mut NavigationState,
-    direction: isize,
-) {
-    let max = match lifecycle.phase {
+fn max_selection(lifecycle: &LifecycleState) -> usize {
+    match lifecycle.phase {
         LifecyclePhase::Start => start_option_count(lifecycle).saturating_sub(1),
         LifecyclePhase::Load => lifecycle.save_files.len(),
         LifecyclePhase::CreateCharacter => 3,
         LifecyclePhase::QuitConfirm => 1,
         LifecyclePhase::Death => 2,
         LifecyclePhase::Complete => 0,
-    };
-    lifecycle.selected = (lifecycle.selected as isize + direction).clamp(0, max as isize) as usize;
+    }
+}
+
+fn set_selection(
+    lifecycle: &mut LifecycleState,
+    navigation: &mut NavigationState,
+    selected: usize,
+) {
+    lifecycle.selected = selected.min(max_selection(lifecycle));
     navigation.selected = lifecycle.selected;
     if lifecycle.phase != LifecyclePhase::CreateCharacter {
         lifecycle.dirty = true;
     }
+}
+
+fn move_selection(
+    lifecycle: &mut LifecycleState,
+    navigation: &mut NavigationState,
+    direction: isize,
+) {
+    let max = max_selection(lifecycle);
+    let selected = (lifecycle.selected as isize + direction).clamp(0, max as isize) as usize;
+    set_selection(lifecycle, navigation, selected);
 }
 
 fn activate_selection(
@@ -372,6 +393,7 @@ impl LifecycleState {
         self.phase = LifecyclePhase::QuitConfirm;
         self.selected = 1;
         self.message = None;
+        self.quit_variant = next_quit_variant();
         navigation.return_screen = return_screen;
         navigation.current_screen = Some(ScreenId::Lifecycle);
         navigation.selected = 1;
@@ -558,18 +580,194 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
     bevy_presentation::spawn_choice_button(commands, panel, 3, "Begin Life");
 }
 
+#[derive(Debug, Clone, Copy)]
+struct QuitVariant {
+    line: &'static str,
+    leave: &'static str,
+    stay: &'static str,
+    art: &'static str,
+}
+
+const QUIT_VARIANTS: [QuitVariant; 9] = [
+    QuitVariant {
+        line: "The road ends here. For tonight, anyway.",
+        leave: "Let the ashes take it.",
+        stay: "Not yet. The night has more to say.",
+        art: r#"        .-''''-.
+       /  .--.  \
+      /  /    \  \
+      | |      | |
+      | |      | |
+      |  \____/  |
+       \        /
+        '------'
+"#,
+    },
+    QuitVariant {
+        line: "The fire is dying. Your story does not have to.",
+        leave: "Close the book.",
+        stay: "Turn the page.",
+        art: r#"          /\
+         /  \
+        / /\ \
+       / /  \ \
+      /_/____\_\
+        ||  ||
+        ||  ||
+        ||  ||
+       _||__||_
+"#,
+    },
+    QuitVariant {
+        line: "Night has swallowed the road. Only your footprints remain.",
+        leave: "Leave them to the dark.",
+        stay: "Keep walking.",
+        art: r#"       _..._       _..._
+     .-'     '-. .-'     '-'.
+    /           V           \
+   /      _           _      \
+   |     (_)         (_)     |
+   |          .---.          |
+    \        /     \        /
+     '-._____'-----'_____.-'
+"#,
+    },
+    QuitVariant {
+        line: "The last ember has gone black. The silence is waiting.",
+        leave: "Let it be silent.",
+        stay: "Break the silence.",
+        art: r#"            .
+           / \
+          /   \
+         /_____\
+         |     |
+         | RIP |
+         |     |
+         |_____|
+"#,
+    },
+    QuitVariant {
+        line: "The gate closes behind you. The road will remain.",
+        leave: "Close the gate.",
+        stay: "Leave it open.",
+        art: r#"        ______________________
+       /|                    |\
+      / |                    | \
+     /  |                    |  \
+    /   |                    |   \
+   /    |                    |    \
+  /_____|____________________|_____\
+        |                    |
+        |        ____        |
+        |       |    |       |
+        |       |    |       |
+        |_______|____|_______|
+"#,
+    },
+    QuitVariant {
+        line: "The flame is gone. The silence remains.",
+        leave: "Let the silence remain.",
+        stay: "Feed the flame again.",
+        art: r#"             /\
+            /  \
+           /____\
+          |      |
+          |  __  |
+          | |  | |
+          | |__| |
+          |______|
+             ||
+          ___||___
+         |        |
+         |  .  .  |
+         |________|
+"#,
+    },
+    QuitVariant {
+        line: "The road continues without you.",
+        leave: "Leave the road behind.",
+        stay: "Keep walking.",
+        art: r#"             /\                 /\
+            /  \               /  \
+           /    \             /    \
+          /      \___________/      \
+         /                         \
+        /                           \
+       /_____________________________\
+                    ||
+                    ||
+                    ||
+                    ||
+"#,
+    },
+    QuitVariant {
+        line: "For now, the dead can wait.",
+        leave: "Let the dead wait.",
+        stay: "Not tonight.",
+        art: r#"       _        _        _
+      | |      | |      | |
+     _| |__   _| |__   _| |__
+    /     \  /     \  /     \
+   /       \/       \/       \
+        |     |     |
+        |     |     |
+   _____|_____|_____|_____
+"#,
+    },
+    QuitVariant {
+        line: "One last look. Then darkness.",
+        leave: "One last look.",
+        stay: "Stay a little longer.",
+        art: r#"             .       *
+        *          .
+                  .       *
+           _____________
+          /             \
+         /               \
+        /                 \
+       /                   \
+      /                     \
+     /_______________________\
+             ||   ||
+             ||   ||
+             ||   ||
+"#,
+    },
+];
+
+fn next_quit_variant() -> usize {
+    let nanos = SystemTime::now()
+        .duration_since(UNIX_EPOCH)
+        .map(|duration| duration.subsec_nanos() as usize)
+        .unwrap_or(0);
+    nanos % QUIT_VARIANTS.len()
+}
+
 fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
-    bevy_presentation::spawn_muted_label(commands, panel, "Leave the chronicle?");
-    for (index, label) in ["Leave", "Stay"].into_iter().enumerate() {
-        bevy_presentation::spawn_choice_button(commands, panel, index, label);
-    }
-    if lifecycle.message.is_some() {
-        bevy_presentation::spawn_muted_label(
-            commands,
-            panel,
-            "Escape returns to the start screen.",
-        );
-    }
+    let variant = QUIT_VARIANTS
+        .get(lifecycle.quit_variant % QUIT_VARIANTS.len())
+        .expect("quit variant should exist");
+    bevy_presentation::spawn_muted_label(commands, panel, "LEAVE THE ASHES?");
+    bevy_presentation::spawn_muted_label(commands, panel, variant.line);
+    let art = commands
+        .spawn((
+            Text::new(variant.art),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                max_width: percent(100),
+                flex_shrink: 1.0,
+                ..default()
+            },
+            TextLayout::new(Justify::Center, LineBreak::NoWrap),
+            bevy_presentation::TextContent,
+            TextFont::from_font_size(bevy_presentation::muted_font_size()),
+            TextColor(bevy_presentation::THEME_TEXT),
+        ))
+        .id();
+    commands.entity(panel).add_child(art);
+    bevy_presentation::spawn_choice_button(commands, panel, 0, variant.leave);
+    bevy_presentation::spawn_choice_button(commands, panel, 1, variant.stay);
 }
 
 fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
