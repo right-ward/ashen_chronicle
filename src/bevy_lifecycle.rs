@@ -228,7 +228,7 @@ fn activate_selection(
             } else {
                 return Some(true);
             }
-        },
+        }
         LifecyclePhase::Load => {
             if let Some(path) = lifecycle.save_files.get(lifecycle.selected).cloned() {
                 match load_game(&path) {
@@ -942,7 +942,9 @@ mod tests {
         assert_eq!(super::start_option_count(&lifecycle), 3);
         assert_eq!(super::start_options_index(&lifecycle), 1);
 
-        lifecycle.save_files.push(std::path::PathBuf::from("save.json"));
+        lifecycle
+            .save_files
+            .push(std::path::PathBuf::from("save.json"));
         assert_eq!(super::start_option_count(&lifecycle), 4);
         assert_eq!(super::start_options_index(&lifecycle), 2);
     }

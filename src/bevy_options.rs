@@ -57,8 +57,10 @@ fn sync_screen(
     navigation: Res<NavigationState>,
     mut options: ResMut<OptionsState>,
 ) {
-    let active = matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
-        && navigation.current_screen == Some(ScreenId::Options);
+    let active = matches!(
+        lifecycle.phase,
+        LifecyclePhase::Start | LifecyclePhase::Complete
+    ) && navigation.current_screen == Some(ScreenId::Options);
 
     if active && !options.active {
         options.active = true;
@@ -113,8 +115,10 @@ fn options_input(
     mut options: ResMut<OptionsState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
-    if !matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
-        || navigation.current_screen != Some(ScreenId::Options)
+    if !matches!(
+        lifecycle.phase,
+        LifecyclePhase::Start | LifecyclePhase::Complete
+    ) || navigation.current_screen != Some(ScreenId::Options)
         || input_queue.0.is_empty()
     {
         return;
@@ -204,8 +208,10 @@ fn render_if_active(
     mut options: ResMut<OptionsState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
-    if !matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
-        || navigation.current_screen != Some(ScreenId::Options)
+    if !matches!(
+        lifecycle.phase,
+        LifecyclePhase::Start | LifecyclePhase::Complete
+    ) || navigation.current_screen != Some(ScreenId::Options)
         || !options.active
         || !options.dirty
     {
