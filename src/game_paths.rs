@@ -142,10 +142,11 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
 
     #[cfg(not(target_os = "android"))]
     {
-        let preferred = dirs::document_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(GAME_DIRECTORY_NAME);
-        (preferred, None)
+        let base = dirs::document_dir()
+            .or_else(|| dirs::data_local_dir())
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."));
+        (base.join(GAME_DIRECTORY_NAME), None)
     }
 }
 
@@ -157,7 +158,7 @@ pub fn configured_game_root() -> Option<PathBuf> {
     if trimmed.is_empty() {
         None
     } else {
-        Some(PathBuf::from(trimmed))
+        Some(make_absolute(PathBuf::from(trimmed)).unwrap_or_else(|_| PathBuf::from(trimmed)))
     }
 }
 
@@ -176,6 +177,7 @@ pub fn set_configured_game_root(root: &Path) -> io::Result<()> {
         ));
     };
     fs::create_dir_all(parent)?;
+    let root = make_absolute(root.to_path_buf())?;
     fs::write(config_file, root.to_string_lossy().as_bytes())
 }
 
@@ -200,6 +202,15 @@ fn game_root_config_path() -> Option<PathBuf> {
             .join(CONFIG_DIRECTORY_NAME)
             .join(GAME_ROOT_CONFIG_FILE_NAME)
     })
+}
+
+#[cfg(not(target_os = "android"))]
+fn make_absolute(path: PathBuf) -> io::Result<PathBuf> {
+    if path.is_absolute() {
+        Ok(path)
+    } else {
+        std::env::current_dir().map(|directory| directory.join(path))
+    }
 }
 
 fn discover_bundled_data_dir() -> Option<PathBuf> {
