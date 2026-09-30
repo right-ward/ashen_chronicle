@@ -87,7 +87,7 @@ struct UiGaugeValueText;
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub enum SurfaceTone {
-    #[allow(dead_code)]  // TODO: this varient is never constructed; remove thid after it is used
+    #[allow(dead_code)] // TODO: this varient is never constructed; remove thid after it is used
     Quiet,
     Strong,
 }
