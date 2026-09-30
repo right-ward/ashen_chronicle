@@ -3,7 +3,7 @@
 //! This module depends only on Bevy and the frontend-neutral semantic input
 //! model. Gameplay systems remain responsible for translating authoritative game
 //! state into presentation view models and interpreting semantic input events.
-#![allow(dead_code)] // added specially for the new cobstants,
+//#![allow(dead_code)] // added specially for the new cobstants,
                      // structs and functions that are unused
                      // TODO: remove it after their used
 
