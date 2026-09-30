@@ -936,6 +936,17 @@ fn build_death_view(state: &GameState) -> DeathView {
 
 #[cfg(test)]
 mod tests {
+    #[test]
+    fn start_options_index_accounts_for_load_slot() {
+        let mut lifecycle = super::LifecycleState::default();
+        assert_eq!(super::start_option_count(&lifecycle), 3);
+        assert_eq!(super::start_options_index(&lifecycle), 1);
+
+        lifecycle.save_files.push(std::path::PathBuf::from("save.json"));
+        assert_eq!(super::start_option_count(&lifecycle), 4);
+        assert_eq!(super::start_options_index(&lifecycle), 2);
+    }
+
     use super::*;
 
     #[test]
