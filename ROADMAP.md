@@ -11,21 +11,21 @@ Startup regression fixed: the graphical frontend no longer aborts on Bevy UI hea
 
 ## Next
 
-v0.51.x milestone (#262) — integration/regression/polish pass
-
-v0.52.0 graphical frontend integration fixes
+v0.52.x — continue the graphical frontend toward the planned real-time spatial combat work.
 
 Completed in this iteration:
-- #291 — persist the resolved desktop game-data root after first-launch selection
-- #292 — constrain the gameplay sky to the world presentation area
-- #293 — keep shared graphical choices/options content within its parent bounds
-- #294 — keep event metadata out of transient gameplay messages
-- #295 — restore the dedicated graphical quit presentation and wire choice activation correctly
 - #298 — restore user-facing graphical text rendering
 - #299 — display the contextual quit-confirmation question
 - #300 — restore persisted desktop game-data root startup resolution
 - #301 — restore compact Game Data options controls
 - #302 — add Options to the graphical start screen
+
+Previous v0.51.3 regression fixes:
+- #291 — persist the resolved desktop game-data root after first-launch selection
+- #292 — constrain the gameplay sky to the world presentation area
+- #293 — keep shared graphical choices/options content within its parent bounds
+- #294 — keep event metadata out of transient gameplay messages
+- #295 — restore the dedicated graphical quit presentation and wire choice activation correctly
 - #278 — shared graphical UI foundation
 - #279 — world-first gameplay HUD redesign
 - #227 — dedicated tabbed Options screen and configurable game data root
