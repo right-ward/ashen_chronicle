@@ -215,14 +215,19 @@ fn activate_selection(
     navigation: &mut NavigationState,
 ) -> Option<bool> {
     match lifecycle.phase {
-        LifecyclePhase::Start => match lifecycle.selected {
-            0 => {
+        LifecyclePhase::Start => {
+            if lifecycle.selected == 0 {
                 lifecycle.start_new_game(navigation);
-            }
-            1 if start_has_load(lifecycle) => {
+            } else if start_has_load(lifecycle) && lifecycle.selected == 1 {
                 lifecycle.start_load_game(navigation);
+            } else if lifecycle.selected == start_options_index(lifecycle) {
+                navigation.return_screen = Some(ScreenId::Lifecycle);
+                navigation.current_screen = Some(ScreenId::Options);
+                navigation.selected = 0;
+                return None;
+            } else {
+                return Some(true);
             }
-            _ => return Some(true),
         },
         LifecyclePhase::Load => {
             if let Some(path) = lifecycle.save_files.get(lifecycle.selected).cloned() {
@@ -334,14 +339,22 @@ pub(crate) fn has_available_saves() -> bool {
 
 fn start_option_count(lifecycle: &LifecycleState) -> usize {
     if start_has_load(lifecycle) {
-        3
+        4
     } else {
-        2
+        3
     }
 }
 
 fn start_has_load(lifecycle: &LifecycleState) -> bool {
     !lifecycle.save_files.is_empty()
+}
+
+fn start_options_index(lifecycle: &LifecycleState) -> usize {
+    if start_has_load(lifecycle) {
+        2
+    } else {
+        1
+    }
 }
 
 impl LifecycleState {
@@ -530,13 +543,14 @@ fn render_start(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleSta
     if let Some(message) = &lifecycle.message {
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
+
     let labels = if start_has_load(lifecycle) {
-        vec!["New Game", "Load Game", "Quit"]
+        ["New Game", "Load Game", "Options", "Quit"].as_slice()
     } else {
-        vec!["New Game", "Quit"]
+        ["New Game", "Options", "Quit"].as_slice()
     };
-    for (index, label) in labels.into_iter().enumerate() {
-        bevy_presentation::spawn_choice_button(commands, panel, index, label);
+    for (index, label) in labels.iter().enumerate() {
+        bevy_presentation::spawn_choice_button(commands, panel, index, *label);
     }
 }
 
@@ -581,7 +595,7 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
 
 #[derive(Debug, Clone, Copy)]
 struct QuitVariant {
-    line: &'static str,
+    question: &'static str,
     leave: &'static str,
     stay: &'static str,
     art: &'static str,
@@ -589,7 +603,7 @@ struct QuitVariant {
 
 const QUIT_VARIANTS: [QuitVariant; 9] = [
     QuitVariant {
-        line: "The road ends here. For tonight, anyway.",
+        question: "The road ends here. For tonight, anyway.",
         leave: "Let the ashes take it.",
         stay: "Not yet. The night has more to say.",
         art: r#"        .-''''-.
@@ -603,7 +617,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "The fire is dying. Your story does not have to.",
+        question: "The fire is dying. Your story does not have to.",
         leave: "Close the book.",
         stay: "Turn the page.",
         art: r#"          /\
@@ -618,7 +632,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "Night has swallowed the road. Only your footprints remain.",
+        question: "Night has swallowed the road. Only your footprints remain.",
         leave: "Leave them to the dark.",
         stay: "Keep walking.",
         art: r#"       _..._       _..._
@@ -632,7 +646,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "The last ember has gone black. The silence is waiting.",
+        question: "The last ember has gone black. The silence is waiting.",
         leave: "Let it be silent.",
         stay: "Break the silence.",
         art: r#"            .
@@ -646,7 +660,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "The gate closes behind you. The road will remain.",
+        question: "The gate closes behind you. The road will remain.",
         leave: "Close the gate.",
         stay: "Leave it open.",
         art: r#"        ______________________
@@ -664,7 +678,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "The flame is gone. The silence remains.",
+        question: "The flame is gone. The silence remains.",
         leave: "Let the silence remain.",
         stay: "Feed the flame again.",
         art: r#"             /\
@@ -683,7 +697,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "The road continues without you.",
+        question: "The road continues without you.",
         leave: "Leave the road behind.",
         stay: "Keep walking.",
         art: r#"             /\                 /\
@@ -700,7 +714,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "For now, the dead can wait.",
+        question: "For now, the dead can wait.",
         leave: "Let the dead wait.",
         stay: "Not tonight.",
         art: r#"       _        _        _
@@ -714,7 +728,7 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        line: "One last look. Then darkness.",
+        question: "One last look. Then darkness.",
         leave: "One last look.",
         stay: "Stay a little longer.",
         art: r#"             .       *
@@ -746,8 +760,7 @@ fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
     let variant = QUIT_VARIANTS
         .get(lifecycle.quit_variant % QUIT_VARIANTS.len())
         .expect("quit variant should exist");
-    bevy_presentation::spawn_muted_label(commands, panel, "LEAVE THE ASHES?");
-    bevy_presentation::spawn_muted_label(commands, panel, variant.line);
+    bevy_presentation::spawn_muted_label(commands, panel, variant.question);
     let art = commands
         .spawn((
             Text::new(variant.art),
