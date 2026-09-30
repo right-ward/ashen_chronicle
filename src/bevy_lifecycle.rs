@@ -985,7 +985,7 @@ mod tests {
     #[test]
     fn start_screen_has_expected_options_without_saves() {
         let state = LifecycleState::default();
-        assert_eq!(start_option_count(&state), 2);
+        assert_eq!(start_option_count(&state), 3);
         assert!(!start_has_load(&state));
     }
 
