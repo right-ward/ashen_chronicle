@@ -383,10 +383,7 @@ impl World {
         let event_id = event_id.into();
         let location_name = location_name.into();
         let outcome = outcome.into();
-        let text = format!(
-            "Event {} occurred at {}: {}",
-            event_id, location_name, outcome
-        );
+        let text = outcome.clone();
         let entry = HistoryEntry {
             id: self.allocate_id(),
             turn,

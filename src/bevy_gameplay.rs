@@ -478,7 +478,7 @@ fn activate_selection(
                         .iter()
                         .rev()
                         .find(|entry| entry.turn > old_turn)
-                        .map(|entry| entry.text.clone());
+                        .map(|entry| entry.outcome.clone().unwrap_or_else(|| entry.text.clone()));
                     if !session.state.character.alive {
                         lifecycle.phase = LifecyclePhase::Death;
                         lifecycle.selected = 0;
@@ -577,18 +577,22 @@ fn render_dashboard(
     message: Option<&str>,
 ) -> Entity {
     let sky = sky_visual(view.time_points);
-    let root = bevy_presentation::spawn_world_root(commands, sky.background);
+    let root = bevy_presentation::spawn_world_root(commands, bevy_presentation::THEME_BACKGROUND);
 
     let world = commands
-        .spawn(Node {
-            width: percent(100),
-            min_width: px(0),
-            min_height: px(0),
-            flex_grow: 1.0,
-            flex_shrink: 1.0,
-            position_type: PositionType::Relative,
-            ..default()
-        })
+        .spawn((
+            BackgroundColor(sky.background),
+            Node {
+                width: percent(100),
+                min_width: px(0),
+                min_height: px(0),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                position_type: PositionType::Relative,
+                overflow: Overflow::clip(),
+                ..default()
+            },
+        ))
         .id();
     commands.entity(root).add_child(world);
 
