@@ -407,6 +407,7 @@ mod tests {
         assert_eq!(entry.entry_type, crate::model::HistoryEntryType::Event);
         assert_eq!(entry.event_id.as_deref(), Some("event.test"));
         assert_eq!(entry.location_name.as_deref(), Some("Ashen Gate"));
+        assert_eq!(entry.text, "A sign appears.");
         assert!(entry
             .outcome
             .as_deref()
