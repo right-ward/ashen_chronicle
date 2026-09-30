@@ -312,7 +312,7 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
                 min_width: px(0),
                 max_width: percent(100),
                 min_height: px(0),
-                flex_shrink: 1.0,
+                flex_shrink: 0.0,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
@@ -338,7 +338,7 @@ pub fn spawn_muted_label(
                 min_width: px(0),
                 max_width: percent(100),
                 min_height: px(0),
-                flex_shrink: 1.0,
+                flex_shrink: 0.0,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
