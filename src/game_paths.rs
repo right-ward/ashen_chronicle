@@ -141,7 +141,7 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
     #[cfg(not(target_os = "android"))]
     {
         let base = dirs::document_dir()
-            .or_else(|| dirs::data_local_dir())
+            .or_else(dirs::data_local_dir)
             .or_else(|| std::env::current_dir().ok())
             .unwrap_or_else(|| PathBuf::from("."));
         (base.join(GAME_DIRECTORY_NAME), None)
