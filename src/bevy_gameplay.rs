@@ -478,7 +478,12 @@ fn activate_selection(
                         .iter()
                         .rev()
                         .find(|entry| entry.turn > old_turn)
-                        .and_then(|entry| entry.outcome.clone().or_else(|| Some(entry.text.clone())));
+                        .map(|entry| {
+                            entry
+                                .outcome
+                                .clone()
+                                .unwrap_or_else(|| entry.text.clone())
+                        });
                     if !session.state.character.alive {
                         lifecycle.phase = LifecyclePhase::Death;
                         lifecycle.selected = 0;
