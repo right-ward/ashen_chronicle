@@ -46,7 +46,8 @@ impl GamePaths {
         match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
             Ok(paths) => {
                 #[cfg(not(target_os = "android"))]
-                if resolved_during_startup {
+                {
+                    let _ = resolved_during_startup;
                     persist_resolved_game_root(&paths.root);
                 }
                 std::env::set_current_dir(&paths.root)?;
