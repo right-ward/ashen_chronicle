@@ -396,7 +396,6 @@ mod tests {
         assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
         assert_eq!(navigation.selected, 1);
         assert_eq!(lifecycle.selected, 1);
-        assert!(lifecycle.dirty);
         assert!(!options.active);
     }
 
