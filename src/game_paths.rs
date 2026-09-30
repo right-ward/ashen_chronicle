@@ -33,8 +33,6 @@ impl GamePaths {
         #[cfg(not(target_os = "android"))]
         let configured_root = configured_game_root();
 
-        #[cfg(not(target_os = "android"))]
-        let resolved_during_startup = configured_root.is_none();
         let preferred_root = match configured_root.as_ref() {
             Some(root) => root.clone(),
             None => desktop_storage::resolve_root(&default_root)?,
@@ -46,7 +44,7 @@ impl GamePaths {
         match prepare_root(&preferred_root, bundled_data_dir.as_deref()) {
             Ok(paths) => {
                 #[cfg(not(target_os = "android"))]
-                if resolved_during_startup {
+                {
                     persist_resolved_game_root(&paths.root);
                 }
                 std::env::set_current_dir(&paths.root)?;
@@ -142,10 +140,11 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
 
     #[cfg(not(target_os = "android"))]
     {
-        let preferred = dirs::document_dir()
-            .unwrap_or_else(|| PathBuf::from("."))
-            .join(GAME_DIRECTORY_NAME);
-        (preferred, None)
+        let base = dirs::document_dir()
+            .or_else(dirs::data_local_dir)
+            .or_else(|| std::env::current_dir().ok())
+            .unwrap_or_else(|| PathBuf::from("."));
+        (base.join(GAME_DIRECTORY_NAME), None)
     }
 }
 
@@ -157,7 +156,7 @@ pub fn configured_game_root() -> Option<PathBuf> {
     if trimmed.is_empty() {
         None
     } else {
-        Some(PathBuf::from(trimmed))
+        Some(make_absolute(PathBuf::from(trimmed)).unwrap_or_else(|_| PathBuf::from(trimmed)))
     }
 }
 
@@ -176,6 +175,7 @@ pub fn set_configured_game_root(root: &Path) -> io::Result<()> {
         ));
     };
     fs::create_dir_all(parent)?;
+    let root = make_absolute(root.to_path_buf())?;
     fs::write(config_file, root.to_string_lossy().as_bytes())
 }
 
@@ -200,6 +200,15 @@ fn game_root_config_path() -> Option<PathBuf> {
             .join(CONFIG_DIRECTORY_NAME)
             .join(GAME_ROOT_CONFIG_FILE_NAME)
     })
+}
+
+#[cfg(not(target_os = "android"))]
+fn make_absolute(path: PathBuf) -> io::Result<PathBuf> {
+    if path.is_absolute() {
+        Ok(path)
+    } else {
+        std::env::current_dir().map(|directory| directory.join(path))
+    }
 }
 
 fn discover_bundled_data_dir() -> Option<PathBuf> {
@@ -268,6 +277,15 @@ fn set_read_only(path: &Path) -> io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    #[cfg(not(target_os = "android"))]
+    #[test]
+    fn relative_configured_roots_are_made_absolute() {
+        let relative = PathBuf::from("The Ashen Chronicle");
+        let absolute = make_absolute(relative).expect("working directory should be available");
+        assert!(absolute.is_absolute());
+        assert!(absolute.ends_with("The Ashen Chronicle"));
+    }
+
     use std::time::{SystemTime, UNIX_EPOCH};
 
     fn temp_dir() -> PathBuf {

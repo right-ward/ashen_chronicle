@@ -312,7 +312,7 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
                 min_width: px(0),
                 max_width: percent(100),
                 min_height: px(0),
-                flex_shrink: 1.0,
+                flex_shrink: 0.0,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
@@ -338,7 +338,7 @@ pub fn spawn_muted_label(
                 min_width: px(0),
                 max_width: percent(100),
                 min_height: px(0),
-                flex_shrink: 1.0,
+                flex_shrink: 0.0,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
@@ -491,40 +491,6 @@ pub fn spawn_surface(commands: &mut Commands, parent: Entity, tone: SurfaceTone)
                 padding: UiRect::all(responsive_surface_padding()),
                 flex_direction: FlexDirection::Column,
                 row_gap: responsive_compact_gap(),
-                border: UiRect::all(px(1)),
-                ..default()
-            },
-            BorderColor::all(THEME_BORDER),
-            BackgroundColor(background),
-        ))
-        .id();
-    commands.entity(parent).add_child(surface);
-    surface
-}
-
-pub fn spawn_scrollable_surface(
-    commands: &mut Commands,
-    parent: Entity,
-    tone: SurfaceTone,
-) -> Entity {
-    let background = match tone {
-        SurfaceTone::Quiet => THEME_SURFACE,
-        SurfaceTone::Strong => THEME_SURFACE_STRONG,
-    };
-    let surface = commands
-        .spawn((
-            TouchScrollablePanel,
-            TabGroup::modal(),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                min_height: px(0),
-                flex_grow: 1.0,
-                flex_shrink: 1.0,
-                padding: UiRect::all(responsive_surface_padding()),
-                flex_direction: FlexDirection::Column,
-                row_gap: responsive_compact_gap(),
-                overflow: Overflow::scroll(),
                 border: UiRect::all(px(1)),
                 ..default()
             },
