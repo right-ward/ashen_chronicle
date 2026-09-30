@@ -33,8 +33,6 @@ impl GamePaths {
         #[cfg(not(target_os = "android"))]
         let configured_root = configured_game_root();
 
-        #[cfg(not(target_os = "android"))]
-        let resolved_during_startup = configured_root.is_none();
         let preferred_root = match configured_root.as_ref() {
             Some(root) => root.clone(),
             None => desktop_storage::resolve_root(&default_root)?,
@@ -47,7 +45,6 @@ impl GamePaths {
             Ok(paths) => {
                 #[cfg(not(target_os = "android"))]
                 {
-                    let _ = resolved_during_startup;
                     persist_resolved_game_root(&paths.root);
                 }
                 std::env::set_current_dir(&paths.root)?;
