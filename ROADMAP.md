@@ -5,13 +5,13 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.52.0 development — graphical frontend regression fixes and start-screen Options access completed in this iteration
+v0.51.0 development — graphical frontend regression fixes and start-screen Options access completed in this iteration
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
 ## Next
 
-v0.52.x — continue the graphical frontend toward the planned real-time spatial combat work.
+v0.51.x — continue the graphical frontend toward the planned real-time spatial combat work.
 
 Completed in this iteration:
 - #298 — restore user-facing graphical text rendering
