@@ -57,7 +57,7 @@ fn sync_screen(
     navigation: Res<NavigationState>,
     mut options: ResMut<OptionsState>,
 ) {
-    let active = lifecycle.phase == LifecyclePhase::Complete
+    let active = matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
         && navigation.current_screen == Some(ScreenId::Options);
 
     if active && !options.active {
@@ -108,12 +108,12 @@ fn refresh_storage(
 }
 
 fn options_input(
-    lifecycle: Res<LifecycleState>,
+    mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
     mut options: ResMut<OptionsState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete
+    if !matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
         || navigation.current_screen != Some(ScreenId::Options)
         || input_queue.0.is_empty()
     {
@@ -129,10 +129,10 @@ fn options_input(
             InputEvent::End => options.selected = 1,
             InputEvent::Confirm => match options.selected {
                 0 => request_game_data_root_change(&mut options),
-                1 => close_to_gameplay(&mut navigation, &mut options),
+                1 => close_options(&mut lifecycle, &mut navigation, &mut options),
                 _ => {}
             },
-            InputEvent::Cancel => close_to_gameplay(&mut navigation, &mut options),
+            InputEvent::Cancel => close_options(&mut lifecycle, &mut navigation, &mut options),
             _ => {}
         }
         options.dirty = true;
@@ -140,14 +140,28 @@ fn options_input(
     navigation.selected = options.selected;
 }
 
-fn close_to_gameplay(navigation: &mut NavigationState, options: &mut OptionsState) {
-    navigation.current_screen = Some(ScreenId::Gameplay);
-    navigation.return_screen = None;
-    navigation.selected = 0;
+fn close_options(
+    lifecycle: &mut LifecycleState,
+    navigation: &mut NavigationState,
+    options: &mut OptionsState,
+) {
+    let return_screen = navigation.return_screen.take();
     options.active = false;
     options.selected = 0;
     options.message = None;
     options.dirty = true;
+
+    match return_screen {
+        Some(ScreenId::Lifecycle) => {
+            navigation.current_screen = Some(ScreenId::Lifecycle);
+            navigation.selected = lifecycle.selected;
+            lifecycle.mark_dirty();
+        }
+        _ => {
+            navigation.current_screen = Some(ScreenId::Gameplay);
+            navigation.selected = 0;
+        }
+    }
 }
 
 #[cfg(not(target_os = "android"))]
@@ -190,7 +204,7 @@ fn render_if_active(
     mut options: ResMut<OptionsState>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
-    if lifecycle.phase != LifecyclePhase::Complete
+    if !matches!(lifecycle.phase, LifecyclePhase::Start | LifecyclePhase::Complete)
         || navigation.current_screen != Some(ScreenId::Options)
         || !options.active
         || !options.dirty
@@ -203,7 +217,7 @@ fn render_if_active(
     }
 
     let root = bevy_presentation::spawn_screen(&mut commands, "OPTIONS");
-    let panel = bevy_presentation::spawn_scrollable_surface(
+    let panel = bevy_presentation::spawn_surface(
         &mut commands,
         root,
         bevy_presentation::SurfaceTone::Strong,
@@ -251,9 +265,9 @@ fn render_if_active(
     bevy_presentation::spawn_label(&mut commands, panel, "GAME DATA");
 
     #[cfg(not(target_os = "android"))]
-    let root_label = std::env::current_dir()
+    let root_label = crate::game_paths::configured_game_root()
         .map(|path| path.display().to_string())
-        .unwrap_or_else(|_| "unknown".to_string());
+        .unwrap_or_else(|| "No configured desktop game data root.".to_string());
 
     #[cfg(target_os = "android")]
     let root_label = options
