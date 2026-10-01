@@ -356,7 +356,7 @@ fn activate_selection(
                     }
                 }
                 PauseAction::Options => {
-                    open_dedicated_screen(navigation_state, ScreenId::Options);
+                    open_dedicated_screen(&mut navigation_state, ScreenId::Console);
                 }
                 PauseAction::Quit => {
                     lifecycle.start_quit_confirmation(navigation_state, Some(ScreenId::Gameplay));
