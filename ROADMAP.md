@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.0 development — graphical frontend regression fixes and start-screen Options access completed in this iteration
+v0.51.5 development — Android build regression fixed after the graphical frontend milestone
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -19,6 +19,7 @@ Completed in this iteration:
 - #300 — restore persisted desktop game-data root startup resolution
 - #301 — restore compact Game Data options controls
 - #302 — add Options to the graphical start screen
+- Android build regression — keep desktop-only game root resolution out of Android compilation
 
 Previous v0.51.3 regression fixes:
 - #291 — persist the resolved desktop game-data root after first-launch selection
