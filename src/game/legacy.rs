@@ -236,11 +236,16 @@ mod tests {
             ..Default::default()
         });
 
+        let old_turn = state.character.turn;
+        let old_time_points = state.world.time_points;
         let result = search_remains_for_bevy(&mut state, 0);
 
         assert!(result.is_ok());
-        assert_eq!(state.character.turn, 1);
-        assert_eq!(state.world.time_points, 1);
+        assert_eq!(state.character.turn, old_turn + 1);
+        assert_eq!(
+            state.world.time_points,
+            (old_time_points + 1) % 12
+        );
     }
 
     #[test]
