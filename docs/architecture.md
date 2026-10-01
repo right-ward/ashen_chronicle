@@ -65,7 +65,6 @@ src/
 ├── bevy_records.rs          # character/inventory/quest/meditation/history/journal screens
 ├── bevy_combat.rs           # combat presentation and interaction
 ├── bevy_console.rs          # developer-console presentation and input
-├── bevy_navigation_bridge.rs # cross-screen navigation hand-offs
 ├── game.rs                  # gameplay module facade
 ├── game/
 │   ├── actions.rs           # core gameplay actions and renderer-neutral action logic
