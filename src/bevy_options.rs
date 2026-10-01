@@ -405,6 +405,29 @@ mod tests {
     }
 
     #[test]
+    fn closing_options_from_pause_restores_pause_selection() {
+        let mut lifecycle = LifecycleState::default();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Options),
+            return_screen: Some(ScreenId::Gameplay),
+            selected: 0,
+        };
+        let mut gameplay = GameplayState::default();
+        gameplay.screen = crate::bevy_gameplay::GameplayScreen::Pause;
+        gameplay.selected = 1;
+        gameplay.set_pause_selection(3);
+        let mut options = OptionsState {
+            active: true,
+            ..OptionsState::default()
+        };
+
+        close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay);
+
+        assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
+        assert_eq!(navigation.selected, 3);
+    }
+
+    #[test]
     fn options_navigation_has_two_actions() {
         let mut options = OptionsState::default();
         options.selected = 0;
