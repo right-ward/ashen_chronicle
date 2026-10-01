@@ -142,6 +142,10 @@ impl Default for GameplayState {
             self.selected
         }
     }
+
+    pub(crate) fn set_pause_selection(&mut self, selected: usize) {
+        self.pause_selected = selected;
+    }
 }
 
 
