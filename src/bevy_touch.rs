@@ -11,8 +11,6 @@ use crate::bevy_presentation::{
     physical_touch_position, queue_choice_activation, ChoiceButton, GameplayInputQueue,
     NavigationState, ScreenId, SemanticInputQueue,
 };
-use crate::input::InputEvent;
-
 const TOUCH_TAP_THRESHOLD: f32 = 12.0;
 
 #[derive(Resource, Default)]
