@@ -133,7 +133,6 @@ pub(crate) fn search_remains_for_bevy(
             format!("Recovered {}", item_names.join(", ")),
         ],
     };
-    state.character.turn += 1;
     state.world.record_history(
         state.character.turn,
         format!(
