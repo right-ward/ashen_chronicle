@@ -1033,6 +1033,8 @@ fn keyboard_to_semantic_input(
     }
 }
 
+// Reproduce keyboard navigation for pointer/touch activation so every choice
+// uses the same selection and confirmation path.
 pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize) {
     queue.push(InputEvent::Home);
     for _ in 0..index {
