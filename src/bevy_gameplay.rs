@@ -10,7 +10,7 @@ use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
-use crate::game::{actions, menu, navigation, time};
+use crate::game::{actions, menu, navigation};
 use crate::input::InputEvent;
 use crate::presentation::{ConditionView, NavigationView, WorldView};
 
@@ -1198,7 +1198,6 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
     };
     bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
 }
-
 
 #[cfg(test)]
 mod tests {
