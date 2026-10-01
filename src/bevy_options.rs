@@ -114,6 +114,7 @@ fn options_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
     mut options: ResMut<OptionsState>,
+    gameplay: Res<GameplayState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if !matches!(
