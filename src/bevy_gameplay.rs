@@ -134,7 +134,7 @@ impl Default for GameplayState {
         }
     }
 }
-\nimpl GameplayState {
+impl GameplayState {
     pub(crate) fn navigation_selection(&self) -> usize {
         if self.screen == GameplayScreen::Pause {
             self.pause_selected
