@@ -321,6 +321,7 @@ pub(crate) fn perform_conversation_choice(
         _ => return messages,
     }
     state_effects::advance_time(state, 1);
+    state.character.turn += 1;
     messages.push("Time passes.".to_string());
     messages
 }
