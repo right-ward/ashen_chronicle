@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.6 development — gameplay/UI consistency pass completed
+v0.51.7 development — Android quit/relaunch regression fixed
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -14,6 +14,7 @@ Startup regression fixed: the graphical frontend no longer aborts on Bevy UI hea
 v0.51.x — continue the graphical frontend toward the planned real-time spatial combat work.
 
 Completed in this iteration:
+- #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
 - #298 — restore user-facing graphical text rendering
 - #299 — display the contextual quit-confirmation question
 - #300 — restore persisted desktop game-data root startup resolution

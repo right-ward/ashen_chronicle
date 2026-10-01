@@ -113,7 +113,14 @@ fn lifecycle_input(
             InputEvent::Confirm => {
                 if let Some(exit) = activate_selection(&mut lifecycle, &mut navigation) {
                     if exit {
-                        commands.write_message(AppExit::Success);
+                        #[cfg(target_os = "android")]
+                        {
+                            request_android_game_exit();
+                        }
+                        #[cfg(not(target_os = "android"))]
+                        {
+                            commands.write_message(AppExit::Success);
+                        }
                         return;
                     }
                 }
@@ -294,6 +301,33 @@ fn activate_selection(
     navigation.current_screen = Some(ScreenId::Lifecycle);
     navigation.selected = lifecycle.selected;
     None
+}
+
+#[cfg(target_os = "android")]
+fn request_android_game_exit() {
+    let Some(app) = bevy::android::ANDROID_APP.get().cloned() else {
+        bevy::log::warn!("Could not request Android game exit: Android app handle is unavailable");
+        return;
+    };
+    let java_app = app.clone();
+    app.run_on_java_main_thread(Box::new(move || {
+        let vm = unsafe { jni::JavaVM::from_raw(java_app.vm_as_ptr().cast()) };
+        if let Err(error) = vm.attach_current_thread(|env| -> jni::errors::Result<()> {
+            let raw_activity = java_app.activity_as_ptr() as jni::sys::jobject;
+            let activity = unsafe {
+                env.as_cast_raw::<jni::refs::Global<jni::objects::JObject>>(&raw_activity)?
+            };
+            env.call_method(
+                activity.as_ref(),
+                jni::jni_str!("requestGameExit"),
+                jni::jni_sig!("()V"),
+                &[],
+            )?;
+            Ok(())
+        }) {
+            bevy::log::warn!("Could not request Android game exit: {error}");
+        }
+    }));
 }
 
 fn handle_cancel(lifecycle: &mut LifecycleState, navigation: &mut NavigationState) {
