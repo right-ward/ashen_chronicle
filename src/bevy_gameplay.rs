@@ -142,7 +142,6 @@ impl GameplayState {
             self.selected
         }
     }
-
 }
 
 pub(crate) fn install(app: &mut App) {
