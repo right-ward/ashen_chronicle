@@ -118,7 +118,7 @@ struct WorldCloud {
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
     pub(crate) selected: usize,
-    pause_selected: usize,
+    pub(crate) pause_selected: usize,
     pub(crate) message: Option<String>,
     dirty: bool,
 }
