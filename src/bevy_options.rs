@@ -135,10 +135,12 @@ fn options_input(
             InputEvent::End => options.selected = 1,
             InputEvent::Confirm => match options.selected {
                 0 => request_game_data_root_change(&mut options),
-                1 => close_options(&mut lifecycle, &mut navigation, &mut options),
+                1 => close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay),
                 _ => {}
             },
-            InputEvent::Cancel => close_options(&mut lifecycle, &mut navigation, &mut options),
+            InputEvent::Cancel => {
+                close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay)
+            },
             _ => {}
         }
         options.dirty = true;
