@@ -93,6 +93,30 @@ public class MainActivity extends GameActivity {
         }
     }
 
+    /**
+     * Finish the Android Activity from the native game's Quit action.
+     *
+     * Bevy's Android integration keeps its activity handle process-global, while
+     * android-activity ties that handle to the current Activity instance. A
+     * finished Activity must therefore be followed by a fresh process before the
+     * launcher creates another game instance.
+     */
+    public void requestGameExit() {
+        if (!isFinishing()) {
+            finishAndRemoveTask();
+        }
+    }
+
+    @Override
+    protected void onDestroy() {
+        boolean finishing = isFinishing();
+        super.onDestroy();
+
+        if (finishing) {
+            android.os.Process.killProcess(android.os.Process.myPid());
+        }
+    }
+
     @Override
     public void onWindowFocusChanged(boolean hasFocus) {
         super.onWindowFocusChanged(hasFocus);
