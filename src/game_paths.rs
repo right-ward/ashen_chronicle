@@ -31,12 +31,12 @@ impl GamePaths {
         let (default_root, fallback_root) = platform_roots();
 
         #[cfg(not(target_os = "android"))]
-        let preferred_root = {
-            let configured_root = configured_game_root();
-            match configured_root.as_ref() {
-                Some(root) => root.clone(),
-                None => desktop_storage::resolve_root(&default_root)?,
-            }
+        let configured_root = configured_game_root();
+
+        #[cfg(not(target_os = "android"))]
+        let preferred_root = match configured_root.as_ref() {
+            Some(root) => root.clone(),
+            None => desktop_storage::resolve_root(&default_root)?,
         };
 
         #[cfg(target_os = "android")]
