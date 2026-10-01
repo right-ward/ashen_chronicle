@@ -62,24 +62,6 @@ fn should_reset_gameplay_selection(
         && previous_screen != current_screen
         && gameplay_screen != GameplayScreen::Pause
 }
-
-fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -> Option<ScreenId> {
-    let session: &GameSession = lifecycle.session.as_ref()?;
-    let entries = menu::build_main_menu(&session.state);
-    let entry = entries.get(selected)?;
-    match entry.action {
-        menu::GameAction::CharacterSheet => Some(ScreenId::Character),
-        menu::GameAction::Inventory => Some(ScreenId::Inventory),
-        menu::GameAction::QuestLog => Some(ScreenId::Quests),
-        menu::GameAction::Meditate => Some(ScreenId::Meditation),
-        menu::GameAction::History => Some(ScreenId::History),
-        menu::GameAction::Journal => Some(ScreenId::Journal),
-        menu::GameAction::Talk => Some(ScreenId::Talk),
-        menu::GameAction::SearchRemains => Some(ScreenId::Remains),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;
