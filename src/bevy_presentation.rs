@@ -1035,7 +1035,9 @@ fn keyboard_to_semantic_input(
 
 pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize) {
     queue.push(InputEvent::Home);
-    queue.extend(std::iter::repeat_n(InputEvent::Down, index));
+    for _ in 0..index {
+        queue.push(InputEvent::Down);
+    }
     queue.push(InputEvent::Confirm);
 }
 
