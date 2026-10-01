@@ -391,6 +391,7 @@ mod tests {
             return_screen: Some(ScreenId::Lifecycle),
             selected: 0,
         };
+        let gameplay = GameplayState::default();
         let mut options = OptionsState {
             active: true,
             ..OptionsState::default()
