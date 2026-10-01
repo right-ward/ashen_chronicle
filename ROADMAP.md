@@ -15,7 +15,6 @@ v0.51.x — continue the graphical frontend toward the planned real-time spatial
 
 Completed in this iteration:
 - #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
-
 - #298 — restore user-facing graphical text rendering
 - #299 — display the contextual quit-confirmation question
 - #300 — restore persisted desktop game-data root startup resolution
