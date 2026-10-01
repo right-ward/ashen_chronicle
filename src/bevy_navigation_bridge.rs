@@ -1,7 +1,8 @@
-//! Bevy navigation glue between the gameplay dashboard and dedicated screens.
+//! Bevy navigation glue for lifecycle completion and gameplay screen hand-offs.
 //!
-//! This keeps transition detection outside gameplay and record renderers while
-//! using their existing navigation state as the hand-off protocol.
+//! Dedicated graphical screen transitions are owned by their originating
+//! gameplay systems; this bridge only handles cross-system lifecycle completion
+//! and the shared gameplay re-entry selection reset.
 
 use bevy::prelude::*;
 
