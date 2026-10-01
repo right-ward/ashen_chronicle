@@ -688,10 +688,10 @@ pub fn spawn_menu_button(
             UiMenuButton,
             UiStyledButton,
             Node {
-                width: px(28),
-                min_width: px(28),
-                height: px(28),
-                min_height: px(28),
+                width: touch_target_size(),
+                min_width: touch_target_size(),
+                height: touch_target_size(),
+                min_height: touch_target_size(),
                 border: UiRect::all(px(1)),
                 justify_content: JustifyContent::Center,
                 align_items: AlignItems::Center,
@@ -1033,6 +1033,16 @@ fn keyboard_to_semantic_input(
     }
 }
 
+// Reproduce keyboard navigation for pointer/touch activation so every choice
+// uses the same selection and confirmation path.
+pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize) {
+    queue.push(InputEvent::Home);
+    for _ in 0..index {
+        queue.push(InputEvent::Down);
+    }
+    queue.push(InputEvent::Confirm);
+}
+
 fn choice_button_input(
     mut interaction_query: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
     mut navigation: ResMut<NavigationState>,
@@ -1049,11 +1059,7 @@ fn choice_button_input(
         } else {
             &mut gameplay_queue.0
         };
-        queue.push(InputEvent::Home);
-        for _ in 0..choice.index {
-            queue.push(InputEvent::Down);
-        }
-        queue.push(InputEvent::Confirm);
+        queue_choice_activation(queue, choice.index);
     }
 }
 
@@ -1360,6 +1366,23 @@ mod tests {
         };
         assert_eq!(gauge.current, 7);
         assert_eq!(gauge.maximum, 10);
+    }
+
+    #[test]
+    fn choice_activation_uses_home_down_confirm_sequence() {
+        let mut queue = Vec::new();
+
+        queue_choice_activation(&mut queue, 2);
+
+        assert_eq!(
+            queue,
+            vec![
+                InputEvent::Home,
+                InputEvent::Down,
+                InputEvent::Down,
+                InputEvent::Confirm
+            ]
+        );
     }
 
     #[test]

@@ -10,9 +10,9 @@ use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
-use crate::game::{actions, menu, navigation, time};
+use crate::game::{actions, menu, navigation};
 use crate::input::InputEvent;
-use crate::presentation::{ConditionView, HistoryEntryViewType, NavigationView, WorldView};
+use crate::presentation::{ConditionView, NavigationView, WorldView};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GameplayScreen {
@@ -118,7 +118,7 @@ struct WorldCloud {
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
     pub(crate) selected: usize,
-    pause_selected: usize,
+    pub(crate) pause_selected: usize,
     pub(crate) message: Option<String>,
     dirty: bool,
 }
@@ -131,6 +131,15 @@ impl Default for GameplayState {
             pause_selected: 0,
             message: None,
             dirty: true,
+        }
+    }
+}
+impl GameplayState {
+    pub(crate) fn navigation_selection(&self) -> usize {
+        if self.screen == GameplayScreen::Pause {
+            self.pause_selected
+        } else {
+            self.selected
         }
     }
 }
@@ -523,7 +532,7 @@ fn render_if_active(
     let Some(session) = lifecycle.session.as_ref() else {
         return;
     };
-    let view = build_world_view(&session.state);
+    let view = crate::game::world_view::build_view(&session.state);
     match gameplay.screen {
         GameplayScreen::Dashboard => {
             let actions = dashboard_actions(&session.state);
@@ -1183,104 +1192,6 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
         "Back"
     };
     bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
-}
-
-fn build_world_view(state: &crate::model::GameState) -> WorldView {
-    let location = state
-        .world
-        .location_by_id(state.character.location_id)
-        .map(|location| {
-            let region_name = state
-                .world
-                .regions
-                .iter()
-                .find(|region| region.id == location.region_id)
-                .map(|region| region.name.clone())
-                .unwrap_or_else(|| "Unknown region".to_string());
-            crate::presentation::LocationView {
-                id: location.id,
-                name: location.name.clone(),
-                description: location.description.clone(),
-                region_name,
-                dangerous: location.dangerous,
-            }
-        });
-
-    let campaign = state
-        .campaign_content
-        .clone()
-        .unwrap_or_else(crate::content::load_campaign_content);
-
-    let art = location
-        .as_ref()
-        .and_then(|location| campaign.location_art_for(&location.name))
-        .map(str::to_string);
-    let atmosphere = location.as_ref().and_then(|location| {
-        campaign
-            .atmospheres
-            .iter()
-            .find(|entry| entry.location_name == location.name)
-            .map(|entry| entry.text.clone())
-    });
-
-    let conditions = state
-        .character
-        .conditions
-        .iter()
-        .map(|condition| ConditionView {
-            name: condition.name.clone(),
-            remaining: condition.remaining,
-            penalty: condition.penalty,
-            bonus: condition.bonus,
-        })
-        .collect();
-
-    let threat = state
-        .threat
-        .active
-        .then(|| crate::presentation::ThreatView {
-            label: state.threat.label.clone(),
-            description: state.threat.description.clone(),
-        });
-    let history = state
-        .world
-        .history
-        .iter()
-        .rev()
-        .take(12)
-        .rev()
-        .map(|entry| crate::presentation::HistoryEntryView {
-            day: entry.turn,
-            entry_type: if entry.event_id.is_some() {
-                HistoryEntryViewType::Event
-            } else {
-                HistoryEntryViewType::Narrative
-            },
-            text: entry.text.clone(),
-            event_id: entry.event_id.clone(),
-            location_name: entry.location_name.clone(),
-            outcome: entry.outcome.clone(),
-        })
-        .collect();
-
-    WorldView {
-        world_name: state.world.name.clone(),
-        time: time::time_display(state.world.time_points, state.world.day),
-        time_points: state.world.time_points,
-        day: state.world.day,
-        character: crate::presentation::CharacterView {
-            name: state.character.name.clone(),
-            title: state.character.title.clone(),
-            hp: state.character.hp,
-            max_hp: state.character.max_hp,
-        },
-        location,
-        art,
-        atmosphere,
-        conditions,
-        threat,
-        history,
-    }
 }
 
 #[cfg(test)]

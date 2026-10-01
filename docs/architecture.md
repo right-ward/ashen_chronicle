@@ -60,12 +60,12 @@ src/
 ├── bevy_app.rs              # Bevy app/bootstrap configuration
 ├── bevy_presentation.rs     # shared Bevy UI primitives and semantic input routing
 ├── bevy_lifecycle.rs        # start/load/creation/quit/death lifecycle orchestration
+├── bevy_navigation_bridge.rs # lifecycle completion and gameplay re-entry hand-offs
 ├── bevy_gameplay.rs         # gameplay dashboard and world navigation
 ├── bevy_interactions.rs     # NPC dialogue and remains-recovery screens
 ├── bevy_records.rs          # character/inventory/quest/meditation/history/journal screens
 ├── bevy_combat.rs           # combat presentation and interaction
 ├── bevy_console.rs          # developer-console presentation and input
-├── bevy_navigation_bridge.rs # cross-screen navigation hand-offs
 ├── game.rs                  # gameplay module facade
 ├── game/
 │   ├── actions.rs           # core gameplay actions and renderer-neutral action logic
@@ -83,7 +83,8 @@ src/
 │   ├── records.rs           # renderer-neutral record views and mutations
 │   ├── state_effects.rs     # shared state-effect helpers
 │   ├── time.rs              # time calculations and display values
-│   └── world.rs              # world bootstrap and loaded-state validation
+│   ├── world.rs              # world bootstrap and loaded-state validation
+│   └── world_view.rs         # renderer-neutral world presentation view construction
 ├── presentation.rs          # frontend-independent presentation/view models
 ├── content.rs               # content module facade
 ├── content/

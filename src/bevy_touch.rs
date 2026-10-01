@@ -8,11 +8,9 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
-    physical_touch_position, ChoiceButton, GameplayInputQueue, NavigationState, ScreenId,
-    SemanticInputQueue,
+    physical_touch_position, queue_choice_activation, ChoiceButton, GameplayInputQueue,
+    NavigationState, ScreenId, SemanticInputQueue,
 };
-use crate::input::InputEvent;
-
 const TOUCH_TAP_THRESHOLD: f32 = 12.0;
 
 #[derive(Resource, Default)]
@@ -132,9 +130,5 @@ fn complete_touch_choice(
     } else {
         &mut gameplay_queue.0
     };
-    queue.push(InputEvent::Home);
-    for _ in 0..index {
-        queue.push(InputEvent::Down);
-    }
-    queue.push(InputEvent::Confirm);
+    queue_choice_activation(queue, index);
 }

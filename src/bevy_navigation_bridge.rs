@@ -1,14 +1,14 @@
-//! Bevy navigation glue between the gameplay dashboard and dedicated screens.
+//! Bevy navigation glue for lifecycle completion and gameplay screen hand-offs.
 //!
-//! This keeps transition detection outside gameplay and record renderers while
-//! using their existing navigation state as the hand-off protocol.
+//! Dedicated graphical screen transitions are owned by their originating
+//! gameplay systems; this bridge only handles cross-system lifecycle completion
+//! and the shared gameplay re-entry selection reset.
 
 use bevy::prelude::*;
 
 use crate::bevy_gameplay::{GameplayScreen, GameplayState};
-use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
+use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{GameplayInputQueue, NavigationState, ScreenId};
-use crate::game::menu;
 use crate::input::InputEvent;
 
 #[derive(Resource, Default)]
@@ -41,15 +41,6 @@ fn bridge_navigation(
         navigation.selected = gameplay.selected;
     }
 
-    if navigation.current_screen == Some(ScreenId::Gameplay)
-        && navigation.return_screen == Some(ScreenId::Gameplay)
-    {
-        if let Some(screen) = dedicated_screen_for_selection(&lifecycle, gameplay.selected) {
-            navigation.current_screen = Some(screen);
-            navigation.selected = 0;
-        }
-    }
-
     if navigation.current_screen != bridge.last_screen {
         if should_reset_gameplay_selection(
             bridge.last_screen,
@@ -71,24 +62,6 @@ fn should_reset_gameplay_selection(
         && previous_screen != current_screen
         && gameplay_screen != GameplayScreen::Pause
 }
-
-fn dedicated_screen_for_selection(lifecycle: &LifecycleState, selected: usize) -> Option<ScreenId> {
-    let session: &GameSession = lifecycle.session.as_ref()?;
-    let entries = menu::build_main_menu(&session.state);
-    let entry = entries.get(selected)?;
-    match entry.action {
-        menu::GameAction::CharacterSheet => Some(ScreenId::Character),
-        menu::GameAction::Inventory => Some(ScreenId::Inventory),
-        menu::GameAction::QuestLog => Some(ScreenId::Quests),
-        menu::GameAction::Meditate => Some(ScreenId::Meditation),
-        menu::GameAction::History => Some(ScreenId::History),
-        menu::GameAction::Journal => Some(ScreenId::Journal),
-        menu::GameAction::Talk => Some(ScreenId::Talk),
-        menu::GameAction::SearchRemains => Some(ScreenId::Remains),
-        _ => None,
-    }
-}
-
 #[cfg(test)]
 mod tests {
     use super::*;

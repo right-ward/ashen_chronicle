@@ -6,6 +6,7 @@
 
 use bevy::prelude::*;
 
+use crate::bevy_gameplay::GameplayState;
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, UiSelected,
@@ -113,6 +114,7 @@ fn options_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
     mut options: ResMut<OptionsState>,
+    gameplay: Res<GameplayState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if !matches!(
@@ -133,10 +135,12 @@ fn options_input(
             InputEvent::End => options.selected = 1,
             InputEvent::Confirm => match options.selected {
                 0 => request_game_data_root_change(&mut options),
-                1 => close_options(&mut lifecycle, &mut navigation, &mut options),
+                1 => close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay),
                 _ => {}
             },
-            InputEvent::Cancel => close_options(&mut lifecycle, &mut navigation, &mut options),
+            InputEvent::Cancel => {
+                close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay)
+            }
             _ => {}
         }
         options.dirty = true;
@@ -148,6 +152,7 @@ fn close_options(
     lifecycle: &mut LifecycleState,
     navigation: &mut NavigationState,
     options: &mut OptionsState,
+    gameplay: &GameplayState,
 ) {
     let return_screen = navigation.return_screen.take();
     options.active = false;
@@ -163,7 +168,7 @@ fn close_options(
         }
         _ => {
             navigation.current_screen = Some(ScreenId::Gameplay);
-            navigation.selected = 0;
+            navigation.selected = gameplay.navigation_selection();
         }
     }
 }
@@ -386,17 +391,41 @@ mod tests {
             return_screen: Some(ScreenId::Lifecycle),
             selected: 0,
         };
+        let gameplay = GameplayState::default();
         let mut options = OptionsState {
             active: true,
             ..OptionsState::default()
         };
 
-        close_options(&mut lifecycle, &mut navigation, &mut options);
+        close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay);
 
         assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
         assert_eq!(navigation.selected, 1);
         assert_eq!(lifecycle.selected, 1);
         assert!(!options.active);
+    }
+
+    #[test]
+    fn closing_options_from_pause_restores_pause_selection() {
+        let mut lifecycle = LifecycleState::default();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Options),
+            return_screen: Some(ScreenId::Gameplay),
+            selected: 0,
+        };
+        let mut gameplay = GameplayState::default();
+        gameplay.screen = crate::bevy_gameplay::GameplayScreen::Pause;
+        gameplay.selected = 1;
+        gameplay.pause_selected = 3;
+        let mut options = OptionsState {
+            active: true,
+            ..OptionsState::default()
+        };
+
+        close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay);
+
+        assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
+        assert_eq!(navigation.selected, 3);
     }
 
     #[test]
