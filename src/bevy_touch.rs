@@ -8,8 +8,8 @@ use bevy::prelude::*;
 use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
-    physical_touch_position, ChoiceButton, GameplayInputQueue, NavigationState, ScreenId,
-    SemanticInputQueue,
+    physical_touch_position, queue_choice_activation, ChoiceButton, GameplayInputQueue,
+    NavigationState, ScreenId, SemanticInputQueue,
 };
 use crate::input::InputEvent;
 
