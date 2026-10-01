@@ -523,7 +523,7 @@ fn render_if_active(
     let Some(session) = lifecycle.session.as_ref() else {
         return;
     };
-    let view = build_world_view(&session.state);
+    let view = crate::game::world_view::build_view(&session.state);
     match gameplay.screen {
         GameplayScreen::Dashboard => {
             let actions = dashboard_actions(&session.state);
