@@ -1374,7 +1374,12 @@ mod tests {
 
         assert_eq!(
             queue,
-            vec![InputEvent::Home, InputEvent::Down, InputEvent::Down, InputEvent::Confirm]
+            vec![
+                InputEvent::Home,
+                InputEvent::Down,
+                InputEvent::Down,
+                InputEvent::Confirm
+            ]
         );
     }
 

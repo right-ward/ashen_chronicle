@@ -350,6 +350,8 @@ mod tests {
         let messages = perform_conversation_choice(&mut state, npc_id, 2);
 
         assert_eq!(state.character.turn, 1);
-        assert!(messages.iter().any(|message| message.contains("The road remembers.")));
+        assert!(messages
+            .iter()
+            .any(|message| message.contains("The road remembers.")));
     }
 }

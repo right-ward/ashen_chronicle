@@ -140,7 +140,7 @@ fn options_input(
             },
             InputEvent::Cancel => {
                 close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay)
-            },
+            }
             _ => {}
         }
         options.dirty = true;

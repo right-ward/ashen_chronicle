@@ -148,7 +148,6 @@ impl GameplayState {
     }
 }
 
-
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
         .add_systems(Update, (gameplay_input, render_if_active).chain())
