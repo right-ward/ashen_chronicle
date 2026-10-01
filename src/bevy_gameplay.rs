@@ -143,9 +143,6 @@ impl GameplayState {
         }
     }
 
-    pub(crate) fn set_pause_selection(&mut self, selected: usize) {
-        self.pause_selected = selected;
-    }
 }
 
 pub(crate) fn install(app: &mut App) {
