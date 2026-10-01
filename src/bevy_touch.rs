@@ -46,10 +46,7 @@ pub fn install(app: &mut App) {
         .init_resource::<TouchMenuState>()
         .add_systems(
             PreUpdate,
-            (
-                suppress_touch_choice_press,
-                suppress_touch_menu_press,
-            )
+            (suppress_touch_choice_press, suppress_touch_menu_press)
                 .after(bevy::ui::UiSystems::Focus),
         )
         .add_systems(Update, (complete_touch_choice, complete_touch_menu));
@@ -180,11 +177,7 @@ fn complete_touch_menu(
         return;
     }
 
-    if should_open_developer_console(
-        time.elapsed_secs(),
-        active.started_at,
-        active.dragging,
-    ) {
+    if should_open_developer_console(time.elapsed_secs(), active.started_at, active.dragging) {
         state.active = None;
         gameplay_queue
             .0
@@ -209,9 +202,10 @@ fn complete_touch_menu(
 
     let physical_release_position =
         physical_touch_position(released_touch.position(), window.scale_factor());
-    let Some((_, computed, transform)) = buttons.iter().find(|(entity, _, _)| {
-        *entity == active.button
-    }) else {
+    let Some((_, computed, transform)) = buttons
+        .iter()
+        .find(|(entity, _, _)| *entity == active.button)
+    else {
         return;
     };
 
@@ -277,9 +271,7 @@ mod tests {
 
     #[test]
     fn developer_console_long_press_uses_a_deliberate_threshold() {
-        assert!(!should_open_developer_console(
-            10.64, 10.0, false
-        ));
+        assert!(!should_open_developer_console(10.64, 10.0, false));
         assert!(should_open_developer_console(10.65, 10.0, false));
         assert!(!should_open_developer_console(10.80, 10.0, true));
     }
