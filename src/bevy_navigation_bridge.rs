@@ -41,15 +41,6 @@ fn bridge_navigation(
         navigation.selected = gameplay.selected;
     }
 
-    if navigation.current_screen == Some(ScreenId::Gameplay)
-        && navigation.return_screen == Some(ScreenId::Gameplay)
-    {
-        if let Some(screen) = dedicated_screen_for_selection(&lifecycle, gameplay.selected) {
-            navigation.current_screen = Some(screen);
-            navigation.selected = 0;
-        }
-    }
-
     if navigation.current_screen != bridge.last_screen {
         if should_reset_gameplay_selection(
             bridge.last_screen,
