@@ -1365,6 +1365,18 @@ mod tests {
     }
 
     #[test]
+    fn choice_activation_uses_home_down_confirm_sequence() {
+        let mut queue = Vec::new();
+
+        queue_choice_activation(&mut queue, 2);
+
+        assert_eq!(
+            queue,
+            vec![InputEvent::Home, InputEvent::Down, InputEvent::Down, InputEvent::Confirm]
+        );
+    }
+
+    #[test]
     fn gauge_ratio_handles_empty_and_clamps_values() {
         assert_eq!(gauge_ratio(0, 0), 0.0);
         assert_eq!(gauge_ratio(-5, 10), 0.0);
