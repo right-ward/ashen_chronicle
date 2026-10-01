@@ -132,9 +132,5 @@ fn complete_touch_choice(
     } else {
         &mut gameplay_queue.0
     };
-    queue.push(InputEvent::Home);
-    for _ in 0..index {
-        queue.push(InputEvent::Down);
-    }
-    queue.push(InputEvent::Confirm);
+    queue_choice_activation(queue, index);
 }
