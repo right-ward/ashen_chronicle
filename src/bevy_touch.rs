@@ -158,6 +158,10 @@ fn suppress_touch_menu_press(
     }
 }
 
+fn should_open_developer_console(elapsed_secs: f32, started_at: f32, dragging: bool) -> bool {
+    !dragging && elapsed_secs - started_at >= TOUCH_MENU_LONG_PRESS_SECS
+}
+
 fn complete_touch_menu(
     touches: Res<Touches>,
     time: Res<Time>,
@@ -176,9 +180,11 @@ fn complete_touch_menu(
         return;
     }
 
-    if !active.dragging
-        && time.elapsed_secs() - active.started_at >= TOUCH_MENU_LONG_PRESS_SECS
-    {
+    if should_open_developer_console(
+        time.elapsed_secs(),
+        active.started_at,
+        active.dragging,
+    ) {
         state.active = None;
         gameplay_queue
             .0
@@ -263,4 +269,18 @@ fn complete_touch_choice(
         &mut gameplay_queue.0
     };
     queue_choice_activation(queue, index);
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn developer_console_long_press_uses_a_deliberate_threshold() {
+        assert!(!should_open_developer_console(
+            10.64, 10.0, false
+        ));
+        assert!(should_open_developer_console(10.65, 10.0, false));
+        assert!(!should_open_developer_console(10.80, 10.0, true));
+    }
 }
