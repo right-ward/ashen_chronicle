@@ -71,6 +71,7 @@ pub(crate) fn search_remains_for_bevy(
         )
     };
     state_effects::advance_time(state, 1);
+    state.character.turn += 1;
 
     if items.is_empty() {
         state.world.record_history(
