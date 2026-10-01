@@ -7,9 +7,8 @@
 use bevy::prelude::*;
 
 use crate::bevy_gameplay::{GameplayScreen, GameplayState};
-use crate::bevy_lifecycle::{GameSession, LifecyclePhase, LifecycleState};
+use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{GameplayInputQueue, NavigationState, ScreenId};
-use crate::game::menu;
 use crate::input::InputEvent;
 
 #[derive(Resource, Default)]
