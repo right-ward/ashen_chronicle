@@ -152,6 +152,7 @@ fn close_options(
     lifecycle: &mut LifecycleState,
     navigation: &mut NavigationState,
     options: &mut OptionsState,
+    gameplay: &GameplayState,
 ) {
     let return_screen = navigation.return_screen.take();
     options.active = false;
