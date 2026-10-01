@@ -242,10 +242,7 @@ mod tests {
 
         assert!(result.is_ok());
         assert_eq!(state.character.turn, old_turn + 1);
-        assert_eq!(
-            state.world.time_points,
-            (old_time_points + 1) % 12
-        );
+        assert_eq!(state.world.time_points, (old_time_points + 1) % 12);
     }
 
     #[test]
