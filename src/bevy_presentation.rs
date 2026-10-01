@@ -1033,6 +1033,12 @@ fn keyboard_to_semantic_input(
     }
 }
 
+pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize) {
+    queue.push(InputEvent::Home);
+    queue.extend(std::iter::repeat_n(InputEvent::Down, index));
+    queue.push(InputEvent::Confirm);
+}
+
 fn choice_button_input(
     mut interaction_query: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
     mut navigation: ResMut<NavigationState>,
@@ -1049,11 +1055,7 @@ fn choice_button_input(
         } else {
             &mut gameplay_queue.0
         };
-        queue.push(InputEvent::Home);
-        for _ in 0..choice.index {
-            queue.push(InputEvent::Down);
-        }
-        queue.push(InputEvent::Confirm);
+        queue_choice_activation(queue, choice.index);
     }
 }
 
