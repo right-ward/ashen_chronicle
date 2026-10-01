@@ -84,7 +84,6 @@ ashen_chronicle
 │   ├── bevy_gameplay.rs
 │   ├── bevy_interactions.rs
 │   ├── bevy_lifecycle.rs
-│   ├── bevy_navigation_bridge.rs
 │   ├── bevy_presentation.rs
 │   ├── bevy_records.rs
 │   ├── content.rs
