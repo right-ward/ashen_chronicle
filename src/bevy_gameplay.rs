@@ -12,7 +12,7 @@ use crate::bevy_presentation::{
 };
 use crate::game::{actions, menu, navigation, time};
 use crate::input::InputEvent;
-use crate::presentation::{ConditionView, HistoryEntryViewType, NavigationView, WorldView};
+use crate::presentation::{ConditionView, NavigationView, WorldView};
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum GameplayScreen {
