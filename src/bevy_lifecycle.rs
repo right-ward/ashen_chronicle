@@ -237,6 +237,17 @@ fn activate_selection(
             }
         }
         LifecyclePhase::Load => {
+            if lifecycle.selected == lifecycle.save_files.len() {
+                lifecycle.phase = LifecyclePhase::Start;
+                lifecycle.selected = 0;
+                lifecycle.message = None;
+                lifecycle.pending_state = None;
+                navigation.return_screen = None;
+                navigation.current_screen = Some(ScreenId::Lifecycle);
+                navigation.selected = 0;
+                lifecycle.dirty = true;
+                return None;
+            }
             if let Some(path) = lifecycle.save_files.get(lifecycle.selected).cloned() {
                 match load_game(&path) {
                     Ok(state) => {
@@ -545,6 +556,13 @@ fn render_if_dirty(
     if !lifecycle.dirty {
         return;
     }
+    // The lifecycle state can change while another dedicated screen (such as
+    // Options) is active. In that case, do not rebuild the lifecycle screen or
+    // overwrite the destination selected by the input handler. The initial
+    // None state is still accepted so Startup can render the start screen.
+    if !should_render_lifecycle(navigation.current_screen) {
+        return;
+    }
     for root in &roots {
         commands.entity(root).despawn();
     }
@@ -552,6 +570,10 @@ fn render_if_dirty(
     navigation.current_screen = Some(ScreenId::Lifecycle);
     navigation.selected = lifecycle.selected;
     lifecycle.dirty = false;
+}
+
+fn should_render_lifecycle(current_screen: Option<ScreenId>) -> bool {
+    current_screen.is_none() || current_screen == Some(ScreenId::Lifecycle)
 }
 
 fn render(commands: &mut Commands, lifecycle: &LifecycleState) {
@@ -598,9 +620,16 @@ fn render_load(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
             .file_name()
             .and_then(|name| name.to_str())
             .unwrap_or("Unknown save");
-        bevy_presentation::spawn_choice_button(commands, panel, index, label);
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, "▣", label);
+        if lifecycle.selected == index {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
-    bevy_presentation::spawn_choice_button(commands, panel, lifecycle.save_files.len(), "Back");
+    let back_index = lifecycle.save_files.len();
+    let back = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if lifecycle.selected == back_index {
+        commands.entity(back).insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
@@ -1014,6 +1043,55 @@ mod tests {
         assert_eq!(navigation.return_screen, None);
         assert_eq!(lifecycle.selected, 0);
         assert!(!lifecycle.dirty);
+    }
+
+    #[test]
+    fn options_activation_keeps_navigation_on_the_options_screen() {
+        let mut lifecycle = LifecycleState::default();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: None,
+            selected: 0,
+        };
+
+        lifecycle.start_new_game(&mut navigation);
+        lifecycle.phase = LifecyclePhase::Start;
+        lifecycle.selected = 1;
+        navigation.current_screen = Some(ScreenId::Lifecycle);
+
+        super::activate_selection(&mut lifecycle, &mut navigation);
+
+        assert_eq!(navigation.current_screen, Some(ScreenId::Options));
+        assert_eq!(navigation.return_screen, Some(ScreenId::Lifecycle));
+    }
+
+    #[test]
+    fn load_back_returns_to_the_start_screen() {
+        let mut lifecycle = LifecycleState::default();
+        lifecycle.phase = LifecyclePhase::Load;
+        lifecycle.save_files
+            .push(std::path::PathBuf::from("saves/test.json.gz"));
+        lifecycle.selected = lifecycle.save_files.len();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: None,
+            selected: lifecycle.selected,
+        };
+
+        super::activate_selection(&mut lifecycle, &mut navigation);
+
+        assert_eq!(lifecycle.phase, LifecyclePhase::Start);
+        assert_eq!(lifecycle.selected, 0);
+        assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
+        assert_eq!(navigation.selected, 0);
+    }
+
+    #[test]
+    fn lifecycle_renderer_allows_initial_screen_but_not_dedicated_screen_overwrite() {
+        assert!(super::should_render_lifecycle(None));
+        assert!(super::should_render_lifecycle(Some(ScreenId::Lifecycle)));
+        assert!(!super::should_render_lifecycle(Some(ScreenId::Options)));
+        assert!(!super::should_render_lifecycle(Some(ScreenId::Gameplay)));
     }
 
     #[test]
