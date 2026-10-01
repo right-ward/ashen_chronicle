@@ -168,7 +168,7 @@ fn close_options(
         }
         _ => {
             navigation.current_screen = Some(ScreenId::Gameplay);
-            navigation.selected = 0;
+            navigation.selected = gameplay.navigation_selection();
         }
     }
 }
