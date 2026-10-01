@@ -157,7 +157,7 @@ fn console_input(
                 state.dirty = true;
             }
             InputEvent::Character(_) => {}
-            InputEvent::OpenSecondaryNavigation => {}
+            InputEvent::OpenSecondaryNavigation | InputEvent::OpenDeveloperConsole => {}
         }
     }
 }

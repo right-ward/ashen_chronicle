@@ -14,6 +14,7 @@ pub(crate) enum InputEvent {
     Confirm,
     Cancel,
     OpenSecondaryNavigation,
+    OpenDeveloperConsole,
     Tab,
     Character(char),
     Backspace,
