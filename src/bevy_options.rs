@@ -416,7 +416,7 @@ mod tests {
         let mut gameplay = GameplayState::default();
         gameplay.screen = crate::bevy_gameplay::GameplayScreen::Pause;
         gameplay.selected = 1;
-        gameplay.set_pause_selection(3);
+        gameplay.pause_selected = 3;
         let mut options = OptionsState {
             active: true,
             ..OptionsState::default()
