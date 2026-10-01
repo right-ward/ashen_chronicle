@@ -209,7 +209,7 @@ fn complete_touch_menu(
         return;
     };
 
-    if computed.contains_point(**transform, physical_release_position) {
+    if computed.contains_point((**transform).into(), physical_release_position) {
         gameplay_queue
             .0
             .push(crate::input::InputEvent::OpenSecondaryNavigation);
