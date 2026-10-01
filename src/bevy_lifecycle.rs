@@ -1054,10 +1054,8 @@ mod tests {
             selected: 0,
         };
 
-        lifecycle.start_new_game(&mut navigation);
         lifecycle.phase = LifecyclePhase::Start;
         lifecycle.selected = 1;
-        navigation.current_screen = Some(ScreenId::Lifecycle);
 
         super::activate_selection(&mut lifecycle, &mut navigation);
 
