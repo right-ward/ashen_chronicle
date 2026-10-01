@@ -396,7 +396,7 @@ mod tests {
             ..OptionsState::default()
         };
 
-        close_options(&mut lifecycle, &mut navigation, &mut options);
+        close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay);
 
         assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
         assert_eq!(navigation.selected, 1);
