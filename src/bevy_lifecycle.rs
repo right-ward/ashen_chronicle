@@ -622,7 +622,9 @@ fn render_load(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
             .unwrap_or("Unknown save");
         let button = bevy_presentation::spawn_action_button(commands, panel, index, "▣", label);
         if lifecycle.selected == index {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
     let back_index = lifecycle.save_files.len();
@@ -1067,7 +1069,8 @@ mod tests {
     fn load_back_returns_to_the_start_screen() {
         let mut lifecycle = LifecycleState::default();
         lifecycle.phase = LifecyclePhase::Load;
-        lifecycle.save_files
+        lifecycle
+            .save_files
             .push(std::path::PathBuf::from("saves/test.json.gz"));
         lifecycle.selected = lifecycle.save_files.len();
         let mut navigation = NavigationState {
