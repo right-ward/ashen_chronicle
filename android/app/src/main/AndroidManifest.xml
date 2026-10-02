@@ -3,7 +3,7 @@
 
     <application
         android:label="The Ashen Chronicle"
-        android:theme="@style/Theme.AppCompat.NoActionBar"
+        android:theme="@style/Theme.AshenChronicle"
         android:resizeableActivity="true"
         android:appCategory="game">
         <activity
