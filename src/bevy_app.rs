@@ -15,9 +15,9 @@ use crate::{
     bevy_records, bevy_runtime, bevy_touch,
 };
 
-#[cfg(target_os = "android")]
+#[cfg(not(target_os = "android"))]
 const WINDOW_WIDTH: u32 = 1280;
-#[cfg(target_os = "android")]
+#[cfg(not(target_os = "android"))]
 const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
@@ -26,7 +26,7 @@ pub fn run() {
     let display_mode = desktop_display::load();
     #[cfg(not(target_os = "android"))]
     let window_resolution = desktop_display::window_resolution(display_mode);
-    #[cfg(target_os = "android")]
+    #[cfg(not(target_os = "android"))]
     let window_resolution = (WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let mut app = App::new();
@@ -69,7 +69,7 @@ fn setup(mut commands: Commands) {
 }
 
 #[cfg(test)]
-#[cfg(target_os = "android")]
+#[cfg(not(target_os = "android"))]
 mod tests {
     use super::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 
