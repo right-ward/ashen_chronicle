@@ -330,11 +330,7 @@ fn activate_selection(
             };
 
             match action {
-<<<<<<< HEAD
                 PauseAction::Resume => close_pause(gameplay, runtime_state, navigation_state),
-=======
-                PauseAction::Resume => close_pause(gameplay, navigation_state),
->>>>>>> origin/main
                 PauseAction::Character => {
                     gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Character);
