@@ -1080,21 +1080,27 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
         bevy_presentation::spawn_muted_label(commands, panel, "No known routes lead onward.");
     } else {
         for (index, destination) in view.destinations.iter().enumerate() {
-            let label = if index == selected {
-                format!("▶ {}", destination.name)
-            } else {
-                destination.name.clone()
-            };
-            bevy_presentation::spawn_choice_button(commands, panel, index, label);
+            let button = bevy_presentation::spawn_action_button(
+                commands,
+                panel,
+                index,
+                "⚑",
+                destination.name.clone(),
+            );
+            if index == selected {
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.destinations.len();
-    let back_label = if selected == back_index {
-        "▶ Back"
-    } else {
-        "Back"
-    };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, back_label);
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 #[cfg(test)]

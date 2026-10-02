@@ -18,6 +18,7 @@ Completed in this iteration:
 - #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
 - #314 — restore Start screen Options navigation
 - #316 — fix Load screen Back navigation and migrate its controls to the current shared button style
+- #315 — migrate legacy graphical buttons to the current shared button style
 - #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
 - #298 — restore user-facing graphical text rendering
 - #299 — display the contextual quit-confirmation question

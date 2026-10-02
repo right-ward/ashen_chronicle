@@ -587,9 +587,16 @@ fn render_character_general(commands: &mut Commands, view: &CharacterSheetView, 
             );
         }
     }
-    for (index, label) in ["Reputation", "Journal", "Back"].into_iter().enumerate() {
-        let marker = if index == selected { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
+    for (index, (icon, label)) in [("⚑", "Reputation"), ("✎", "Journal"), ("←", "Back")]
+        .into_iter()
+        .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if index == selected {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
     }
 }
 
@@ -617,7 +624,11 @@ fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetVie
             }
         }
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to character");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to character");
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
@@ -635,15 +646,17 @@ fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, 
     }
     let write_index = 0;
     let back_index = 1;
-    let marker = if selected == write_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(
-        commands,
-        panel,
-        write_index,
-        format!("{marker}Write new note"),
-    );
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    for (index, (icon, label)) in [
+        (write_index, ("✎", "Write new note")),
+        (back_index, ("←", "Back")),
+    ] {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
 }
 
 fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usize) {
@@ -652,25 +665,37 @@ fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usi
         bevy_presentation::spawn_muted_label(commands, panel, "Your pack is empty.");
     } else {
         for (index, item) in view.items.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
+            let button = bevy_presentation::spawn_action_button(
                 commands,
                 panel,
                 index,
-                format!("{marker}{}", item.name),
+                "◇",
+                item.name.clone(),
             );
+            if selected == index {
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.items.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetailView>) {
     let panel = render_header(commands, "INVENTORY · ITEM", "Inspect the selected item.");
     let Some(view) = view else {
         bevy_presentation::spawn_muted_label(commands, panel, "That item is no longer available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &view.item.name);
@@ -695,7 +720,11 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
             "Item art is available in the campaign content.",
         );
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to inventory");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to inventory");
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) {
@@ -704,18 +733,27 @@ fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) 
         bevy_presentation::spawn_muted_label(commands, panel, "No quests have been recorded yet.");
     } else {
         for (index, quest) in view.quests.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
+            let button = bevy_presentation::spawn_action_button(
                 commands,
                 panel,
                 index,
-                format!("{marker}[{}] {}", quest.status, quest.title),
+                "✦",
+                format!("[{}] {}", quest.status, quest.title),
             );
+            if selected == index {
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.quests.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
@@ -726,7 +764,10 @@ fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
     );
     let Some(view) = view else {
         bevy_presentation::spawn_muted_label(commands, panel, "That quest is no longer available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &view.title);
@@ -758,7 +799,11 @@ fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
             view.reward_item_name.as_deref().unwrap_or("—")
         ),
     );
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to quest log");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to quest log");
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 fn render_meditation(
@@ -772,22 +817,34 @@ fn render_meditation(
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
     if !view.safe_to_meditate {
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     }
     bevy_presentation::spawn_muted_label(commands, panel, "Choose when to end your meditation.");
     for (index, target) in view.targets.iter().enumerate() {
-        let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(
+        let button = bevy_presentation::spawn_action_button(
             commands,
             panel,
             index,
-            format!("{marker}{}", target.label),
+            "◌",
+            target.label.clone(),
         );
+        if selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
     }
     let back = view.targets.len();
-    let marker = if selected == back { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back, format!("{marker}Cancel"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back, "×", "Cancel");
+    if selected == back {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_meditation_result(
@@ -801,7 +858,10 @@ fn render_meditation_result(
     );
     let Some(result) = result else {
         bevy_presentation::spawn_muted_label(commands, panel, "No meditation result is available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &result.ending_time);
@@ -821,7 +881,11 @@ fn render_meditation_result(
     if result.well_rested_applied {
         bevy_presentation::spawn_muted_label(commands, panel, "Well-rested is applied.");
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to gameplay");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to gameplay");
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) {
@@ -839,23 +903,27 @@ fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) 
         );
     } else {
         for (index, entry) in view.entries.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
+            let button = bevy_presentation::spawn_action_button(
                 commands,
                 panel,
                 index,
-                format!(
-                    "{marker}Day {} {} {}",
-                    entry.day,
-                    entry_marker(entry),
-                    entry.text
-                ),
+                "⌁",
+                format!("Day {} {} {}", entry.day, entry_marker(entry), entry.text),
             );
+            if selected == index {
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.entries.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryView>) {
@@ -866,7 +934,10 @@ fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryVie
             panel,
             "That history entry is no longer available.",
         );
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, format!("Day {}", entry.day));
@@ -880,7 +951,10 @@ fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryVie
     if let Some(outcome) = &entry.outcome {
         bevy_presentation::spawn_muted_label(commands, panel, format!("Outcome: {outcome}"));
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to history");
+    let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to history");
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 fn render_journal_entry(
@@ -901,7 +975,10 @@ fn render_journal_entry(
     );
     if let Some(message) = message {
         bevy_presentation::spawn_label(commands, panel, message);
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Continue");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     }
     bevy_presentation::spawn_muted_label(commands, panel, "Type a note. Backspace edits it.");
@@ -914,9 +991,16 @@ fn render_journal_entry(
             draft.to_string()
         },
     );
-    for (index, label) in ["Record note", "Cancel"].into_iter().enumerate() {
-        let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
+    for (index, (icon, label)) in [("✎", "Record note"), ("×", "Cancel")]
+        .into_iter()
+        .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
     }
 }
 
