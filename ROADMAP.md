@@ -5,13 +5,13 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.52.0 development — Android launch presentation and desktop display configuration
+v0.51.13 development — Android launch presentation and desktop display configuration
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
 ## Next
 
-v0.52.x — continue the graphical frontend toward the planned real-time spatial combat work.
+v0.51.x — continue the graphical frontend toward the planned real-time spatial combat work.
 
 Completed in this iteration:
 - #330 — add an atmospheric Android launch splash and configurable desktop display modes
