@@ -68,9 +68,18 @@ fn setup(mut commands: Commands) {
 #[cfg(not(target_os = "android"))]
 mod tests {
     use super::WINDOW_TITLE;
+    use crate::desktop_display::{self, DisplayMode};
 
     #[test]
     fn foundation_window_configuration_is_stable() {
         assert_eq!(WINDOW_TITLE, "The Ashen Chronicle");
+        assert_eq!(
+            desktop_display::window_resolution(DisplayMode::default()),
+            (1280, 720)
+        );
+        assert_eq!(
+            desktop_display::window_mode(DisplayMode::default()),
+            bevy::window::WindowMode::Windowed
+        );
     }
 }
