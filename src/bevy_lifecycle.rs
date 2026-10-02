@@ -726,7 +726,7 @@ const QUIT_VARIANTS: [QuitVariant; 16] = [
 "#,
     },
     QuitVariant {
-        question: "The last ember is black. The silence is waiting.",
+        question: "The last ember is black. Beside it, the stone keeps its silence.",
         leave: "Let the silence stand.",
         stay: "Break the silence.",
         art: r#"            .
@@ -869,7 +869,7 @@ const QUIT_VARIANTS: [QuitVariant; 16] = [
 "#,
     },
     QuitVariant {
-        question: "The night took what it came for. Something is still breathing.",
+        question: "The night took what it came for. One ember is still breathing.",
         leave: "Let it go quiet.",
         stay: "Keep it alive.",
         art: r#"          .-.
@@ -929,6 +929,7 @@ const QUIT_VARIANTS: [QuitVariant; 16] = [
 "#,
     },
 ];
+
 fn next_quit_variant() -> usize {
     let nanos = SystemTime::now()
         .duration_since(UNIX_EPOCH)
