@@ -297,18 +297,23 @@ fn activate_selection(
             match action {
                 PauseAction::Resume => close_pause(gameplay, navigation_state),
                 PauseAction::Character => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Character);
                 }
                 PauseAction::Inventory => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Inventory);
                 }
                 PauseAction::Quests => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Quests);
                 }
                 PauseAction::History => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::History);
                 }
                 PauseAction::Journal => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Journal);
                 }
                 PauseAction::NewGame => {
@@ -329,6 +334,7 @@ fn activate_selection(
                     }
                 }
                 PauseAction::Options => {
+                    gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Options);
                 }
                 PauseAction::Quit => {
