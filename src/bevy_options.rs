@@ -58,7 +58,6 @@ pub(crate) fn install(app: &mut App) {
         (
             sync_screen,
             refresh_storage,
-            options_tab_input,
             options_input,
             apply_display_mode,
             render_if_active,
@@ -130,39 +129,6 @@ fn refresh_storage(
 ) {
 }
 
-#[derive(Component, Clone, Copy)]
-struct OptionsTabButton(usize);
-
-fn options_tab_input(
-    mut interactions: Query<(&Interaction, &OptionsTabButton), Changed<Interaction>>,
-    lifecycle: Res<LifecycleState>,
-    navigation: Res<NavigationState>,
-    mut options: ResMut<OptionsState>,
-) {
-    if !matches!(
-        lifecycle.phase,
-        LifecyclePhase::Start | LifecyclePhase::Complete
-    ) || navigation.current_screen != Some(ScreenId::Options)
-    {
-        return;
-    }
-
-    for (interaction, tab) in &mut interactions {
-        if *interaction != Interaction::Pressed || tab.0 == options.tab {
-            continue;
-        }
-
-        options.tab = tab.0;
-        options.selected = 0;
-        options.message = None;
-        #[cfg(not(target_os = "android"))]
-        {
-            options.pending_display_mode = None;
-        }
-        options.dirty = true;
-    }
-}
-
 fn options_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
@@ -190,6 +156,15 @@ fn options_input(
             }
             InputEvent::Home => options.selected = 0,
             InputEvent::End => options.selected = options_selection_end(options.tab),
+            InputEvent::SelectTab(tab) if tab < 2 => {
+                options.tab = tab;
+                options.selected = 0;
+                options.message = None;
+                #[cfg(not(target_os = "android"))]
+                {
+                    options.pending_display_mode = None;
+                }
+            }
             InputEvent::Tab => {
                 options.tab = (options.tab + 1) % 2;
                 options.selected = 0;
@@ -410,7 +385,8 @@ fn render_if_active(
         for (index, label) in [(0, "Game Data"), (1, "Display")] {
             let mut tab = tabs.spawn((
                 Button,
-                OptionsTabButton(index),
+                bevy_presentation::ChoiceButton { index },
+                bevy_presentation::UiTabButton { index },
                 bevy_presentation::UiStyledButton,
                 Node {
                     min_width: px(120),
@@ -664,12 +640,21 @@ mod tests {
     }
 
     #[test]
-    fn options_navigation_has_two_actions() {
+    fn options_navigation_has_two_game_data_actions() {
         let mut options = OptionsState::default();
         options.selected = 0;
-        options.selected = (options.selected + 1).min(1);
+        options.selected = (options.selected + 1).min(options_selection_end(0));
         assert_eq!(options.selected, 1);
         options.selected = options.selected.saturating_sub(1);
         assert_eq!(options.selected, 0);
+    }
+
+    #[test]
+    fn options_tabs_have_expected_selection_ranges() {
+        assert_eq!(options_selection_end(0), 1);
+        #[cfg(not(target_os = "android"))]
+        assert_eq!(options_selection_end(1), 3);
+        #[cfg(target_os = "android")]
+        assert_eq!(options_selection_end(1), 0);
     }
 }
