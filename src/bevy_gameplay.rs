@@ -995,14 +995,17 @@ fn render_pause(commands: &mut Commands, parent: Entity, actions: &[PauseAction]
     let surface = commands
         .spawn((
             bevy_presentation::UiSurface,
+            bevy_presentation::TouchScrollablePanel,
             Node {
                 width: percent(60),
-                min_width: px(300),
+                min_width: px(280),
                 max_width: px(620),
+                max_height: percent(90),
                 min_height: px(0),
                 padding: UiRect::all(bevy_presentation::responsive_surface_padding()),
                 flex_direction: FlexDirection::Column,
                 row_gap: bevy_presentation::responsive_compact_gap(),
+                overflow: Overflow::scroll(),
                 border: UiRect::all(px(1)),
                 ..default()
             },
