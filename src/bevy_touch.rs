@@ -216,11 +216,11 @@ fn complete_touch_menu(
     }
 }
 
+#[allow(clippy::type_complexity)] // for buttons
 fn complete_touch_choice(
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchChoiceState>,
-    #[allow(clippy::type_complexity)] // for the buttons
     buttons: Query<
         (
             Entity,
