@@ -193,6 +193,11 @@ fn gameplay_input(
                     navigation_state.selected = 0;
                 }
             }
+            InputEvent::OpenDeveloperConsole => {
+                if gameplay.screen == GameplayScreen::Dashboard {
+                    open_dedicated_screen(&mut navigation_state, ScreenId::Console);
+                }
+            }
             InputEvent::Cancel => match gameplay.screen {
                 GameplayScreen::Navigation | GameplayScreen::SecondaryNavigation => {
                     gameplay.screen = GameplayScreen::Dashboard;
@@ -351,7 +356,7 @@ fn activate_selection(
                     }
                 }
                 PauseAction::Options => {
-                    open_dedicated_screen(&mut navigation_state, ScreenId::Console);
+                    open_dedicated_screen(navigation_state, ScreenId::Console);
                 }
                 PauseAction::Quit => {
                     lifecycle.start_quit_confirmation(navigation_state, Some(ScreenId::Gameplay));
