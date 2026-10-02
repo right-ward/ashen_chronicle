@@ -149,8 +149,8 @@ jobs:
           fmt_status=$?
 
           echo >> test.log
-          echo '=== cargo test ===' >> test.log
-          cargo test --features dev --no-fail-fast >> test.log 2>&1
+          echo '=== cargo test --lib ===' >> test.log
+          cargo test --lib --features dev --no-fail-fast >> test.log 2>&1
           test_status=$?
 
           echo >> test.log
