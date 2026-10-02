@@ -71,6 +71,11 @@ pub struct UiStyledButton;
 pub struct UiSelected;
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct UiTabButton {
+    pub(crate) index: usize,
+}
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiHealthGauge {
     pub current: i32,
     pub maximum: i32,
@@ -993,15 +998,26 @@ pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize)
 }
 
 fn choice_button_input(
-    mut interaction_query: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
+    mut interaction_query: Query<
+        (&Interaction, &ChoiceButton, Option<&UiTabButton>),
+        Changed<Interaction>,
+    >,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (interaction, choice) in &mut interaction_query {
+    for (interaction, choice, tab) in &mut interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
         }
+
+        if let Some(tab) = tab {
+            if navigation.current_screen == Some(ScreenId::Options) {
+                gameplay_queue.0.push(InputEvent::SelectTab(tab.index));
+            }
+            continue;
+        }
+
         navigation.selected = choice.index;
         let queue = if navigation.current_screen == Some(ScreenId::Lifecycle) {
             &mut lifecycle_queue.0
