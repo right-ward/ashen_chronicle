@@ -161,7 +161,7 @@ jobs:
             echo "fmt_status=$fmt_status"
             echo "test_status=$test_status"
             echo '=== test.log ==='
-            cat test.log | tail -n 40
+            tail -n 20 test.log
             exit 1
           fi
 
