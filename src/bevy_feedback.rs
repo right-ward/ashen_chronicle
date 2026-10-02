@@ -356,20 +356,18 @@ fn render_level_up(commands: &mut Commands, parent: Entity, level: u32, selected
         format!("You have grown stronger. You reached level {level}."),
     );
     bevy_presentation::spawn_muted_label(commands, parent, "Choose a new strength:");
-    for (index, label) in [
-        "Might (+1 attack)",
-        "Insight (+1 search/recovery)",
-        "Endurance (+1 meditation healing)",
+    for (index, (icon, label)) in [
+        ("⚔", "Might (+1 attack)"),
+        ("◈", "Insight (+1 search/recovery)"),
+        ("♥", "Endurance (+1 meditation healing)"),
     ]
     .into_iter()
     .enumerate()
     {
-        let label = if index == selected {
-            format!("▶ {}", label)
-        } else {
-            label.to_string()
-        };
-        bevy_presentation::spawn_choice_button(commands, parent, index, label);
+        let button = bevy_presentation::spawn_action_button(commands, parent, index, icon, label);
+        if index == selected {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
     bevy_presentation::spawn_muted_label(
         commands,
