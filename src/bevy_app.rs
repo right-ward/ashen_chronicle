@@ -6,6 +6,8 @@
 use bevy::input_focus::tab_navigation::TabNavigationPlugin;
 use bevy::prelude::*;
 use bevy_picking::events::{Pointer, Release};
+#[cfg(not(target_os = "android"))]
+use crate::desktop_display;
 
 use crate::{
     bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_input_diagnostics,
@@ -18,6 +20,13 @@ const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub fn run() {
+    #[cfg(not(target_os = "android"))]
+    let display_mode = desktop_display::load();
+    #[cfg(not(target_os = "android"))]
+    let window_resolution = desktop_display::window_resolution(display_mode);
+    #[cfg(target_os = "android")]
+    let window_resolution = (WINDOW_WIDTH, WINDOW_HEIGHT);
+
     let mut app = App::new();
     // Bevy 0.19.1's EditableText widget installs a Pointer<Release> reader even
     // without the picking plugins. Register its message storage without enabling
@@ -26,7 +35,9 @@ pub fn run() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: WINDOW_TITLE.to_owned(),
-            resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
+            resolution: window_resolution.into(),
+            #[cfg(not(target_os = "android"))]
+            mode: desktop_display::window_mode(display_mode),
             resizable: true,
             ..default()
         }),
