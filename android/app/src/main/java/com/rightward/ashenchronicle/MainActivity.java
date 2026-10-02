@@ -113,7 +113,10 @@ public class MainActivity extends GameActivity {
         super.onDestroy();
 
         if (finishing) {
-            android.os.Process.killProcess(android.os.Process.myPid());
+            // Defer process termination until the GameActivity destroy callback
+            // and the current Android lifecycle callback have fully unwound.
+            new android.os.Handler(android.os.Looper.getMainLooper())
+                    .post(() -> android.os.Process.killProcess(android.os.Process.myPid()));
         }
     }
 
