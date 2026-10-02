@@ -15,10 +15,6 @@ use crate::{
     bevy_records, bevy_runtime, bevy_touch,
 };
 
-#[cfg(not(target_os = "android"))]
-const WINDOW_WIDTH: u32 = 1280;
-#[cfg(not(target_os = "android"))]
-const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub fn run() {
@@ -71,12 +67,10 @@ fn setup(mut commands: Commands) {
 #[cfg(test)]
 #[cfg(not(target_os = "android"))]
 mod tests {
-    use super::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+    use super::WINDOW_TITLE;
 
     #[test]
     fn foundation_window_configuration_is_stable() {
         assert_eq!(WINDOW_TITLE, "The Ashen Chronicle");
-        assert_eq!(WINDOW_WIDTH, 1280);
-        assert_eq!(WINDOW_HEIGHT, 720);
     }
 }
