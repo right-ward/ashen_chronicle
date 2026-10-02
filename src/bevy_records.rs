@@ -587,9 +587,18 @@ fn render_character_general(commands: &mut Commands, view: &CharacterSheetView, 
             );
         }
     }
-    for (index, label) in ["Reputation", "Journal", "Back"].into_iter().enumerate() {
-        let marker = if index == selected { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
+    for (index, (icon, label)) in [
+        ("⚑", "Reputation"),
+        ("✎", "Journal"),
+        ("←", "Back"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if index == selected {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
 }
 
@@ -617,7 +626,9 @@ fn render_character_reputation(commands: &mut Commands, view: &CharacterSheetVie
             }
         }
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to character");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to character");
+    commands.entity(button).insert(bevy_presentation::UiSelected);
 }
 
 fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, selected: usize) {
@@ -635,15 +646,15 @@ fn render_character_journal(commands: &mut Commands, view: &CharacterSheetView, 
     }
     let write_index = 0;
     let back_index = 1;
-    let marker = if selected == write_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(
-        commands,
-        panel,
-        write_index,
-        format!("{marker}Write new note"),
-    );
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    for (index, (icon, label)) in [
+        (write_index, ("✎", "Write new note")),
+        (back_index, ("←", "Back")),
+    ] {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if selected == index {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
+    }
 }
 
 fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usize) {
