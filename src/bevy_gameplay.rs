@@ -192,6 +192,7 @@ fn gameplay_input(
                 activate_selection(
                     &mut lifecycle,
                     &mut gameplay,
+                    &mut runtime_state,
                     &mut navigation_state,
                     &mut combat_state,
                 );
@@ -1143,6 +1144,21 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn gameplay_runtime_pause_state_defaults_to_running() {
+        let runtime = GameplayRuntimeState::default();
+        assert!(!runtime.is_paused());
+    }
+
+    #[test]
+    fn gameplay_runtime_pause_state_tracks_pause_transition() {
+        let mut runtime = GameplayRuntimeState::default();
+        runtime.set_paused(true);
+        assert!(runtime.is_paused());
+        runtime.set_paused(false);
+        assert!(!runtime.is_paused());
+    }
 
     #[test]
     fn pause_action_count_matches_load_visibility() {
