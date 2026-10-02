@@ -57,6 +57,8 @@ pub fn run() {
     bevy_records::install(&mut app);
     bevy_interactions::install(&mut app);
     bevy_feedback::install(&mut app);
+    #[cfg(not(target_os = "android"))]
+    app.add_systems(Update, desktop_display::apply_window_icon);
     app.add_systems(Startup, setup).run();
 }
 
