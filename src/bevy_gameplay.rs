@@ -296,6 +296,21 @@ fn activate_selection(
 
             match action {
                 PauseAction::Resume => close_pause(gameplay, navigation_state),
+                PauseAction::Character => {
+                    open_dedicated_screen(navigation_state, ScreenId::Character);
+                }
+                PauseAction::Inventory => {
+                    open_dedicated_screen(navigation_state, ScreenId::Inventory);
+                }
+                PauseAction::Quests => {
+                    open_dedicated_screen(navigation_state, ScreenId::Quests);
+                }
+                PauseAction::History => {
+                    open_dedicated_screen(navigation_state, ScreenId::History);
+                }
+                PauseAction::Journal => {
+                    open_dedicated_screen(navigation_state, ScreenId::Journal);
+                }
                 PauseAction::NewGame => {
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
