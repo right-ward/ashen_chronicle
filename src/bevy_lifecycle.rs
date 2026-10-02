@@ -1067,8 +1067,10 @@ mod tests {
 
     #[test]
     fn load_back_returns_to_the_start_screen() {
-        let mut lifecycle = LifecycleState::default();
-        lifecycle.phase = LifecyclePhase::Load;
+        let mut lifecycle = LifecycleState {
+            phase: LifecyclePhase::Load,
+            ..LifecycleState::default()
+        };
         lifecycle
             .save_files
             .push(std::path::PathBuf::from("saves/test.json.gz"));
