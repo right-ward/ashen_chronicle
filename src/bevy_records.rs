@@ -663,25 +663,26 @@ fn render_inventory(commands: &mut Commands, view: &InventoryView, selected: usi
         bevy_presentation::spawn_muted_label(commands, panel, "Your pack is empty.");
     } else {
         for (index, item) in view.items.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
-                commands,
-                panel,
-                index,
-                format!("{marker}{}", item.name),
-            );
+            let button =
+                bevy_presentation::spawn_action_button(commands, panel, index, "◇", item.name.clone());
+            if selected == index {
+                commands.entity(button).insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.items.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands.entity(button).insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetailView>) {
     let panel = render_header(commands, "INVENTORY · ITEM", "Inspect the selected item.");
     let Some(view) = view else {
         bevy_presentation::spawn_muted_label(commands, panel, "That item is no longer available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &view.item.name);
@@ -706,7 +707,9 @@ fn render_inventory_detail(commands: &mut Commands, view: &Option<InventoryDetai
             "Item art is available in the campaign content.",
         );
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to inventory");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to inventory");
+    commands.entity(button).insert(bevy_presentation::UiSelected);
 }
 
 fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) {
