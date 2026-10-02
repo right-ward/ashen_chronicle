@@ -14,6 +14,8 @@ mod bevy_runtime;
 mod bevy_touch;
 mod content;
 #[cfg(not(target_os = "android"))]
+mod desktop_display;
+#[cfg(not(target_os = "android"))]
 mod desktop_storage;
 mod events;
 mod game;
