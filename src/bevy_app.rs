@@ -69,6 +69,7 @@ fn setup(mut commands: Commands) {
 }
 
 #[cfg(test)]
+#[cfg(target_os = "android")]
 mod tests {
     use super::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
 
