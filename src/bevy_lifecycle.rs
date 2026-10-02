@@ -681,23 +681,23 @@ struct QuitVariant {
     art: &'static str,
 }
 
-const QUIT_VARIANTS: [QuitVariant; 9] = [
+const QUIT_VARIANTS: [QuitVariant; 16] = [
     QuitVariant {
-        question: "The road ends here. For tonight, anyway.",
-        leave: "Let the ashes take it.",
-        stay: "Not yet. The night has more to say.",
-        art: r#"        .-''''-.
-       /  .--.  \
-      /  /    \  \
-      | |      | |
-      | |      | |
-      |  \____/  |
-       \        /
-        '------'
+        question: "You can still hear your name after the room goes quiet.",
+        leave: "Let it call.",
+        stay: "Answer it.",
+        art: r#"             .-.
+            /   \
+           |  () |
+           |  /  |
+            \\___/
+              )
+            (  (
+             \\__)
 "#,
     },
     QuitVariant {
-        question: "The fire is dying. Your story does not have to.",
+        question: "The fire is dying. There are still pages left unread.",
         leave: "Close the book.",
         stay: "Turn the page.",
         art: r#"          /\
@@ -712,9 +712,9 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "Night has swallowed the road. Only your footprints remain.",
-        leave: "Leave them to the dark.",
-        stay: "Keep walking.",
+        question: "Night has swallowed the road. Your footprints will not outlast it.",
+        leave: "Let them fade.",
+        stay: "Leave one more behind.",
         art: r#"       _..._       _..._
      .-'     '-. .-'     '-'.
     /           V           \
@@ -726,8 +726,8 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "The last ember has gone black. The silence is waiting.",
-        leave: "Let it be silent.",
+        question: "The last ember is black. Beside it, the stone keeps its silence.",
+        leave: "Let the silence stand.",
         stay: "Break the silence.",
         art: r#"            .
            / \
@@ -740,9 +740,9 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "The gate closes behind you. The road will remain.",
-        leave: "Close the gate.",
-        stay: "Leave it open.",
+        question: "The gate is shut. Nothing beyond it is asking you to return.",
+        leave: "Let it stay shut.",
+        stay: "Open it once more.",
         art: r#"        ______________________
        /|                    |\
       / |                    | \
@@ -758,9 +758,9 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "The flame is gone. The silence remains.",
-        leave: "Let the silence remain.",
-        stay: "Feed the flame again.",
+        question: "The flame is gone. You remember how the warmth felt.",
+        leave: "Let the memory cool.",
+        stay: "Strike one more spark.",
         art: r#"             /\
             /  \
            /____\
@@ -777,9 +777,9 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "The road continues without you.",
-        leave: "Leave the road behind.",
-        stay: "Keep walking.",
+        question: "The road goes on without you. It always knew how.",
+        leave: "Let it go without me.",
+        stay: "Not without me.",
         art: r#"             /\                 /\
             /  \               /  \
            /    \             /    \
@@ -794,9 +794,9 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "For now, the dead can wait.",
+        question: "The dead have patience. The living are the ones who run out.",
         leave: "Let the dead wait.",
-        stay: "Not tonight.",
+        stay: "I am not finished.",
         art: r#"       _        _        _
       | |      | |      | |
      _| |__   _| |__   _| |__
@@ -808,22 +808,109 @@ const QUIT_VARIANTS: [QuitVariant; 9] = [
 "#,
     },
     QuitVariant {
-        question: "One last look. Then darkness.",
-        leave: "One last look.",
-        stay: "Stay a little longer.",
-        art: r#"             .       *
-        *          .
-                  .       *
-           _____________
-          /             \
-         /               \
-        /                 \
-       /                   \
-      /                     \
-     /_______________________\
-             ||   ||
-             ||   ||
-             ||   ||
+        question: "You were certain there was only one heartbeat.",
+        leave: "Let the other one fade.",
+        stay: "Listen again.",
+        art: r#"      _    _      _    _
+     / \\__/ \\____/ \\__/ \\         \\/       \\/
+          \\______
+"#,
+    },
+    QuitVariant {
+        question: "There is still heat in the ashes, but it remembers no one.",
+        leave: "Let it forget me.",
+        stay: "Give it one more ember.",
+        art: r#"             .-.
+            (   )
+             \ /
+              V
+          _.-'''-._
+        .'         '.
+       /   .     .   \
+      |    |     |    |
+       \   '.___.'   /
+        '._       _.'
+           '-----'
+"#,
+    },
+    QuitVariant {
+        question: "The mirror will not show you leaving.",
+        leave: "Leave it behind.",
+        stay: "Look again.",
+        art: r#"       .-----------.
+      /             \\
+     |      /\\      |
+     |     /  \\     |
+     |    /____\\    |
+     |               |
+      \\             /
+       '-----------'
+"#,
+    },
+    QuitVariant {
+        question: "The names on the stones are wearing thin.",
+        leave: "Let them disappear.",
+        stay: "Remember them a little longer.",
+        art: r#"       __________   __________   __________
+      |          | |          | |          |
+      |  ....... | |  ....... | |  ....... |
+      |  .....  | |  .....  | |  .....  |
+      |__________| |__________| |__________|
+"#,
+    },
+    QuitVariant {
+        question: "The night took what it came for. One ember is still breathing.",
+        leave: "Let it go quiet.",
+        stay: "Keep it alive.",
+        art: r#"          .-.
+         (   )
+          \ /
+           |
+        ___|___
+       /       \
+      /         \
+     |  .----.  |
+     | |      | |
+      \ \____/ /
+       '------'
+"#,
+    },
+    QuitVariant {
+        question: "You hear breathing. It stops when you do.",
+        leave: "Keep walking.",
+        stay: "Hold your breath.",
+        art: r#"        .-""""-.
+      .'  .--.  '.
+     /   (    )   \\
+     |    \\__/    |
+      \\          /
+       '---..---'
+"#,
+    },
+    QuitVariant {
+        question: "The rain washed the blood from the stones. Not the memory.",
+        leave: "Let the rain finish the work.",
+        stay: "Remember why it was spilled.",
+        art: r#"          _________
+         /________/|
+        |        | |
+        |   /\   | |
+        |  /  \  | |
+        | /____\ | /
+        |________|/
+           .  .
+        .  .  .  .
+"#,
+    },
+    QuitVariant {
+        question: "You have been alone for a long time. Something disagrees.",
+        leave: "Let it be wrong.",
+        stay: "Let it speak.",
+        art: r#"        .----.     .----.
+       /      \\   /      \\
+      |        | |        |
+      |        | |        |
+       \\______/   \\______/
 "#,
     },
 ];
