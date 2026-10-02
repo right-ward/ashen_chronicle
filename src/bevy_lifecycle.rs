@@ -93,7 +93,8 @@ fn lifecycle_input(
     mut input_queue: ResMut<SemanticInputQueue>,
     mut input_focus: ResMut<InputFocus>,
     fields: Query<(Entity, &LifecycleTextField)>,
-    commands: Commands,
+    #[cfg(not(target_os = "android"))]
+    mut commands: Commands,
 ) {
     if input_queue.0.is_empty() {
         return;
