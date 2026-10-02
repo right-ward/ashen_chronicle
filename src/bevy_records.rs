@@ -794,22 +794,28 @@ fn render_meditation(
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
     if !view.safe_to_meditate {
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     }
     bevy_presentation::spawn_muted_label(commands, panel, "Choose when to end your meditation.");
     for (index, target) in view.targets.iter().enumerate() {
-        let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(
+        let button = bevy_presentation::spawn_action_button(
             commands,
             panel,
             index,
-            format!("{marker}{}", target.label),
+            "◌",
+            target.label.clone(),
         );
+        if selected == index {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
     let back = view.targets.len();
-    let marker = if selected == back { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back, format!("{marker}Cancel"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back, "×", "Cancel");
+    if selected == back {
+        commands.entity(button).insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_meditation_result(
