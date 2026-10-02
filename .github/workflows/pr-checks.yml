@@ -160,6 +160,8 @@ jobs:
           if [ "$fmt_status" -ne 0 ] || [ "$test_status" -ne 0 ]; then
             echo "fmt_status=$fmt_status"
             echo "test_status=$test_status"
+            echo '=== test.log ==='
+            cat test.log | tail -n 40
             exit 1
           fi
 
