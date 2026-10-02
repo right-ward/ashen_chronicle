@@ -671,7 +671,7 @@ src/
 - Bumped the project and Android fallback version metadata to 0.50.19.
 
 ### v0.51.13: Android launch presentation and desktop display configuration
-- Added a black Android system splash with a custom Ashen Chronicle sigil.
+- Added the canonical purple pixel-art app icon as the Android launcher icon, Android launch splash artwork, and desktop window icon.
 - Added a tabbed Options Display section with desktop Fullscreen, Windowed 1920 × 1080, and Windowed 1280 × 720 presets.
 - Applied desktop display changes at runtime while keeping windowed presets resizable.
 - Persisted the selected desktop display mode in the desktop configuration directory.
