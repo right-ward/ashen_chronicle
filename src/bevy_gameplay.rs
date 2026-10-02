@@ -68,6 +68,27 @@ struct WorldCloud {
     speed: f32,
 }
 
+#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct GameplayRuntimeState {
+    paused: bool,
+}
+
+impl Default for GameplayRuntimeState {
+    fn default() -> Self {
+        Self { paused: false }
+    }
+}
+
+impl GameplayRuntimeState {
+    pub(crate) fn is_paused(self) -> bool {
+        self.paused
+    }
+
+    fn set_paused(&mut self, paused: bool) {
+        self.paused = paused;
+    }
+}
+
 #[derive(Resource)]
 pub(crate) struct GameplayState {
     pub(crate) screen: GameplayScreen,
@@ -100,6 +121,7 @@ impl GameplayState {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
+        .init_resource::<GameplayRuntimeState>()
         .add_systems(Update, (gameplay_input, render_if_active).chain())
         .add_systems(Update, animate_world_clouds);
 }
@@ -107,6 +129,7 @@ pub(crate) fn install(app: &mut App) {
 fn gameplay_input(
     mut lifecycle: ResMut<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
+    mut runtime_state: ResMut<GameplayRuntimeState>,
     mut navigation_state: ResMut<NavigationState>,
     mut combat_state: ResMut<CombatState>,
     mut input_queue: ResMut<GameplayInputQueue>,
@@ -140,7 +163,7 @@ fn gameplay_input(
             }
             InputEvent::OpenSecondaryNavigation => {
                 if gameplay.screen == GameplayScreen::Dashboard {
-                    open_pause(&mut gameplay, &mut navigation_state);
+                    open_pause(&mut gameplay, &mut runtime_state, &mut navigation_state);
                 }
             }
             InputEvent::OpenDeveloperConsole => {
@@ -157,12 +180,12 @@ fn gameplay_input(
                     navigation_state.selected = 0;
                 }
                 GameplayScreen::Pause => {
-                    close_pause(&mut gameplay, &mut navigation_state);
+                    close_pause(&mut gameplay, &mut runtime_state, &mut navigation_state);
                 }
                 GameplayScreen::Dashboard => {
                     // Android BrowserBack and desktop Escape both use Cancel,
                     // so gameplay Back opens the unified menu.
-                    open_pause(&mut gameplay, &mut navigation_state);
+                    open_pause(&mut gameplay, &mut runtime_state, &mut navigation_state);
                 }
             },
             InputEvent::Confirm => {
@@ -233,16 +256,26 @@ fn move_selection_to_end(
     }
 }
 
-fn open_pause(gameplay: &mut GameplayState, navigation_state: &mut NavigationState) {
+fn open_pause(
+    gameplay: &mut GameplayState,
+    runtime_state: &mut GameplayRuntimeState,
+    navigation_state: &mut NavigationState,
+) {
     gameplay.screen = GameplayScreen::Pause;
     gameplay.pause_selected = 0;
     gameplay.dirty = true;
+    runtime_state.set_paused(true);
     navigation_state.selected = 0;
 }
 
-fn close_pause(gameplay: &mut GameplayState, navigation_state: &mut NavigationState) {
+fn close_pause(
+    gameplay: &mut GameplayState,
+    runtime_state: &mut GameplayRuntimeState,
+    navigation_state: &mut NavigationState,
+) {
     gameplay.screen = GameplayScreen::Dashboard;
     gameplay.dirty = true;
+    runtime_state.set_paused(false);
     navigation_state.current_screen = Some(ScreenId::Gameplay);
     navigation_state.selected = gameplay.selected;
 }
@@ -282,6 +315,7 @@ fn open_dedicated_screen(navigation_state: &mut NavigationState, screen: ScreenI
 fn activate_selection(
     lifecycle: &mut LifecycleState,
     gameplay: &mut GameplayState,
+    runtime_state: &mut GameplayRuntimeState,
     navigation_state: &mut NavigationState,
     combat_state: &mut CombatState,
 ) {
@@ -295,7 +329,7 @@ fn activate_selection(
             };
 
             match action {
-                PauseAction::Resume => close_pause(gameplay, navigation_state),
+                PauseAction::Resume => close_pause(gameplay, runtime_state, navigation_state),
                 PauseAction::Character => {
                     gameplay.dirty = true;
                     open_dedicated_screen(navigation_state, ScreenId::Character);
@@ -322,6 +356,7 @@ fn activate_selection(
                     gameplay.message = None;
                     gameplay.pause_selected = 0;
                     gameplay.dirty = true;
+                    runtime_state.set_paused(false);
                     lifecycle.start_new_game(navigation_state);
                 }
                 PauseAction::LoadGame => {
@@ -331,6 +366,7 @@ fn activate_selection(
                         gameplay.message = None;
                         gameplay.pause_selected = 0;
                         gameplay.dirty = true;
+                        runtime_state.set_paused(false);
                     }
                 }
                 PauseAction::Options => {
@@ -600,7 +636,14 @@ fn spawn_world_clouds(commands: &mut Commands, parent: Entity) {
     }
 }
 
-fn animate_world_clouds(time: Res<Time>, mut clouds: Query<(&WorldCloud, &mut Node)>) {
+fn animate_world_clouds(
+    time: Res<Time>,
+    runtime_state: Res<GameplayRuntimeState>,
+    mut clouds: Query<(&WorldCloud, &mut Node)>,
+) {
+    if runtime_state.is_paused() {
+        return;
+    }
     let elapsed = time.elapsed_secs();
     for (cloud, mut node) in &mut clouds {
         let x = cloud.base_x + (elapsed * cloud.speed).sin() * cloud.drift;
@@ -1105,6 +1148,21 @@ mod tests {
     fn pause_action_count_matches_load_visibility() {
         assert_eq!(pause_actions_from(false).len(), 9);
         assert_eq!(pause_actions_from(true).len(), 10);
+    }
+
+    #[test]
+    fn gameplay_runtime_pause_state_defaults_to_running() {
+        let runtime = GameplayRuntimeState::default();
+        assert!(!runtime.is_paused());
+    }
+
+    #[test]
+    fn gameplay_runtime_pause_state_tracks_pause_transition() {
+        let mut runtime = GameplayRuntimeState::default();
+        runtime.set_paused(true);
+        assert!(runtime.is_paused());
+        runtime.set_paused(false);
+        assert!(!runtime.is_paused());
     }
 
     #[test]
