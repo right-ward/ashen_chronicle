@@ -940,7 +940,8 @@ fn render_journal_entry(
     );
     if let Some(message) = message {
         bevy_presentation::spawn_label(commands, panel, message);
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Continue");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     }
     bevy_presentation::spawn_muted_label(commands, panel, "Type a note. Backspace edits it.");
@@ -953,9 +954,17 @@ fn render_journal_entry(
             draft.to_string()
         },
     );
-    for (index, label) in ["Record note", "Cancel"].into_iter().enumerate() {
-        let marker = if selected == index { "▶ " } else { "" };
-        bevy_presentation::spawn_choice_button(commands, panel, index, format!("{marker}{label}"));
+    for (index, (icon, label)) in [
+        ("✎", "Record note"),
+        ("×", "Cancel"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if selected == index {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
 }
 
