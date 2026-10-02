@@ -107,7 +107,7 @@ pub struct TextContent;
 pub struct GaugeFill;
 
 #[derive(Component)]
-struct TouchScrollablePanel;
+pub(crate) struct TouchScrollablePanel;
 
 #[derive(Component)]
 pub(crate) struct LifecycleTextField {
