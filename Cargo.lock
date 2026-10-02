@@ -174,9 +174,11 @@ dependencies = [
  "dirs",
  "flate2",
  "jni",
+ "png",
  "rfd",
  "serde",
  "serde_json",
+ "winit",
 ]
 
 [[package]]
