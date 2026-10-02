@@ -36,7 +36,9 @@ serde_json = "1"
 flate2 = "1.1"
 
 [target.'cfg(not(target_os = "android"))'.dependencies]
+png = "0.18.1"
 rfd = { version = "0.17.2", default-features = false, features = ["xdg-portal"] }
+winit = "0.30.13"
 
 [target.'cfg(target_os = "android")'.dependencies]
 jni = "0.22.4"
