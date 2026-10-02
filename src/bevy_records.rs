@@ -718,18 +718,23 @@ fn render_quests(commands: &mut Commands, view: &QuestLogView, selected: usize) 
         bevy_presentation::spawn_muted_label(commands, panel, "No quests have been recorded yet.");
     } else {
         for (index, quest) in view.quests.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
+            let button = bevy_presentation::spawn_action_button(
                 commands,
                 panel,
                 index,
-                format!("{marker}[{}] {}", quest.status, quest.title),
+                "✦",
+                format!("[{}] {}", quest.status, quest.title),
             );
+            if selected == index {
+                commands.entity(button).insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.quests.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands.entity(button).insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
@@ -740,7 +745,8 @@ fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
     );
     let Some(view) = view else {
         bevy_presentation::spawn_muted_label(commands, panel, "That quest is no longer available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &view.title);
@@ -772,7 +778,9 @@ fn render_quest_detail(commands: &mut Commands, view: Option<&QuestView>) {
             view.reward_item_name.as_deref().unwrap_or("—")
         ),
     );
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to quest log");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to quest log");
+    commands.entity(button).insert(bevy_presentation::UiSelected);
 }
 
 fn render_meditation(
