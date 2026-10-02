@@ -11,17 +11,12 @@ const CONFIG_DIRECTORY_NAME: &str = "The Ashen Chronicle";
 const CONFIG_FILE_NAME: &str = "display_mode";
 const APP_ICON_BYTES: &[u8] = include_bytes!("../data/assets/icons/app/icon.png");
 
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) enum DisplayMode {
     Fullscreen,
     Windowed1920x1080,
+    #[default]
     Windowed1280x720,
-}
-
-impl Default for DisplayMode {
-    fn default() -> Self {
-        Self::Windowed1280x720
-    }
 }
 
 impl DisplayMode {
@@ -137,7 +132,9 @@ fn load_window_icon() -> Option<winit::window::Icon> {
     let rgba = match info.color_type {
         png::ColorType::Rgba => data.to_vec(),
         png::ColorType::Rgb => data
-            .chunks_exact(3)
+            .as_chunks::<3>()
+            .0
+            .iter()
             .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], 255])
             .collect(),
         png::ColorType::Grayscale => data
@@ -145,7 +142,9 @@ fn load_window_icon() -> Option<winit::window::Icon> {
             .flat_map(|&gray| [gray, gray, gray, 255])
             .collect(),
         png::ColorType::GrayscaleAlpha => data
-            .chunks_exact(2)
+            .as_chunks::<2>()
+            .0
+            .iter()
             .flat_map(|pixel| [pixel[0], pixel[0], pixel[0], pixel[1]])
             .collect(),
         png::ColorType::Indexed => return None,
