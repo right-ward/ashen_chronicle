@@ -16,9 +16,13 @@ v0.51.x — continue the graphical frontend toward the planned real-time spatial
 Completed in this iteration:
 - #319 — add an Android long-press gesture for the developer console
 - #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
+<<<<<<< HEAD
 - #320 — make the gameplay pause menu pause runtime gameplay simulation
+=======
+>>>>>>> origin/main
 - #314 — restore Start screen Options navigation
 - #316 — fix Load screen Back navigation and migrate its controls to the current shared button style
+- #315 — migrate legacy graphical buttons to the current shared button style
 - #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
 - #298 — restore user-facing graphical text rendering
 - #299 — display the contextual quit-confirmation question
