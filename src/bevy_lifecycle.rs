@@ -608,16 +608,14 @@ fn render_start(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleSta
             ("×", "Quit"),
         ]
     } else {
-        &[
-            ("✦", "New Game"),
-            ("⚙", "Options"),
-            ("×", "Quit"),
-        ]
+        &[("✦", "New Game"), ("⚙", "Options"), ("×", "Quit")]
     };
     for (index, (icon, label)) in actions.iter().enumerate() {
         let button = bevy_presentation::spawn_action_button(commands, panel, index, *icon, *label);
         if lifecycle.selected == index {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
 }
@@ -669,7 +667,9 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
     }
     let button = bevy_presentation::spawn_action_button(commands, panel, 3, "▶", "Begin Life");
     if lifecycle.selected == 3 {
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     }
 }
 
@@ -864,7 +864,9 @@ fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
     {
         let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
         if lifecycle.selected == index {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
 }
@@ -874,7 +876,9 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
         bevy_presentation::spawn_muted_label(commands, panel, "No active life.");
         let button = bevy_presentation::spawn_action_button(commands, panel, 0, "×", "Quit");
         if lifecycle.selected == 0 {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
         return;
     };
@@ -896,7 +900,9 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
     }
     let button = bevy_presentation::spawn_action_button(commands, panel, 0, "×", "Quit");
     if lifecycle.selected == 0 {
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     }
 }
 
@@ -923,7 +929,9 @@ fn render_death(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleSta
     {
         let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
         if lifecycle.selected == index {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
 }

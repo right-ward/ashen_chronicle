@@ -1190,14 +1190,18 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
                 destination.name.clone(),
             );
             if index == selected {
-                commands.entity(button).insert(bevy_presentation::UiSelected);
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
             }
         }
     }
     let back_index = view.destinations.len();
     let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
     if selected == back_index {
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     }
 }
 

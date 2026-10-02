@@ -366,7 +366,9 @@ fn render_level_up(commands: &mut Commands, parent: Entity, level: u32, selected
     {
         let button = bevy_presentation::spawn_action_button(commands, parent, index, icon, label);
         if index == selected {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
     bevy_presentation::spawn_muted_label(

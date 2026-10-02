@@ -300,7 +300,9 @@ fn render_if_active(
             format!("{}: {}", index + 1, action),
         );
         if combat_state.phase == Some(CombatScreenPhase::Active) && index == combat_state.selected {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
     if combat_state.phase == Some(CombatScreenPhase::Result) {

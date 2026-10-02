@@ -378,14 +378,18 @@ fn render_talk(commands: &mut Commands, view: &TalkView, selected: usize) {
                 npc.display_name(),
             );
             if index == selected {
-                commands.entity(button).insert(bevy_presentation::UiSelected);
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
             }
         }
     }
     let back_index = view.npcs.len();
     let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
     if selected == back_index {
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     }
 }
 
@@ -404,7 +408,9 @@ fn render_conversation(
             "That person can no longer be found.",
         );
         let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, view.npc.display_name());
@@ -430,18 +436,26 @@ fn render_conversation(
             bevy_presentation::spawn_muted_label(commands, panel, line);
         }
         let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     } else {
         for (index, option) in view.options.iter().enumerate() {
-            let button = bevy_presentation::spawn_action_button(commands, panel, index, "▸", option);
+            let button =
+                bevy_presentation::spawn_action_button(commands, panel, index, "▸", option);
             if index == selected {
-                commands.entity(button).insert(bevy_presentation::UiSelected);
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
             }
         }
         let back_index = view.options.len();
-        let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+        let button =
+            bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
         if selected == back_index {
-            commands.entity(button).insert(bevy_presentation::UiSelected);
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
         }
     }
 }
@@ -470,17 +484,26 @@ fn render_remains(
         );
     } else {
         for (index, remains) in view.remains.iter().enumerate() {
-            let button =
-                bevy_presentation::spawn_action_button(commands, panel, index, "†", remains.label.clone());
+            let button = bevy_presentation::spawn_action_button(
+                commands,
+                panel,
+                index,
+                "†",
+                remains.label.clone(),
+            );
             if index == selected {
-                commands.entity(button).insert(bevy_presentation::UiSelected);
+                commands
+                    .entity(button)
+                    .insert(bevy_presentation::UiSelected);
             }
         }
     }
     let back_index = view.remains.len();
     let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
     if selected == back_index {
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
     }
 }
 
@@ -490,7 +513,9 @@ fn render_remains_result(commands: &mut Commands, result: Option<&RemainsResultV
     let Some(result) = result else {
         bevy_presentation::spawn_muted_label(commands, panel, "Nothing was recovered.");
         let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
-        commands.entity(button).insert(bevy_presentation::UiSelected);
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(
@@ -515,7 +540,9 @@ fn render_remains_result(commands: &mut Commands, result: Option<&RemainsResultV
         bevy_presentation::spawn_muted_label(commands, panel, note.clone());
     }
     let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
-    commands.entity(button).insert(bevy_presentation::UiSelected);
+    commands
+        .entity(button)
+        .insert(bevy_presentation::UiSelected);
 }
 
 #[cfg(test)]
