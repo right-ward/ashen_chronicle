@@ -93,7 +93,7 @@ fn lifecycle_input(
     mut input_queue: ResMut<SemanticInputQueue>,
     mut input_focus: ResMut<InputFocus>,
     fields: Query<(Entity, &LifecycleTextField)>,
-    mut commands: Commands,
+    commands: Commands,
 ) {
     if input_queue.0.is_empty() {
         return;
