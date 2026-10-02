@@ -670,3 +670,9 @@ src/
 - Load discovery scans `saves/` for current character-specific compressed saves while retaining root-level discovery for the legacy uncompressed save filename.
 - Bumped the project and Android fallback version metadata to 0.50.19.
 
+### v0.52.0: Android launch presentation and desktop display configuration
+- Added a black Android system splash with a custom Ashen Chronicle sigil.
+- Added a tabbed Options Display section with desktop Fullscreen, Windowed 1920 × 1080, and Windowed 1280 × 720 presets.
+- Applied desktop display changes at runtime while keeping windowed presets resizable.
+- Persisted the selected desktop display mode in the desktop configuration directory.
+- Kept the Display tab present but non-configurable on Android.
