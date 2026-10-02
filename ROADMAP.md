@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.9 development — Android console access improved
+v0.51.11 development — unified gameplay pause/navigation menu
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -15,6 +15,7 @@ v0.51.x — continue the graphical frontend toward the planned real-time spatial
 
 Completed in this iteration:
 - #319 — add an Android long-press gesture for the developer console
+- #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
 - #314 — restore Start screen Options navigation
 - #316 — fix Load screen Back navigation and migrate its controls to the current shared button style
 - #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
