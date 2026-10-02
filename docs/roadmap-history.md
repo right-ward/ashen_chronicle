@@ -676,3 +676,7 @@ src/
 - Applied desktop display changes at runtime while keeping windowed presets resizable.
 - Persisted the selected desktop display mode in the desktop configuration directory.
 - Kept the Display tab present but non-configurable on Android.
+### v0.51.14: Android quit/relaunch lifecycle fix
+- Kept the explicit Android task/process termination required to avoid reusing Bevy's process-global Android activity handle after Quit.
+- Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
+- Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
