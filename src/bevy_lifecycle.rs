@@ -812,8 +812,7 @@ const QUIT_VARIANTS: [QuitVariant; 16] = [
         leave: "Let the other one fade.",
         stay: "Listen again.",
         art: r#"      _    _      _    _
-     / \\__/ \\____/ \\__/ \\
-         \\/       \\/
+     / \\__/ \\____/ \\__/ \\         \\/       \\/
           \\______
 "#,
     },
@@ -984,3 +983,267 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
         "The Bevy gameplay flow will take over this session in the next migration step.",
     );
     if let Some(message) = &lifecycle.message {
+        bevy_presentation::spawn_muted_label(commands, panel, message);
+    }
+    let button = bevy_presentation::spawn_action_button(commands, panel, 0, "×", "Quit");
+    if lifecycle.selected == 0 {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
+}
+
+fn render_death(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
+    let Some(session) = lifecycle.session.as_ref() else {
+        return;
+    };
+    let view = build_death_view(&session.state);
+    bevy_presentation::spawn_label(commands, panel, view.screen.title);
+    if let Some(subtitle) = view.screen.subtitle {
+        bevy_presentation::spawn_muted_label(commands, panel, subtitle);
+    }
+    for line in view.screen.body {
+        bevy_presentation::spawn_label(commands, panel, line);
+    }
+    bevy_presentation::spawn_muted_label(commands, panel, view.memory_note);
+    for (index, (icon, label)) in [
+        ("✦", "Create a new world"),
+        ("↻", "Inherit this world with a new character"),
+        ("×", "Quit"),
+    ]
+    .into_iter()
+    .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if lifecycle.selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
+}
+
+fn build_death_view(state: &GameState) -> DeathView {
+    let character = crate::presentation::CharacterView {
+        name: state.character.name.clone(),
+        title: state.character.title.clone(),
+        hp: state.character.hp,
+        max_hp: state.character.max_hp,
+    };
+    let location_name = state
+        .world
+        .location_by_id(state.character.location_id)
+        .map(|location| location.name.clone())
+        .unwrap_or_else(|| "an unknown place".to_string());
+    let deeds = state
+        .world
+        .history
+        .iter()
+        .filter(|entry| {
+            entry.text.contains(&character.display_name()) && entry.text.contains("completed ")
+        })
+        .map(|entry| entry.text.clone())
+        .take(5)
+        .collect::<Vec<_>>();
+    let faction_standing = state
+        .factions
+        .iter()
+        .map(|faction| FactionView {
+            name: faction.name.clone(),
+            reputation: faction.reputation,
+            memories: Vec::new(),
+        })
+        .collect::<Vec<_>>();
+    let dropped_items = state
+        .corpses
+        .last()
+        .map(|corpse| {
+            corpse
+                .inventory
+                .iter()
+                .map(|item| ItemView {
+                    id: item.id,
+                    name: item.name.clone(),
+                    description: item.description.clone(),
+                })
+                .collect::<Vec<_>>()
+        })
+        .unwrap_or_default();
+    let mut body = vec![format!(
+        "{} died at {} on turn {}.",
+        character.display_name(),
+        location_name,
+        state.character.turn
+    )];
+    body.push(String::new());
+    body.push("Deeds remembered:".to_string());
+    if deeds.is_empty() {
+        body.push("  None recorded.".to_string());
+    } else {
+        body.extend(deeds.iter().map(|deed| format!("  - {deed}")));
+    }
+    body.push(String::new());
+    body.push("Faction standing at death:".to_string());
+    if faction_standing.is_empty() {
+        body.push("  None recorded.".to_string());
+    } else {
+        body.extend(
+            faction_standing
+                .iter()
+                .map(|faction| format!("  - {} {:+}", faction.name, faction.reputation)),
+        );
+    }
+    body.push(String::new());
+    body.push("What remains on the body:".to_string());
+    if dropped_items.is_empty() {
+        body.push("  Nothing worth carrying.".to_string());
+    } else {
+        body.push(format!(
+            "  {}",
+            dropped_items
+                .iter()
+                .map(|item| item.name.as_str())
+                .collect::<Vec<_>>()
+                .join(", ")
+        ));
+    }
+    DeathView {
+        screen: ScreenView {
+            title: "DEATH".to_string(),
+            subtitle: Some("The body is still. The world is not.".to_string()),
+            art: None,
+            body,
+        },
+        character,
+        location_name,
+        turn: state.character.turn,
+        deeds,
+        faction_standing,
+        dropped_items,
+        memory_note: "The next life will know none of this as memory. It can only be discovered."
+            .to_string(),
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    #[test]
+    fn start_options_index_accounts_for_load_slot() {
+        let mut lifecycle = super::LifecycleState::default();
+        assert_eq!(super::start_option_count(&lifecycle), 3);
+        assert_eq!(super::start_options_index(&lifecycle), 1);
+
+        lifecycle
+            .save_files
+            .push(std::path::PathBuf::from("save.json"));
+        assert_eq!(super::start_option_count(&lifecycle), 4);
+        assert_eq!(super::start_options_index(&lifecycle), 2);
+    }
+
+    use super::*;
+
+    #[test]
+    fn quit_confirmation_can_return_to_gameplay() {
+        let mut lifecycle = LifecycleState::default();
+        let state = create_new_state(
+            "Test World",
+            WorldMode::New,
+            "Tester".to_string(),
+            "Ash Walker".to_string(),
+        );
+        lifecycle.session = Some(GameSession {
+            state,
+            save_path: PathBuf::from("saves/test.json.gz"),
+        });
+        lifecycle.phase = LifecyclePhase::QuitConfirm;
+        lifecycle.selected = 1;
+
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: Some(ScreenId::Gameplay),
+            selected: 1,
+        };
+
+        lifecycle.cancel_quit_confirmation(&mut navigation);
+
+        assert_eq!(lifecycle.phase, LifecyclePhase::Complete);
+        assert_eq!(navigation.current_screen, Some(ScreenId::Gameplay));
+        assert_eq!(navigation.return_screen, None);
+        assert_eq!(lifecycle.selected, 0);
+        assert!(!lifecycle.dirty);
+    }
+
+    #[test]
+    fn options_activation_keeps_navigation_on_the_options_screen() {
+        let mut lifecycle = LifecycleState::default();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: None,
+            selected: 0,
+        };
+
+        lifecycle.phase = LifecyclePhase::Start;
+        lifecycle.selected = 1;
+
+        super::activate_selection(&mut lifecycle, &mut navigation);
+
+        assert_eq!(navigation.current_screen, Some(ScreenId::Options));
+        assert_eq!(navigation.return_screen, Some(ScreenId::Lifecycle));
+    }
+
+    #[test]
+    fn load_back_returns_to_the_start_screen() {
+        let mut lifecycle = LifecycleState {
+            phase: LifecyclePhase::Load,
+            ..LifecycleState::default()
+        };
+        lifecycle
+            .save_files
+            .push(std::path::PathBuf::from("saves/test.json.gz"));
+        lifecycle.selected = lifecycle.save_files.len();
+        let mut navigation = NavigationState {
+            current_screen: Some(ScreenId::Lifecycle),
+            return_screen: None,
+            selected: lifecycle.selected,
+        };
+
+        super::activate_selection(&mut lifecycle, &mut navigation);
+
+        assert_eq!(lifecycle.phase, LifecyclePhase::Start);
+        assert_eq!(lifecycle.selected, 0);
+        assert_eq!(navigation.current_screen, Some(ScreenId::Lifecycle));
+        assert_eq!(navigation.selected, 0);
+    }
+
+    #[test]
+    fn lifecycle_renderer_allows_initial_screen_but_not_dedicated_screen_overwrite() {
+        assert!(super::should_render_lifecycle(None));
+        assert!(super::should_render_lifecycle(Some(ScreenId::Lifecycle)));
+        assert!(!super::should_render_lifecycle(Some(ScreenId::Options)));
+        assert!(!super::should_render_lifecycle(Some(ScreenId::Gameplay)));
+    }
+
+    #[test]
+    fn start_screen_has_expected_options_without_saves() {
+        let state = LifecycleState::default();
+        assert_eq!(start_option_count(&state), 3);
+        assert!(!start_has_load(&state));
+    }
+
+    #[test]
+    fn character_save_paths_use_the_dedicated_saves_directory() {
+        let path = character_save_path(Path::new(SAVES_DIRECTORY_NAME), "Ash Walker");
+        assert_eq!(
+            path,
+            PathBuf::from("saves/ashen_chronicle_save_Ash Walker.json.gz")
+        );
+    }
+
+    #[test]
+    fn default_creation_values_match_legacy_flow() {
+        let state = LifecycleState::default();
+        assert_eq!(state.world_name, "The Ashen Crown");
+        assert!(state.character_name.is_empty());
+        assert_eq!(state.character_title, "Ash Walker");
+    }
+}
