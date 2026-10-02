@@ -870,23 +870,28 @@ fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) 
         );
     } else {
         for (index, entry) in view.entries.iter().enumerate() {
-            let marker = if selected == index { "▶ " } else { "" };
-            bevy_presentation::spawn_choice_button(
+            let button = bevy_presentation::spawn_action_button(
                 commands,
                 panel,
                 index,
+                "⌁",
                 format!(
-                    "{marker}Day {} {} {}",
+                    "Day {} {} {}",
                     entry.day,
                     entry_marker(entry),
                     entry.text
                 ),
             );
+            if selected == index {
+                commands.entity(button).insert(bevy_presentation::UiSelected);
+            }
         }
     }
     let back_index = view.entries.len();
-    let marker = if selected == back_index { "▶ " } else { "" };
-    bevy_presentation::spawn_choice_button(commands, panel, back_index, format!("{marker}Back"));
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    if selected == back_index {
+        commands.entity(button).insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryView>) {
@@ -897,7 +902,8 @@ fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryVie
             panel,
             "That history entry is no longer available.",
         );
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, format!("Day {}", entry.day));
@@ -911,7 +917,9 @@ fn render_history_detail(commands: &mut Commands, entry: Option<&HistoryEntryVie
     if let Some(outcome) = &entry.outcome {
         bevy_presentation::spawn_muted_label(commands, panel, format!("Outcome: {outcome}"));
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to history");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to history");
+    commands.entity(button).insert(bevy_presentation::UiSelected);
 }
 
 fn render_journal_entry(
