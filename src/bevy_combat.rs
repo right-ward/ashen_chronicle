@@ -287,12 +287,21 @@ fn render_if_active(
 
     let actions = bevy_presentation::spawn_panel(&mut commands, root);
     for (index, action) in view.actions.iter().enumerate() {
-        bevy_presentation::spawn_choice_button(
+        let icon = match index {
+            0 => "⚔",
+            1 => "◈",
+            _ => "↗",
+        };
+        let button = bevy_presentation::spawn_action_button(
             &mut commands,
             actions,
             index,
+            icon,
             format!("{}: {}", index + 1, action),
         );
+        if combat_state.phase == Some(CombatScreenPhase::Active) && index == combat_state.selected {
+            commands.entity(button).insert(bevy_presentation::UiSelected);
+        }
     }
     if combat_state.phase == Some(CombatScreenPhase::Result) {
         if let Some(result) = combat_state.result.as_ref() {
