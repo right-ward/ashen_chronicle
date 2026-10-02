@@ -18,63 +18,17 @@ use crate::presentation::{ConditionView, NavigationView, WorldView};
 pub(crate) enum GameplayScreen {
     Dashboard,
     Navigation,
-    SecondaryNavigation,
     Pause,
 }
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum SecondaryNavigationAction {
+enum PauseAction {
+    Resume,
     Character,
     Inventory,
     Quests,
     History,
     Journal,
-    Options,
-}
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-struct SecondaryNavigationEntry {
-    label: &'static str,
-    icon: &'static str,
-    action: SecondaryNavigationAction,
-}
-
-const SECONDARY_NAVIGATION_ENTRIES: [SecondaryNavigationEntry; 6] = [
-    SecondaryNavigationEntry {
-        label: "Character",
-        icon: "♙",
-        action: SecondaryNavigationAction::Character,
-    },
-    SecondaryNavigationEntry {
-        label: "Inventory",
-        icon: "◇",
-        action: SecondaryNavigationAction::Inventory,
-    },
-    SecondaryNavigationEntry {
-        label: "Quests",
-        icon: "✦",
-        action: SecondaryNavigationAction::Quests,
-    },
-    SecondaryNavigationEntry {
-        label: "History",
-        icon: "⌁",
-        action: SecondaryNavigationAction::History,
-    },
-    SecondaryNavigationEntry {
-        label: "Journal",
-        icon: "✎",
-        action: SecondaryNavigationAction::Journal,
-    },
-    SecondaryNavigationEntry {
-        label: "Options",
-        icon: "⚙",
-        action: SecondaryNavigationAction::Options,
-    },
-];
-
-#[derive(Debug, Clone, Copy, PartialEq, Eq)]
-enum PauseAction {
-    Resume,
     NewGame,
     LoadGame,
     Options,
@@ -186,11 +140,7 @@ fn gameplay_input(
             }
             InputEvent::OpenSecondaryNavigation => {
                 if gameplay.screen == GameplayScreen::Dashboard {
-                    gameplay.screen = GameplayScreen::SecondaryNavigation;
-                    gameplay.selected = 0;
-                    gameplay.message = None;
-                    gameplay.dirty = true;
-                    navigation_state.selected = 0;
+                    open_pause(&mut gameplay, &mut navigation_state);
                 }
             }
             InputEvent::OpenDeveloperConsole => {
@@ -199,7 +149,7 @@ fn gameplay_input(
                 }
             }
             InputEvent::Cancel => match gameplay.screen {
-                GameplayScreen::Navigation | GameplayScreen::SecondaryNavigation => {
+                GameplayScreen::Navigation => {
                     gameplay.screen = GameplayScreen::Dashboard;
                     gameplay.selected = 0;
                     gameplay.message = None;
@@ -210,6 +160,8 @@ fn gameplay_input(
                     close_pause(&mut gameplay, &mut navigation_state);
                 }
                 GameplayScreen::Dashboard => {
+                    // Android BrowserBack and desktop Escape both use Cancel,
+                    // so gameplay Back opens the unified menu.
                     open_pause(&mut gameplay, &mut navigation_state);
                 }
             },
@@ -238,7 +190,6 @@ fn move_selection(
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
-        GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
         GameplayScreen::Pause => pause_action_count(),
     };
     if count == 0 {
@@ -268,7 +219,6 @@ fn move_selection_to_end(
     let count = match gameplay.screen {
         GameplayScreen::Dashboard => dashboard_actions(&session.state).len(),
         GameplayScreen::Navigation => navigation::build_view(&session.state).destinations.len() + 1,
-        GameplayScreen::SecondaryNavigation => SECONDARY_NAVIGATION_ENTRIES.len(),
         GameplayScreen::Pause => pause_action_count(),
     };
     if count > 0 {
@@ -306,7 +256,15 @@ fn pause_actions() -> Vec<PauseAction> {
 }
 
 fn pause_actions_from(has_load: bool) -> Vec<PauseAction> {
-    let mut actions = vec![PauseAction::Resume, PauseAction::NewGame];
+    let mut actions = vec![
+        PauseAction::Resume,
+        PauseAction::Character,
+        PauseAction::Inventory,
+        PauseAction::Quests,
+        PauseAction::History,
+        PauseAction::Journal,
+        PauseAction::NewGame,
+    ];
     if has_load {
         actions.push(PauseAction::LoadGame);
     }
@@ -356,42 +314,10 @@ fn activate_selection(
                     }
                 }
                 PauseAction::Options => {
-                    open_dedicated_screen(navigation_state, ScreenId::Console);
+                    open_dedicated_screen(navigation_state, ScreenId::Options);
                 }
                 PauseAction::Quit => {
                     lifecycle.start_quit_confirmation(navigation_state, Some(ScreenId::Gameplay));
-                }
-            }
-        }
-        GameplayScreen::SecondaryNavigation => {
-            let Some(entry) = SECONDARY_NAVIGATION_ENTRIES.get(gameplay.selected) else {
-                return;
-            };
-
-            gameplay.screen = GameplayScreen::Dashboard;
-            gameplay.selected = 0;
-            gameplay.message = None;
-            gameplay.dirty = true;
-            navigation_state.selected = 0;
-
-            match entry.action {
-                SecondaryNavigationAction::Character => {
-                    open_dedicated_screen(navigation_state, ScreenId::Character);
-                }
-                SecondaryNavigationAction::Inventory => {
-                    open_dedicated_screen(navigation_state, ScreenId::Inventory);
-                }
-                SecondaryNavigationAction::Quests => {
-                    open_dedicated_screen(navigation_state, ScreenId::Quests);
-                }
-                SecondaryNavigationAction::History => {
-                    open_dedicated_screen(navigation_state, ScreenId::History);
-                }
-                SecondaryNavigationAction::Journal => {
-                    open_dedicated_screen(navigation_state, ScreenId::Journal);
-                }
-                SecondaryNavigationAction::Options => {
-                    open_dedicated_screen(navigation_state, ScreenId::Options);
                 }
             }
         }
@@ -555,17 +481,6 @@ fn render_if_active(
                 &navigation::build_view(&session.state),
                 gameplay.selected,
             );
-        }
-        GameplayScreen::SecondaryNavigation => {
-            let actions = dashboard_actions(&session.state);
-            let root = render_dashboard(
-                &mut commands,
-                &view,
-                &actions,
-                gameplay.selected,
-                gameplay.message.as_deref(),
-            );
-            render_secondary_navigation(&mut commands, root, gameplay.selected);
         }
         GameplayScreen::Pause => {
             let actions = dashboard_actions(&session.state);
@@ -1097,57 +1012,16 @@ fn render_pause(commands: &mut Commands, parent: Entity, actions: &[PauseAction]
 fn pause_action_visuals(action: PauseAction) -> (&'static str, &'static str) {
     match action {
         PauseAction::Resume => ("▶", "Resume"),
+        PauseAction::Character => ("♙", "Character"),
+        PauseAction::Inventory => ("◇", "Inventory"),
+        PauseAction::Quests => ("✦", "Quests"),
+        PauseAction::History => ("⌁", "History"),
+        PauseAction::Journal => ("✎", "Journal"),
         PauseAction::NewGame => ("✦", "New Game"),
         PauseAction::LoadGame => ("↺", "Load Game"),
         PauseAction::Options => ("⚙", "Options"),
         PauseAction::Quit => ("×", "Quit"),
     }
-}
-
-fn render_secondary_navigation(commands: &mut Commands, parent: Entity, selected: usize) {
-    let overlay = bevy_presentation::spawn_overlay(commands, parent);
-    let surface = commands
-        .spawn((
-            bevy_presentation::UiSurface,
-            Node {
-                width: percent(66),
-                min_width: px(280),
-                min_height: px(0),
-                padding: UiRect::all(bevy_presentation::responsive_surface_padding()),
-                flex_direction: FlexDirection::Column,
-                row_gap: bevy_presentation::responsive_compact_gap(),
-                border: UiRect::all(px(1)),
-                ..default()
-            },
-            BorderColor::all(bevy_presentation::THEME_BORDER),
-            BackgroundColor(bevy_presentation::THEME_SURFACE_STRONG),
-        ))
-        .id();
-    commands.entity(overlay).add_child(surface);
-
-    bevy_presentation::spawn_label(commands, surface, "SECONDARY");
-    bevy_presentation::spawn_muted_label(
-        commands,
-        surface,
-        "Character, records, and other detailed systems.",
-    );
-
-    for (index, entry) in SECONDARY_NAVIGATION_ENTRIES.iter().enumerate() {
-        let button = bevy_presentation::spawn_action_button(
-            commands,
-            surface,
-            index,
-            entry.icon,
-            entry.label,
-        );
-        if index == selected {
-            commands
-                .entity(button)
-                .insert(bevy_presentation::UiSelected);
-        }
-    }
-
-    bevy_presentation::spawn_muted_label(commands, surface, "Back to gameplay");
 }
 
 fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: usize) {
@@ -1205,8 +1079,8 @@ mod tests {
 
     #[test]
     fn pause_action_count_matches_load_visibility() {
-        assert_eq!(pause_actions_from(false).len(), 4);
-        assert_eq!(pause_actions_from(true).len(), 5);
+        assert_eq!(pause_actions_from(false).len(), 9);
+        assert_eq!(pause_actions_from(true).len(), 10);
     }
 
     #[test]
@@ -1215,6 +1089,11 @@ mod tests {
             pause_actions_from(true).as_slice(),
             [
                 PauseAction::Resume,
+                PauseAction::Character,
+                PauseAction::Inventory,
+                PauseAction::Quests,
+                PauseAction::History,
+                PauseAction::Journal,
                 PauseAction::NewGame,
                 PauseAction::LoadGame,
                 PauseAction::Options,
