@@ -600,13 +600,23 @@ fn render_start(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleSta
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
 
-    let labels = if start_has_load(lifecycle) {
-        ["New Game", "Load Game", "Options", "Quit"].as_slice()
+    let actions: &[(&str, &str)] = if start_has_load(lifecycle) {
+        &[
+            ("✦", "New Game"),
+            ("↺", "Load Game"),
+            ("⚙", "Options"),
+            ("×", "Quit"),
+        ]
     } else {
-        ["New Game", "Options", "Quit"].as_slice()
+        &[("✦", "New Game"), ("⚙", "Options"), ("×", "Quit")]
     };
-    for (index, label) in labels.iter().enumerate() {
-        bevy_presentation::spawn_choice_button(commands, panel, index, *label);
+    for (index, (icon, label)) in actions.iter().enumerate() {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, *icon, *label);
+        if lifecycle.selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
     }
 }
 
@@ -655,7 +665,12 @@ fn render_creation(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
             lifecycle.selected == index,
         );
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 3, "Begin Life");
+    let button = bevy_presentation::spawn_action_button(commands, panel, 3, "▶", "Begin Life");
+    if lifecycle.selected == 3 {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 #[derive(Debug, Clone, Copy)]
@@ -843,14 +858,28 @@ fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
         ))
         .id();
     commands.entity(panel).add_child(art);
-    bevy_presentation::spawn_choice_button(commands, panel, 0, variant.leave);
-    bevy_presentation::spawn_choice_button(commands, panel, 1, variant.stay);
+    for (index, (icon, label)) in [("×", variant.leave), ("↩", variant.stay)]
+        .into_iter()
+        .enumerate()
+    {
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if lifecycle.selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
+    }
 }
 
 fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
     let Some(session) = lifecycle.session.as_ref() else {
         bevy_presentation::spawn_muted_label(commands, panel, "No active life.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Quit");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "×", "Quit");
+        if lifecycle.selected == 0 {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
         return;
     };
     bevy_presentation::spawn_label(
@@ -869,7 +898,12 @@ fn render_complete(commands: &mut Commands, panel: Entity, lifecycle: &Lifecycle
     if let Some(message) = &lifecycle.message {
         bevy_presentation::spawn_muted_label(commands, panel, message);
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Quit");
+    let button = bevy_presentation::spawn_action_button(commands, panel, 0, "×", "Quit");
+    if lifecycle.selected == 0 {
+        commands
+            .entity(button)
+            .insert(bevy_presentation::UiSelected);
+    }
 }
 
 fn render_death(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleState) {
@@ -885,15 +919,20 @@ fn render_death(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleSta
         bevy_presentation::spawn_label(commands, panel, line);
     }
     bevy_presentation::spawn_muted_label(commands, panel, view.memory_note);
-    for (index, label) in [
-        "Create a new world",
-        "Inherit this world with a new character",
-        "Quit",
+    for (index, (icon, label)) in [
+        ("✦", "Create a new world"),
+        ("↻", "Inherit this world with a new character"),
+        ("×", "Quit"),
     ]
     .into_iter()
     .enumerate()
     {
-        bevy_presentation::spawn_choice_button(commands, panel, index, label);
+        let button = bevy_presentation::spawn_action_button(commands, panel, index, icon, label);
+        if lifecycle.selected == index {
+            commands
+                .entity(button)
+                .insert(bevy_presentation::UiSelected);
+        }
     }
 }
 

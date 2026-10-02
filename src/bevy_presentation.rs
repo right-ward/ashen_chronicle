@@ -202,14 +202,6 @@ pub(crate) fn muted_font_size() -> FontSize {
     FontSize::VMin(2.5)
 }
 
-fn button_padding_horizontal() -> Val {
-    vmin(1.944)
-}
-
-fn button_padding_vertical() -> Val {
-    vmin(1.111)
-}
-
 pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
@@ -419,49 +411,6 @@ pub fn spawn_text_input_field(
     commands.entity(row).add_child(field);
     commands.entity(parent).add_child(row);
     field
-}
-
-pub fn spawn_choice_button(
-    commands: &mut Commands,
-    parent: Entity,
-    index: usize,
-    label: impl Into<String>,
-) -> Entity {
-    let button = commands
-        .spawn((
-            Button,
-            ChoiceButton { index },
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(48),
-                padding: UiRect::axes(button_padding_horizontal(), button_padding_vertical()),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                border: UiRect::all(px(1)),
-                flex_shrink: 1.0,
-                ..default()
-            },
-            BorderColor::all(THEME_ACCENT),
-            BackgroundColor(THEME_PANEL_ALT),
-            children![(
-                Text::new(label.into()),
-                Node {
-                    width: percent(100),
-                    min_width: px(0),
-                    max_width: percent(100),
-                    ..default()
-                },
-                TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
-                TextContent,
-                TextFont::from_font_size(label_font_size()),
-                TextColor(THEME_TEXT),
-            )],
-        ))
-        .id();
-    commands.entity(parent).add_child(button);
-    button
 }
 
 pub fn responsive_compact_gap() -> Val {
