@@ -829,7 +829,8 @@ fn render_meditation_result(
     );
     let Some(result) = result else {
         bevy_presentation::spawn_muted_label(commands, panel, "No meditation result is available.");
-        bevy_presentation::spawn_choice_button(commands, panel, 0, "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        commands.entity(button).insert(bevy_presentation::UiSelected);
         return;
     };
     bevy_presentation::spawn_label(commands, panel, &result.ending_time);
@@ -849,7 +850,9 @@ fn render_meditation_result(
     if result.well_rested_applied {
         bevy_presentation::spawn_muted_label(commands, panel, "Well-rested is applied.");
     }
-    bevy_presentation::spawn_choice_button(commands, panel, 0, "Back to gameplay");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back to gameplay");
+    commands.entity(button).insert(bevy_presentation::UiSelected);
 }
 
 fn render_history(commands: &mut Commands, view: &HistoryView, selected: usize) {
