@@ -15,8 +15,6 @@ use crate::{
     bevy_records, bevy_runtime, bevy_touch,
 };
 
-const WINDOW_WIDTH: u32 = 1280;
-const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub fn run() {
