@@ -157,6 +157,7 @@ fn console_input(
                 state.dirty = true;
             }
             InputEvent::Character(_) => {}
+            InputEvent::SelectTab(_) => {}
             InputEvent::OpenSecondaryNavigation | InputEvent::OpenDeveloperConsole => {}
         }
     }
