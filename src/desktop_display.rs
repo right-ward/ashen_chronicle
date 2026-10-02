@@ -1,7 +1,7 @@
 //! Desktop-only display mode configuration and persistence.
 
 use std::fs;
-use std::io;
+use std::io::{self, Cursor};
 use std::path::PathBuf;
 
 use bevy::prelude::*;
@@ -9,6 +9,7 @@ use bevy::window::{MonitorSelection, VideoModeSelection, WindowMode};
 
 const CONFIG_DIRECTORY_NAME: &str = "The Ashen Chronicle";
 const CONFIG_FILE_NAME: &str = "display_mode";
+const APP_ICON_BYTES: &[u8] = include_bytes!("../data/assets/icons/app/icon.png");
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum DisplayMode {
@@ -103,6 +104,56 @@ pub(crate) fn apply(window: &mut Window, mode: DisplayMode) {
     window.mode = window_mode(mode);
 }
 
+pub(crate) fn apply_window_icon(
+    mut applied: Local<bool>,
+    primary_window: Single<Entity, With<bevy::window::PrimaryWindow>>,
+) {
+    if *applied {
+        return;
+    }
+
+    let Some(icon) = load_window_icon() else {
+        return;
+    };
+
+    bevy::winit::WINIT_WINDOWS.with(|windows| {
+        let windows = windows.borrow();
+        let Some(window) = windows.get_window(*primary_window) else {
+            return;
+        };
+
+        window.set_window_icon(Some(icon));
+        *applied = true;
+    });
+}
+
+fn load_window_icon() -> Option<winit::window::Icon> {
+    let decoder = png::Decoder::new(Cursor::new(APP_ICON_BYTES));
+    let mut reader = decoder.read_info().ok()?;
+    let mut buffer = vec![0; reader.output_buffer_size()];
+    let info = reader.next_frame(&mut buffer).ok()?;
+    let data = &buffer[..info.buffer_size()];
+
+    let rgba = match info.color_type {
+        png::ColorType::Rgba => data.to_vec(),
+        png::ColorType::Rgb => data
+            .chunks_exact(3)
+            .flat_map(|pixel| [pixel[0], pixel[1], pixel[2], 255])
+            .collect(),
+        png::ColorType::Grayscale => data
+            .iter()
+            .flat_map(|&gray| [gray, gray, gray, 255])
+            .collect(),
+        png::ColorType::GrayscaleAlpha => data
+            .chunks_exact(2)
+            .flat_map(|pixel| [pixel[0], pixel[0], pixel[0], pixel[1]])
+            .collect(),
+        png::ColorType::Indexed => return None,
+    };
+
+    winit::window::Icon::from_rgba(rgba, info.width, info.height).ok()
+}
+
 fn config_path() -> Option<PathBuf> {
     dirs::config_dir().map(|directory| directory.join(CONFIG_DIRECTORY_NAME).join(CONFIG_FILE_NAME))
 }
@@ -154,5 +205,10 @@ mod tests {
             DisplayMode::from_storage_value("invalid"),
             DisplayMode::Windowed1280x720
         );
+    }
+
+    #[test]
+    fn canonical_app_icon_decodes() {
+        assert!(load_window_icon().is_some());
     }
 }
