@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.14 development — Android quit/relaunch lifecycle fix
+v0.51.15 development — atmospheric quit-confirmation variants
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -35,6 +35,7 @@ Completed in this iteration:
 - #308 — remove stale gameplay navigation bridge mapping
 - #309 — keep world view construction renderer-neutral
 - #310 — centralize semantic choice-button activation
+- Atmospheric quit-confirmation variants — refine bundle semantics and add darker/sadder presentation variants
 - #311 — make the gameplay menu button satisfy the shared touch-target contract
 
 Previous v0.51.3 regression fixes:
