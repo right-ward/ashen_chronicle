@@ -68,15 +68,9 @@ struct WorldCloud {
     speed: f32,
 }
 
-#[derive(Resource, Debug, Clone, Copy, PartialEq, Eq)]
+#[derive(Resource, Debug, Clone, Copy, Default, PartialEq, Eq)]
 pub(crate) struct GameplayRuntimeState {
     paused: bool,
-}
-
-impl Default for GameplayRuntimeState {
-    fn default() -> Self {
-        Self { paused: false }
-    }
 }
 
 impl GameplayRuntimeState {
@@ -1169,7 +1163,7 @@ mod tests {
     #[test]
     fn animate_world_clouds_does_not_move_clouds_while_paused() {
         let mut app = App::new();
-        app.insert_resource(Time::default());
+        app.insert_resource(Time::<()>::default());
         app.insert_resource(GameplayRuntimeState { paused: true });
 
         let entity = app
