@@ -202,14 +202,6 @@ pub(crate) fn muted_font_size() -> FontSize {
     FontSize::VMin(2.5)
 }
 
-fn button_padding_horizontal() -> Val {
-    vmin(1.944)
-}
-
-fn button_padding_vertical() -> Val {
-    vmin(1.111)
-}
-
 pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
