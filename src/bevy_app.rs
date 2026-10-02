@@ -3,11 +3,11 @@
 //! Engine setup stays here; lifecycle and gameplay behavior remain in their
 //! frontend-independent systems and Bevy adapters.
 
+#[cfg(not(target_os = "android"))]
+use crate::desktop_display;
 use bevy::input_focus::tab_navigation::TabNavigationPlugin;
 use bevy::prelude::*;
 use bevy_picking::events::{Pointer, Release};
-#[cfg(not(target_os = "android"))]
-use crate::desktop_display;
 
 use crate::{
     bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_input_diagnostics,

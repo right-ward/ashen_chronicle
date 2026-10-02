@@ -255,16 +255,20 @@ fn complete_touch_choice(
 
     let physical_release_position =
         physical_touch_position(released_touch.position(), window.scale_factor());
-    let Some((_, choice, tab, _, _)) = buttons.iter().find(|(entity, _, _, computed, transform)| {
-        Some(*entity) == active.button
-            && computed.contains_point(**transform, physical_release_position)
-    }) else {
+    let Some((_, choice, tab, _, _)) =
+        buttons.iter().find(|(entity, _, _, computed, transform)| {
+            Some(*entity) == active.button
+                && computed.contains_point(**transform, physical_release_position)
+        })
+    else {
         return;
     };
 
     if let Some(tab) = tab {
         if navigation.current_screen == Some(ScreenId::Options) {
-            gameplay_queue.0.push(crate::input::InputEvent::SelectTab(tab.index));
+            gameplay_queue
+                .0
+                .push(crate::input::InputEvent::SelectTab(tab.index));
         }
         return;
     }

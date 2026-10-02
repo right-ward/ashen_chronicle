@@ -104,8 +104,7 @@ pub(crate) fn apply(window: &mut Window, mode: DisplayMode) {
 }
 
 fn config_path() -> Option<PathBuf> {
-    dirs::config_dir()
-        .map(|directory| directory.join(CONFIG_DIRECTORY_NAME).join(CONFIG_FILE_NAME))
+    dirs::config_dir().map(|directory| directory.join(CONFIG_DIRECTORY_NAME).join(CONFIG_FILE_NAME))
 }
 
 #[cfg(test)]
@@ -145,10 +144,7 @@ mod tests {
             DisplayMode::Windowed1920x1080,
             DisplayMode::Windowed1280x720,
         ] {
-            assert_eq!(
-                DisplayMode::from_storage_value(mode.storage_value()),
-                mode
-            );
+            assert_eq!(DisplayMode::from_storage_value(mode.storage_value()), mode);
         }
     }
 

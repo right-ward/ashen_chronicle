@@ -6,13 +6,13 @@
 
 use bevy::prelude::*;
 
-#[cfg(not(target_os = "android"))]
-use crate::desktop_display;
 use crate::bevy_gameplay::GameplayState;
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, UiSelected,
 };
+#[cfg(not(target_os = "android"))]
+use crate::desktop_display;
 use crate::input::InputEvent;
 
 #[derive(Resource)]
@@ -195,23 +195,15 @@ fn options_input(
                             &mut options,
                             desktop_display::DisplayMode::Windowed1280x720,
                         ),
-                        3 => close_options(
-                            &mut lifecycle,
-                            &mut navigation,
-                            &mut options,
-                            &gameplay,
-                        ),
+                        3 => {
+                            close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay)
+                        }
                         _ => {}
                     }
 
                     #[cfg(target_os = "android")]
                     if options.selected == 0 {
-                        close_options(
-                            &mut lifecycle,
-                            &mut navigation,
-                            &mut options,
-                            &gameplay,
-                        );
+                        close_options(&mut lifecycle, &mut navigation, &mut options, &gameplay);
                     }
                 }
                 _ => {}
@@ -364,11 +356,7 @@ fn render_if_active(
         bevy_presentation::SurfaceTone::Strong,
     );
 
-    bevy_presentation::spawn_muted_label(
-        &mut commands,
-        panel,
-        "Settings are grouped by purpose.",
-    );
+    bevy_presentation::spawn_muted_label(&mut commands, panel, "Settings are grouped by purpose.");
 
     let tab_strip = commands
         .spawn(Node {
@@ -456,13 +444,8 @@ fn render_game_data_tab(commands: &mut Commands, panel: Entity, options: &Option
         bevy_presentation::spawn_context_message(commands, panel, message);
     }
 
-    let change = bevy_presentation::spawn_action_button(
-        commands,
-        panel,
-        0,
-        "⌂",
-        "Change game data folder",
-    );
+    let change =
+        bevy_presentation::spawn_action_button(commands, panel, 0, "⌂", "Change game data folder");
     if options.selected == 0 {
         commands.entity(change).insert(UiSelected);
     }
