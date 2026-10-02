@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.12 development — gameplay runtime pause state
+v0.52.0 development — Android launch presentation and desktop display configuration
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -14,12 +14,10 @@ Startup regression fixed: the graphical frontend no longer aborts on Bevy UI hea
 v0.51.x — continue the graphical frontend toward the planned real-time spatial combat work.
 
 Completed in this iteration:
+- #330 — add an atmospheric Android launch splash and configurable desktop display modes
 - #319 — add an Android long-press gesture for the developer console
 - #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
-<<<<<<< HEAD
 - #320 — make the gameplay pause menu pause runtime gameplay simulation
-=======
->>>>>>> origin/main
 - #314 — restore Start screen Options navigation
 - #316 — fix Load screen Back navigation and migrate its controls to the current shared button style
 - #315 — migrate legacy graphical buttons to the current shared button style
