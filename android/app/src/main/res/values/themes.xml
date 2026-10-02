@@ -2,6 +2,6 @@
 <resources>
     <style name="Theme.AshenChronicle" parent="Theme.AppCompat.NoActionBar">
         <item name="android:windowSplashScreenBackground">@color/splash_background</item>
-        <item name="android:windowSplashScreenAnimatedIcon">@drawable/splash_screen</item>
+        <item name="android:windowSplashScreenAnimatedIcon">@drawable/icon</item>
     </style>
 </resources>
