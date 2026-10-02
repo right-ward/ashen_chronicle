@@ -3,7 +3,8 @@
 
     <application
         android:label="The Ashen Chronicle"
-        android:theme="@style/Theme.AppCompat.NoActionBar"
+        android:icon="@drawable/icon"
+        android:theme="@style/Theme.AshenChronicle"
         android:resizeableActivity="true"
         android:appCategory="game">
         <activity
@@ -12,7 +13,7 @@
             android:screenOrientation="sensorLandscape"
             android:windowSoftInputMode="adjustResize"
             android:configChanges="layoutDirection|locale|orientation|keyboardHidden|screenSize|smallestScreenSize|density|keyboard|navigation|screenLayout|uiMode"
-            android:theme="@style/Theme.AppCompat.NoActionBar">
+            android:theme="@style/Theme.AshenChronicle">
             <meta-data
                 android:name="android.app.lib_name"
                 android:value="ashen_chronicle" />

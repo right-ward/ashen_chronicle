@@ -3,6 +3,8 @@
 //! Engine setup stays here; lifecycle and gameplay behavior remain in their
 //! frontend-independent systems and Bevy adapters.
 
+#[cfg(not(target_os = "android"))]
+use crate::desktop_display;
 use bevy::input_focus::tab_navigation::TabNavigationPlugin;
 use bevy::prelude::*;
 use bevy_picking::events::{Pointer, Release};
@@ -13,11 +15,16 @@ use crate::{
     bevy_records, bevy_runtime, bevy_touch,
 };
 
-const WINDOW_WIDTH: u32 = 1280;
-const WINDOW_HEIGHT: u32 = 720;
 const WINDOW_TITLE: &str = "The Ashen Chronicle";
 
 pub fn run() {
+    #[cfg(not(target_os = "android"))]
+    let display_mode = desktop_display::load();
+    #[cfg(not(target_os = "android"))]
+    let window_resolution = desktop_display::window_resolution(display_mode);
+    #[cfg(target_os = "android")]
+    let window_resolution = (1280, 720);
+
     let mut app = App::new();
     // Bevy 0.19.1's EditableText widget installs a Pointer<Release> reader even
     // without the picking plugins. Register its message storage without enabling
@@ -26,7 +33,9 @@ pub fn run() {
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: WINDOW_TITLE.to_owned(),
-            resolution: (WINDOW_WIDTH, WINDOW_HEIGHT).into(),
+            resolution: window_resolution.into(),
+            #[cfg(not(target_os = "android"))]
+            mode: desktop_display::window_mode(display_mode),
             resizable: true,
             ..default()
         }),
@@ -46,6 +55,8 @@ pub fn run() {
     bevy_records::install(&mut app);
     bevy_interactions::install(&mut app);
     bevy_feedback::install(&mut app);
+    #[cfg(not(target_os = "android"))]
+    app.add_systems(Update, desktop_display::apply_window_icon);
     app.add_systems(Startup, setup).run();
 }
 
@@ -54,13 +65,21 @@ fn setup(mut commands: Commands) {
 }
 
 #[cfg(test)]
+#[cfg(not(target_os = "android"))]
 mod tests {
-    use super::{WINDOW_HEIGHT, WINDOW_TITLE, WINDOW_WIDTH};
+    use super::WINDOW_TITLE;
+    use crate::desktop_display::{self, DisplayMode};
 
     #[test]
     fn foundation_window_configuration_is_stable() {
         assert_eq!(WINDOW_TITLE, "The Ashen Chronicle");
-        assert_eq!(WINDOW_WIDTH, 1280);
-        assert_eq!(WINDOW_HEIGHT, 720);
+        assert_eq!(
+            desktop_display::window_resolution(DisplayMode::default()),
+            (1280, 720)
+        );
+        assert_eq!(
+            desktop_display::window_mode(DisplayMode::default()),
+            bevy::window::WindowMode::Windowed
+        );
     }
 }

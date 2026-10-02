@@ -32,8 +32,6 @@ pub const THEME_BORDER: Color = Color::srgba(0.35, 0.30, 0.24, 0.72);
 pub const THEME_HOVER: Color = Color::srgba(0.20, 0.16, 0.12, 0.92);
 pub const THEME_PRESSED: Color = Color::srgba(0.30, 0.24, 0.17, 0.96);
 pub const THEME_SELECTED: Color = Color::srgba(0.16, 0.13, 0.10, 0.90);
-#[allow(dead_code)] // TODO: this color isn't used; remove this after it is.
-pub const THEME_DISABLED: Color = Color::srgba(0.10, 0.095, 0.10, 0.62);
 pub const THEME_SKY_DAY: Color = Color::srgb(0.19, 0.25, 0.32);
 pub const THEME_SKY_DAWN: Color = Color::srgb(0.38, 0.19, 0.17);
 pub const THEME_SKY_DUSK: Color = Color::srgb(0.32, 0.13, 0.14);
@@ -69,6 +67,11 @@ pub struct UiStyledButton;
 
 #[derive(Component)]
 pub struct UiSelected;
+
+#[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
+pub(crate) struct UiTabButton {
+    pub(crate) index: usize,
+}
 
 #[derive(Component, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct UiHealthGauge {
@@ -993,15 +996,26 @@ pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize)
 }
 
 fn choice_button_input(
-    mut interaction_query: Query<(&Interaction, &ChoiceButton), Changed<Interaction>>,
+    mut interaction_query: Query<
+        (&Interaction, &ChoiceButton, Option<&UiTabButton>),
+        Changed<Interaction>,
+    >,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (interaction, choice) in &mut interaction_query {
+    for (interaction, choice, tab) in &mut interaction_query {
         if *interaction != Interaction::Pressed {
             continue;
         }
+
+        if let Some(tab) = tab {
+            if navigation.current_screen == Some(ScreenId::Options) {
+                gameplay_queue.0.push(InputEvent::SelectTab(tab.index));
+            }
+            continue;
+        }
+
         navigation.selected = choice.index;
         let queue = if navigation.current_screen == Some(ScreenId::Lifecycle) {
             &mut lifecycle_queue.0

@@ -9,7 +9,7 @@ use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
     physical_touch_position, queue_choice_activation, ChoiceButton, GameplayInputQueue,
-    NavigationState, ScreenId, SemanticInputQueue, UiMenuButton,
+    NavigationState, ScreenId, SemanticInputQueue, UiMenuButton, UiTabButton,
 };
 const TOUCH_TAP_THRESHOLD: f32 = 12.0;
 const TOUCH_MENU_LONG_PRESS_SECS: f32 = 0.65;
@@ -216,11 +216,21 @@ fn complete_touch_menu(
     }
 }
 
+#[allow(clippy::type_complexity)] // for buttons
 fn complete_touch_choice(
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchChoiceState>,
-    buttons: Query<(Entity, &ChoiceButton, &ComputedNode, &UiGlobalTransform), With<ChoiceButton>>,
+    buttons: Query<
+        (
+            Entity,
+            &ChoiceButton,
+            Option<&UiTabButton>,
+            &ComputedNode,
+            &UiGlobalTransform,
+        ),
+        With<ChoiceButton>,
+    >,
     navigation: Res<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
@@ -246,23 +256,30 @@ fn complete_touch_choice(
 
     let physical_release_position =
         physical_touch_position(released_touch.position(), window.scale_factor());
-    let Some(index) = buttons
-        .iter()
-        .find(|(entity, _, computed, transform)| {
+    let Some((_, choice, tab, _, _)) =
+        buttons.iter().find(|(entity, _, _, computed, transform)| {
             Some(*entity) == active.button
                 && computed.contains_point(**transform, physical_release_position)
         })
-        .map(|(_, choice, _, _)| choice.index)
     else {
         return;
     };
+
+    if let Some(tab) = tab {
+        if navigation.current_screen == Some(ScreenId::Options) {
+            gameplay_queue
+                .0
+                .push(crate::input::InputEvent::SelectTab(tab.index));
+        }
+        return;
+    }
 
     let queue = if navigation.current_screen == Some(ScreenId::Lifecycle) {
         &mut lifecycle_queue.0
     } else {
         &mut gameplay_queue.0
     };
-    queue_choice_activation(queue, index);
+    queue_choice_activation(queue, choice.index);
 }
 
 #[cfg(test)]

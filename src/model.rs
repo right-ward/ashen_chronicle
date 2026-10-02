@@ -496,7 +496,7 @@ impl Npc {
 }
 
 impl Quest {
-    #[allow(clippy::too_many_arguments)]
+    #[allow(clippy::too_many_arguments)] // for new()
     pub fn new(
         id: EntityId,
         content_id: impl Into<String>,
