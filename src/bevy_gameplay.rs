@@ -185,11 +185,7 @@ fn gameplay_input(
                 GameplayScreen::Dashboard => {
                     // Android BrowserBack and desktop Escape both use Cancel,
                     // so gameplay Back opens the unified menu.
-<<<<<<< HEAD
                     open_pause(&mut gameplay, &mut runtime_state, &mut navigation_state);
-=======
-                    open_pause(&mut gameplay, &mut navigation_state);
->>>>>>> origin/main
                 }
             },
             InputEvent::Confirm => {
