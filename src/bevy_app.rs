@@ -26,8 +26,6 @@ pub fn run() {
     let display_mode = desktop_display::load();
     #[cfg(not(target_os = "android"))]
     let window_resolution = desktop_display::window_resolution(display_mode);
-    #[cfg(not(target_os = "android"))]
-    let window_resolution = (WINDOW_WIDTH, WINDOW_HEIGHT);
 
     let mut app = App::new();
     // Bevy 0.19.1's EditableText widget installs a Pointer<Release> reader even
