@@ -1208,7 +1208,6 @@ fn organize_action_button_groups(
         let group = children
             .iter()
             .find(|entity| action_groups.contains(*entity))
-            .copied()
             .unwrap_or_else(|| {
                 let group = commands
                     .spawn((UiActionButtonGroup, action_button_group_node()))
