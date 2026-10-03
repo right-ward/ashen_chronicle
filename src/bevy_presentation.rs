@@ -43,6 +43,10 @@ pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
 pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
 pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
 pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+pub const UI_ACTION_MAX_WIDTH_PX: f32 = 520.0;
+pub const UI_ACTION_MAX_HEIGHT_PX: f32 = 96.0;
+pub const UI_PRIMARY_MAX_WIDTH_PX: f32 = 280.0;
+pub const UI_PRIMARY_MAX_HEIGHT_PX: f32 = 72.0;
 
 #[derive(Component)]
 pub struct UiSurface;
@@ -298,8 +302,25 @@ pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
     panel
 }
 
-pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<String>) -> Entity {
-    let label = commands
+fn spawn_text_block(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+    font_size: FontSize,
+    color: Color,
+    layout: TextLayout,
+) -> Entity {
+    let container = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            max_width: percent(100),
+            min_height: px(0),
+            flex_shrink: 0.0,
+            ..default()
+        })
+        .id();
+    let text_entity = commands
         .spawn((
             Text::new(text.into()),
             Node {
@@ -310,14 +331,26 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
                 flex_shrink: 0.0,
                 ..default()
             },
-            TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
+            layout,
             TextContent,
-            TextFont::from_font_size(label_font_size()),
-            TextColor(THEME_TEXT),
+            TextFont::from_font_size(font_size),
+            TextColor(color),
         ))
         .id();
-    commands.entity(parent).add_child(label);
-    label
+    commands.entity(container).add_child(text_entity);
+    commands.entity(parent).add_child(container);
+    container
+}
+
+pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<String>) -> Entity {
+    spawn_text_block(
+        commands,
+        parent,
+        text,
+        label_font_size(),
+        THEME_TEXT,
+        TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
+    )
 }
 
 pub fn spawn_muted_label(
@@ -325,25 +358,31 @@ pub fn spawn_muted_label(
     parent: Entity,
     text: impl Into<String>,
 ) -> Entity {
-    let label = commands
-        .spawn((
-            Text::new(text.into()),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(0),
-                flex_shrink: 0.0,
-                ..default()
-            },
-            TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
-            TextContent,
-            TextFont::from_font_size(muted_font_size()),
-            TextColor(THEME_MUTED),
-        ))
-        .id();
-    commands.entity(parent).add_child(label);
-    label
+    spawn_text_block(
+        commands,
+        parent,
+        text,
+        muted_font_size(),
+        THEME_MUTED,
+        TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
+    )
+}
+
+pub fn spawn_preformatted_text(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+    font_size: FontSize,
+    color: Color,
+) -> Entity {
+    spawn_text_block(
+        commands,
+        parent,
+        text,
+        font_size,
+        color,
+        TextLayout::no_wrap(),
+    )
 }
 
 pub fn spawn_text_input_field(
@@ -370,15 +409,24 @@ pub fn spawn_text_input_field(
 
     let label_entity = commands
         .spawn((
-            Text::new(format!("{label}:")),
             Node {
                 width: percent(25),
                 min_width: px(0),
+                flex_shrink: 0.0,
                 ..default()
             },
-            TextContent,
-            TextFont::from_font_size(label_font_size()),
-            TextColor(THEME_TEXT),
+            children![(
+                Text::new(format!("{label}:")),
+                Node {
+                    width: percent(100),
+                    min_width: px(0),
+                    max_width: percent(100),
+                    ..default()
+                },
+                TextContent,
+                TextFont::from_font_size(label_font_size()),
+                TextColor(THEME_TEXT),
+            )],
         ))
         .id();
 
@@ -497,11 +545,14 @@ pub fn spawn_action_button(
             UiActionButton,
             UiStyledButton,
             Node {
-                width: percent(100),
-                min_width: px(0),
+                width: percent(58),
+                min_width: px(160),
+                max_width: px(UI_ACTION_MAX_WIDTH_PX),
                 min_height: touch_target_size(),
-                flex_grow: 1.0,
+                max_height: px(UI_ACTION_MAX_HEIGHT_PX),
+                flex_grow: 0.0,
                 flex_shrink: 1.0,
+                align_self: AlignSelf::FlexStart,
                 padding: UiRect::axes(
                     vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
                     vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
@@ -572,9 +623,12 @@ pub fn spawn_primary_action_button(
             Node {
                 width: Val::Auto,
                 min_width: px(110),
+                max_width: px(UI_PRIMARY_MAX_WIDTH_PX),
                 min_height: touch_target_size(),
-                flex_grow: 1.0,
+                max_height: px(UI_PRIMARY_MAX_HEIGHT_PX),
+                flex_grow: 0.0,
                 flex_shrink: 1.0,
+                align_self: AlignSelf::FlexStart,
                 padding: UiRect::axes(
                     vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
                     vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
