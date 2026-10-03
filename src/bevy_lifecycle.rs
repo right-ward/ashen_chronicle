@@ -928,23 +928,13 @@ fn render_quit(commands: &mut Commands, panel: Entity, lifecycle: &LifecycleStat
         .get(lifecycle.quit_variant % QUIT_VARIANTS.len())
         .expect("quit variant should exist");
     bevy_presentation::spawn_muted_label(commands, panel, variant.question);
-    let art = commands
-        .spawn((
-            Text::new(variant.art),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                flex_shrink: 1.0,
-                ..default()
-            },
-            TextLayout::new(Justify::Center, LineBreak::NoWrap),
-            bevy_presentation::TextContent,
-            TextFont::from_font_size(bevy_presentation::muted_font_size()),
-            TextColor(bevy_presentation::THEME_TEXT),
-        ))
-        .id();
-    commands.entity(panel).add_child(art);
+    bevy_presentation::spawn_preformatted_text(
+        commands,
+        panel,
+        variant.art,
+        bevy_presentation::muted_font_size(),
+        bevy_presentation::THEME_TEXT,
+    );
     for (index, (icon, label)) in [("×", variant.leave), ("↩", variant.stay)]
         .into_iter()
         .enumerate()
