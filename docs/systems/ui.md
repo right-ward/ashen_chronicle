@@ -16,6 +16,8 @@ Bevy presentation adapters turn those views into UI nodes. Shared node construct
 
 The v0.51 graphical foundation keeps legacy panel helpers for existing screens while adding meaning-oriented primitives for the redesigned interface. New action and menu controls expose explicit interaction-state styling, health gauges keep their display values synchronized with their component state, and responsive spacing/touch-target tokens are centralized so new screens do not invent per-screen sizing rules. The dedicated Options screen reuses these primitives rather than introducing a separate menu architecture. The Options screen now has Game Data and Display tabs; Display controls are desktop-only, while Android shows the tab without configurable display settings yet.
 
+Standalone user-facing text uses a sizing container with a child `Text` node, matching the hierarchy used by contextual messages and action-button labels. Preformatted authored text such as ASCII artwork uses the same container with no-wrap layout. Shared action buttons are non-growing, left-aligned, and bounded by maximum width/height tokens so stacked choices remain compact instead of expanding across the whole screen.
+
 ## Input
 
 Native Bevy keyboard, touch, and button interaction is translated into the semantic `InputEvent` model in `input.rs`. Gameplay and screen systems consume these semantic events rather than Bevy-specific keyboard types except where text entry requires native `KeyboardInput` text data.
