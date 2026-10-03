@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.15 development — atmospheric quit-confirmation variants
+v0.51.16 development — shared UI text and action layout
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -37,6 +37,7 @@ Completed in this iteration:
 - #310 — centralize semantic choice-button activation
 - Atmospheric quit-confirmation variants — refine bundle semantics and add darker/sadder presentation variants
 - #311 — make the gameplay menu button satisfy the shared touch-target contract
+- #318 — restore shared user-facing text/art layout and constrain action buttons
 
 Previous v0.51.3 regression fixes:
 - #291 — persist the resolved desktop game-data root after first-launch selection
