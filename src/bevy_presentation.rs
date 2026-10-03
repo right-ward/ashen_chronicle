@@ -43,6 +43,7 @@ pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
 pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
 pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
 pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+pub const UI_ACTION_MAX_WIDTH_PX: f32 = 520.0;
 
 #[derive(Component)]
 pub struct UiSurface;
@@ -52,6 +53,12 @@ pub struct UiOverlayRoot;
 
 #[derive(Component)]
 pub struct UiActionButton;
+
+#[derive(Component)]
+struct UiActionButtonGroup;
+
+#[derive(Component)]
+struct UiStackedActionButton;
 
 #[derive(Component)]
 pub struct UiMenuButton;
@@ -225,6 +232,7 @@ pub fn install(app: &mut App) {
         .add_systems(PostUpdate, sync_ui_button_visuals)
         .add_systems(Update, touch_scroll)
         .add_systems(PostUpdate, contextual_touch_targets)
+        .add_systems(PostUpdate, organize_action_button_groups)
         .add_systems(PostUpdate, sync_ime_window)
         .add_systems(PostUpdate, sync_lifecycle_field_visuals);
 }
@@ -298,18 +306,21 @@ pub fn spawn_panel(commands: &mut Commands, parent: Entity) -> Entity {
     panel
 }
 
+fn standalone_label_node() -> Node {
+    Node {
+        width: percent(100),
+        min_width: px(0),
+        max_width: percent(100),
+        flex_shrink: 0.0,
+        ..default()
+    }
+}
+
 pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<String>) -> Entity {
     let label = commands
         .spawn((
             Text::new(text.into()),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(0),
-                flex_shrink: 0.0,
-                ..default()
-            },
+            standalone_label_node(),
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(label_font_size()),
@@ -328,14 +339,7 @@ pub fn spawn_muted_label(
     let label = commands
         .spawn((
             Text::new(text.into()),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(0),
-                flex_shrink: 0.0,
-                ..default()
-            },
+            standalone_label_node(),
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(muted_font_size()),
@@ -483,6 +487,42 @@ pub fn spawn_overlay(commands: &mut Commands, parent: Entity) -> Entity {
     overlay
 }
 
+fn action_button_group_node() -> Node {
+    Node {
+        width: percent(100),
+        min_width: px(0),
+        max_width: px(UI_ACTION_MAX_WIDTH_PX),
+        flex_direction: FlexDirection::Column,
+        row_gap: responsive_compact_gap(),
+        flex_shrink: 0.0,
+        align_self: AlignSelf::FlexStart,
+        margin: UiRect {
+            top: Val::Auto,
+            ..default()
+        },
+        ..default()
+    }
+}
+
+fn action_button_node() -> Node {
+    Node {
+        width: percent(100),
+        min_width: px(0),
+        max_width: percent(100),
+        min_height: touch_target_size(),
+        flex_grow: 0.0,
+        flex_shrink: 0.0,
+        padding: UiRect::axes(
+            vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
+            vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
+        ),
+        border: UiRect::all(px(1)),
+        justify_content: JustifyContent::Start,
+        align_items: AlignItems::Center,
+        ..default()
+    }
+}
+
 pub fn spawn_action_button(
     commands: &mut Commands,
     parent: Entity,
@@ -495,22 +535,9 @@ pub fn spawn_action_button(
             Button,
             ChoiceButton { index },
             UiActionButton,
+            UiStackedActionButton,
             UiStyledButton,
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                min_height: touch_target_size(),
-                flex_grow: 1.0,
-                flex_shrink: 1.0,
-                padding: UiRect::axes(
-                    vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
-                    vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
-                ),
-                border: UiRect::all(px(1)),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                ..default()
-            },
+            action_button_node(),
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
@@ -1159,6 +1186,42 @@ fn contextual_touch_targets(
     }
 }
 
+fn organize_action_button_groups(
+    mut commands: Commands,
+    parents: Query<(Entity, &Children, Option<&UiActionButtonGroup>)>,
+    action_buttons: Query<(), With<UiStackedActionButton>>,
+    action_groups: Query<(), With<UiActionButtonGroup>>,
+) {
+    for (parent, children, is_action_group) in &parents {
+        if is_action_group.is_some() {
+            continue;
+        }
+
+        let buttons = children
+            .iter()
+            .filter(|entity| action_buttons.contains(*entity))
+            .collect::<Vec<_>>();
+        if buttons.is_empty() {
+            continue;
+        }
+
+        let group = children
+            .iter()
+            .find(|entity| action_groups.contains(*entity))
+            .unwrap_or_else(|| {
+                let group = commands
+                    .spawn((UiActionButtonGroup, action_button_group_node()))
+                    .id();
+                commands.entity(parent).add_child(group);
+                group
+            });
+
+        for button in buttons {
+            commands.entity(group).add_child(button);
+        }
+    }
+}
+
 fn touch_scroll(
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
@@ -1314,6 +1377,33 @@ mod tests {
         assert_eq!(responsive_compact_gap(), vmin(UI_COMPACT_GAP_VMIN));
         assert_eq!(responsive_surface_padding(), vmin(UI_SURFACE_PADDING_VMIN));
         assert_eq!(touch_target_size(), px(UI_TOUCH_TARGET_PX));
+    }
+
+    #[test]
+    fn standalone_labels_retain_intrinsic_height() {
+        let node = standalone_label_node();
+
+        assert_eq!(node.min_height, Val::Auto);
+        assert_eq!(node.flex_shrink, 0.0);
+    }
+
+    #[test]
+    fn action_groups_are_bottom_left_and_width_capped() {
+        let node = action_button_group_node();
+
+        assert_eq!(node.width, percent(100));
+        assert_eq!(node.max_width, px(UI_ACTION_MAX_WIDTH_PX));
+        assert_eq!(node.align_self, AlignSelf::FlexStart);
+        assert_eq!(node.margin.top, Val::Auto);
+    }
+
+    #[test]
+    fn stacked_action_buttons_do_not_expand_to_fill_parent() {
+        let node = action_button_node();
+
+        assert_eq!(node.flex_grow, 0.0);
+        assert_eq!(node.flex_shrink, 0.0);
+        assert_eq!(node.min_height, touch_target_size());
     }
 
     #[test]
