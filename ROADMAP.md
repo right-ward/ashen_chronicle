@@ -5,7 +5,7 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.15 development — atmospheric quit-confirmation variants
+v0.51.16 development — shared graphical text and button layout regression fixed
 
 Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
 
@@ -16,6 +16,7 @@ v0.51.x — continue the graphical frontend toward the planned real-time spatial
 Completed in this iteration:
 - #329 — defer Android Quit process termination until after Activity teardown so relaunch can initialize normally
 - #330 — add an atmospheric Android launch splash and configurable desktop display modes
+- #318 — restore shared user-facing text/art rendering and bound graphical action-button layout
 - #319 — add an Android long-press gesture for the developer console
 - #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
 - #320 — make the gameplay pause menu pause runtime gameplay simulation
