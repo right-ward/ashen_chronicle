@@ -43,6 +43,7 @@ pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
 pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
 pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
 pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+pub const UI_ACTION_MAX_WIDTH_VMIN: f32 = 55.0;
 
 #[derive(Component)]
 pub struct UiSurface;
@@ -205,6 +206,44 @@ pub(crate) fn muted_font_size() -> FontSize {
     FontSize::VMin(2.5)
 }
 
+fn standalone_text_node() -> Node {
+    Node {
+        width: percent(100),
+        min_width: px(0),
+        max_width: percent(100),
+        flex_shrink: 0.0,
+        ..default()
+    }
+}
+
+fn action_button_node(index: usize) -> Node {
+    Node {
+        width: Val::Auto,
+        max_width: vmin(UI_ACTION_MAX_WIDTH_VMIN),
+        min_width: px(0),
+        min_height: touch_target_size(),
+        flex_grow: 0.0,
+        flex_shrink: 0.0,
+        align_self: AlignSelf::Start,
+        margin: if index == 0 {
+            UiRect {
+                top: Val::Auto,
+                ..default()
+            }
+        } else {
+            UiRect::default()
+        },
+        padding: UiRect::axes(
+            vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
+            vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
+        ),
+        border: UiRect::all(px(1)),
+        justify_content: JustifyContent::Start,
+        align_items: AlignItems::Center,
+        ..default()
+    }
+}
+
 pub fn install(app: &mut App) {
     app.init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
@@ -302,14 +341,7 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
     let label = commands
         .spawn((
             Text::new(text.into()),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(0),
-                flex_shrink: 0.0,
-                ..default()
-            },
+            standalone_text_node(),
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(label_font_size()),
@@ -328,14 +360,7 @@ pub fn spawn_muted_label(
     let label = commands
         .spawn((
             Text::new(text.into()),
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                max_width: percent(100),
-                min_height: px(0),
-                flex_shrink: 0.0,
-                ..default()
-            },
+            standalone_text_node(),
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
             TextContent,
             TextFont::from_font_size(muted_font_size()),
@@ -496,21 +521,7 @@ pub fn spawn_action_button(
             ChoiceButton { index },
             UiActionButton,
             UiStyledButton,
-            Node {
-                width: percent(100),
-                min_width: px(0),
-                min_height: touch_target_size(),
-                flex_grow: 1.0,
-                flex_shrink: 1.0,
-                padding: UiRect::axes(
-                    vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
-                    vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
-                ),
-                border: UiRect::all(px(1)),
-                justify_content: JustifyContent::Start,
-                align_items: AlignItems::Center,
-                ..default()
-            },
+            action_button_node(index),
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
@@ -1295,6 +1306,28 @@ mod tests {
         assert_eq!(title_font_size(), FontSize::VMin(5.0));
         assert_eq!(label_font_size(), FontSize::VMin(2.778));
         assert_eq!(muted_font_size(), FontSize::VMin(2.5));
+    }
+
+    #[test]
+    fn standalone_text_keeps_intrinsic_height_available() {
+        let node = standalone_text_node();
+        assert_eq!(node.min_height, Val::Auto);
+        assert_eq!(node.flex_shrink, 0.0);
+        assert_eq!(node.max_width, percent(100.0));
+    }
+
+    #[test]
+    fn menu_actions_are_compact_and_bottom_left_aligned() {
+        let first = action_button_node(0);
+        assert_eq!(first.width, Val::Auto);
+        assert_eq!(first.max_width, vmin(UI_ACTION_MAX_WIDTH_VMIN));
+        assert_eq!(first.align_self, AlignSelf::Start);
+        assert_eq!(first.flex_grow, 0.0);
+        assert_eq!(first.flex_shrink, 0.0);
+        assert_eq!(first.margin.top, Val::Auto);
+
+        let second = action_button_node(1);
+        assert_eq!(second.margin.top, Val::Px(0.0));
     }
 
     #[test]
