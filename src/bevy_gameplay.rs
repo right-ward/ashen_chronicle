@@ -722,22 +722,13 @@ fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
             format!("{} · {}", view.world_name, location.region_name),
         );
         if let Some(art) = &view.art {
-            let art_entity = commands
-                .spawn((
-                    Text::new(art.clone()),
-                    Node {
-                        width: percent(100),
-                        min_width: px(0),
-                        flex_grow: 1.0,
-                        min_height: px(40),
-                        ..default()
-                    },
-                    bevy_presentation::TextContent,
-                    TextFont::from_font_size(bevy_presentation::muted_font_size()),
-                    TextColor(bevy_presentation::THEME_MUTED),
-                ))
-                .id();
-            commands.entity(card).add_child(art_entity);
+            bevy_presentation::spawn_preformatted_text(
+                commands,
+                card,
+                art.clone(),
+                bevy_presentation::muted_font_size(),
+                bevy_presentation::THEME_MUTED,
+            );
         }
         if !location.description.trim().is_empty() {
             bevy_presentation::spawn_muted_label(commands, card, location.description.clone());
