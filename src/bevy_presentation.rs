@@ -474,8 +474,8 @@ pub fn spawn_overlay(commands: &mut Commands, parent: Entity) -> Entity {
                 padding: UiRect::all(screen_padding()),
                 flex_direction: FlexDirection::Column,
                 row_gap: responsive_compact_gap(),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
+                justify_content: JustifyContent::End,
+                align_items: AlignItems::FlexStart,
                 ..default()
             },
             BackgroundColor(THEME_OVERLAY_SOFT),
