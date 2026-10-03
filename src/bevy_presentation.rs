@@ -43,6 +43,7 @@ pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
 pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
 pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
 pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+pub const UI_ACTION_MAX_WIDTH_PERCENT: f32 = 70.0;
 
 #[derive(Component)]
 pub struct UiSurface;
@@ -303,11 +304,10 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
         .spawn((
             Text::new(text.into()),
             Node {
-                width: percent(100),
                 min_width: px(0),
                 max_width: percent(100),
-                min_height: px(0),
                 flex_shrink: 0.0,
+                align_self: AlignSelf::Stretch,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
@@ -329,11 +329,10 @@ pub fn spawn_muted_label(
         .spawn((
             Text::new(text.into()),
             Node {
-                width: percent(100),
                 min_width: px(0),
                 max_width: percent(100),
-                min_height: px(0),
                 flex_shrink: 0.0,
+                align_self: AlignSelf::Stretch,
                 ..default()
             },
             TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
@@ -499,9 +498,11 @@ pub fn spawn_action_button(
             Node {
                 width: percent(100),
                 min_width: px(0),
+                max_width: percent(UI_ACTION_MAX_WIDTH_PERCENT),
                 min_height: touch_target_size(),
-                flex_grow: 1.0,
-                flex_shrink: 1.0,
+                flex_grow: 0.0,
+                flex_shrink: 0.0,
+                align_self: AlignSelf::FlexStart,
                 padding: UiRect::axes(
                     vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
                     vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
@@ -1307,6 +1308,7 @@ mod tests {
         assert_eq!(UI_TOUCH_TARGET_PX, 48.0);
         assert_eq!(UI_COMPACT_GAP_VMIN, 1.111);
         assert_eq!(UI_SURFACE_PADDING_VMIN, 1.667);
+        assert_eq!(UI_ACTION_MAX_WIDTH_PERCENT, 70.0);
     }
 
     #[test]
