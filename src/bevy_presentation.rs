@@ -43,6 +43,8 @@ pub const UI_COMPACT_GAP_VMIN: f32 = 1.111;
 pub const UI_SURFACE_PADDING_VMIN: f32 = 1.667;
 pub const UI_ACTION_PADDING_HORIZONTAL_VMIN: f32 = 1.944;
 pub const UI_ACTION_PADDING_VERTICAL_VMIN: f32 = 0.833;
+pub const UI_ACTION_MAX_WIDTH_PX: f32 = 420.0;
+pub const UI_ACTION_MAX_HEIGHT_PX: f32 = 72.0;
 
 #[derive(Component)]
 pub struct UiSurface;
@@ -303,10 +305,10 @@ pub fn spawn_label(commands: &mut Commands, parent: Entity, text: impl Into<Stri
         .spawn((
             Text::new(text.into()),
             Node {
-                width: percent(100),
                 min_width: px(0),
                 max_width: percent(100),
-                min_height: px(0),
+                min_height: vmin(3.5),
+                align_self: AlignSelf::Stretch,
                 flex_shrink: 0.0,
                 ..default()
             },
@@ -329,10 +331,10 @@ pub fn spawn_muted_label(
         .spawn((
             Text::new(text.into()),
             Node {
-                width: percent(100),
                 min_width: px(0),
                 max_width: percent(100),
-                min_height: px(0),
+                min_height: vmin(3.5),
+                align_self: AlignSelf::Stretch,
                 flex_shrink: 0.0,
                 ..default()
             },
@@ -497,11 +499,14 @@ pub fn spawn_action_button(
             UiActionButton,
             UiStyledButton,
             Node {
-                width: percent(100),
+                width: Val::Auto,
                 min_width: px(0),
+                max_width: px(UI_ACTION_MAX_WIDTH_PX),
                 min_height: touch_target_size(),
-                flex_grow: 1.0,
-                flex_shrink: 1.0,
+                max_height: px(UI_ACTION_MAX_HEIGHT_PX),
+                align_self: AlignSelf::FlexStart,
+                flex_grow: 0.0,
+                flex_shrink: 0.0,
                 padding: UiRect::axes(
                     vmin(UI_ACTION_PADDING_HORIZONTAL_VMIN),
                     vmin(UI_ACTION_PADDING_VERTICAL_VMIN),
@@ -1307,6 +1312,15 @@ mod tests {
         assert_eq!(UI_TOUCH_TARGET_PX, 48.0);
         assert_eq!(UI_COMPACT_GAP_VMIN, 1.111);
         assert_eq!(UI_SURFACE_PADDING_VMIN, 1.667);
+        assert_eq!(UI_ACTION_MAX_WIDTH_PX, 420.0);
+        assert_eq!(UI_ACTION_MAX_HEIGHT_PX, 72.0);
+    }
+
+    #[test]
+    fn action_buttons_are_bounded_touch_targets() {
+        assert_eq!(px(UI_ACTION_MAX_WIDTH_PX), Val::Px(420.0));
+        assert_eq!(px(UI_ACTION_MAX_HEIGHT_PX), Val::Px(72.0));
+        assert_eq!(touch_target_size(), Val::Px(48.0));
     }
 
     #[test]
