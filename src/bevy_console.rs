@@ -80,7 +80,7 @@ fn sync_android_console_text_input(
         return;
     }
 
-    if let Some(android) = bevy_presentation::android_take_text_input_state() {
+    if let Some(android) = bevy_presentation::android_text_input_state() {
         if android.text != sync.last_sent_text {
             let text = android
                 .text

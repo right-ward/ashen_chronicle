@@ -172,11 +172,11 @@ pub(crate) fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2
 }
 
 #[cfg(target_os = "android")]
-pub(crate) fn android_take_text_input_state(
+pub(crate) fn android_text_input_state(
 ) -> Option<bevy::android::android_activity::input::TextInputState> {
     bevy::android::ANDROID_APP
         .get()
-        .and_then(|app| app.take_text_input_state())
+        .map(|app| app.text_input_state())
 }
 
 #[cfg(target_os = "android")]
