@@ -8,6 +8,8 @@ import android.os.Environment;
 import android.util.Log;
 import android.view.View;
 
+import androidx.activity.OnBackPressedCallback;
+
 import androidx.documentfile.provider.DocumentFile;
 
 import com.google.androidgamesdk.GameActivity;
@@ -41,6 +43,12 @@ public class MainActivity extends GameActivity {
     protected void onCreate(Bundle savedInstanceState) {
         prepareGameRoot();
         super.onCreate(savedInstanceState);
+        getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
+            @Override
+            public void handleOnBackPressed() {
+                nativeBackNavigation();
+            }
+        });
         maybePromptForSharedStorage();
     }
 
@@ -101,6 +109,8 @@ public class MainActivity extends GameActivity {
      * finished Activity must therefore be followed by a fresh process before the
      * launcher creates another game instance.
      */
+    private static native void nativeBackNavigation();
+
     public void requestGameExit() {
         if (!isFinishing()) {
             finishAndRemoveTask();

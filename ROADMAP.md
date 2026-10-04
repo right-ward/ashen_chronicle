@@ -5,15 +5,16 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.16 development — shared graphical presentation regression fix
+v0.51.17 development — final Android input compatibility fixes
 
-Startup regression fixed: the graphical frontend no longer aborts on Bevy UI health-gauge query validation.
+Android system Back and desktop mouse Back now enter the shared semantic Cancel path. Android text-entry state is synchronized with the character-creation fields and developer console through the existing GameActivity text-input interface.
 
 ## Next
 
-v0.51.x — continue the graphical frontend toward the planned real-time spatial combat work.
+v0.51.17 — release after physical Android verification of the final input pass.
 
 Completed in this iteration:
+- Android input compatibility — route system Back through the AndroidX back dispatcher and synchronize GameActivity IME text state for character creation and the developer console
 - #318 — restore shared standalone text layout and constrain graphical action controls
 - #329 — defer Android Quit process termination until after Activity teardown so relaunch can initialize normally
 - #330 — add an atmospheric Android launch splash and configurable desktop display modes

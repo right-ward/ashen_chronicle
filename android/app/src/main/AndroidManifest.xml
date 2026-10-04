@@ -6,6 +6,7 @@
         android:icon="@drawable/icon"
         android:theme="@style/Theme.AshenChronicle"
         android:resizeableActivity="true"
+        android:enableOnBackInvokedCallback="true"
         android:appCategory="game">
         <activity
             android:name=".MainActivity"
