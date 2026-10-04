@@ -11,7 +11,7 @@ use bevy::input_focus::{
     AutoFocus, FocusCause, InputFocus,
 };
 use bevy::prelude::*;
-use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextEdit, TextLayout};
+use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::window::PrimaryWindow;
 #[cfg(target_os = "android")]
 use std::sync::atomic::{AtomicBool, Ordering};
