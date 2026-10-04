@@ -11,8 +11,10 @@ use bevy::input_focus::{
     AutoFocus, FocusCause, InputFocus,
 };
 use bevy::prelude::*;
-use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
+use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextEdit, TextLayout};
 use bevy::window::PrimaryWindow;
+#[cfg(target_os = "android")]
+use std::sync::atomic::{AtomicBool, Ordering};
 
 use crate::input::InputEvent;
 
@@ -142,6 +144,19 @@ struct ConsoleTextInputFocus {
     suppress_next_back: bool,
 }
 
+#[cfg(target_os = "android")]
+static ANDROID_BACK_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeBackNavigation(
+    _env: jni::JNIEnv<'_>,
+    _class: jni::objects::JClass<'_>,
+) {
+    ANDROID_BACK_REQUESTED.store(true, Ordering::Release);
+}
+
+
 #[derive(Resource, Default, Debug)]
 struct TouchScrollState {
     active: Option<(u64, Entity, Vec2)>,
@@ -156,6 +171,26 @@ pub struct GameplayInputQueue(pub Vec<InputEvent>);
 pub(crate) fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2 {
     position * scale_factor
 }
+
+#[cfg(target_os = "android")]
+pub(crate) fn android_text_input_state() -> Option<bevy::android::android_activity::input::TextInputState> {
+    bevy::android::ANDROID_APP.get().map(|app| app.text_input_state())
+}
+
+#[cfg(target_os = "android")]
+pub(crate) fn android_set_text_input_state(text: &str) {
+    let Some(app) = bevy::android::ANDROID_APP.get() else {
+        return;
+    };
+
+    let end = text.len();
+    app.set_text_input_state(bevy::android::android_activity::input::TextInputState {
+        text: text.to_owned(),
+        selection: bevy::android::android_activity::input::TextSpan { start: end, end },
+        compose_region: None,
+    });
+}
+
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NavigationState {
@@ -226,6 +261,9 @@ pub fn install(app: &mut App) {
                 .after(bevy::ui_widgets::ImeSystems::ToggleWindowIMEInput),
         )
         .add_systems(Update, keyboard_to_semantic_input)
+        .add_systems(Update, mouse_to_semantic_input)
+        #[cfg(target_os = "android")]
+        .add_systems(Update, android_back_to_semantic_input)
         .add_systems(Update, choice_button_input)
         .add_systems(Update, contextual_touch_input)
         .add_systems(PostUpdate, sync_ui_health_gauges)
@@ -922,7 +960,7 @@ fn process_ime_events(
 ) {
     for event in ime.read() {
         match event {
-            Ime::Commit { window, value } if console_focus.active && !value.is_empty() => {
+            Ime::Commit { window, value } if !cfg!(target_os = "android") && console_focus.active && !value.is_empty() => {
                 keyboard_input.write(KeyboardInput {
                     key_code: KeyCode::Unidentified(NativeKeyCode::Unidentified),
                     logical_key: Key::Character(value.clone().into()),
@@ -946,6 +984,52 @@ fn process_ime_events(
             }
             _ => {}
         }
+    }
+}
+
+#[cfg(target_os = "android")]
+fn android_back_to_semantic_input(
+    navigation: Res<NavigationState>,
+    input_focus: Res<InputFocus>,
+    editable_fields: Query<(), With<LifecycleTextField>>,
+    console_focus: Res<ConsoleTextInputFocus>,
+    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut gameplay_queue: ResMut<GameplayInputQueue>,
+) {
+    if !ANDROID_BACK_REQUESTED.swap(false, Ordering::AcqRel) {
+        return;
+    }
+
+    let lifecycle_text_focused = navigation.current_screen == Some(ScreenId::Lifecycle)
+        && input_focus
+            .get()
+            .is_some_and(|entity| editable_fields.contains(entity));
+
+    if lifecycle_text_focused || console_focus.active {
+        return;
+    }
+
+    if navigation.current_screen == Some(ScreenId::Lifecycle) {
+        lifecycle_queue.0.push(InputEvent::Cancel);
+    } else {
+        gameplay_queue.0.push(InputEvent::Cancel);
+    }
+}
+
+fn mouse_to_semantic_input(
+    mouse: Res<ButtonInput<MouseButton>>,
+    navigation: Res<NavigationState>,
+    mut lifecycle_queue: ResMut<SemanticInputQueue>,
+    mut gameplay_queue: ResMut<GameplayInputQueue>,
+) {
+    if !mouse.just_pressed(MouseButton::Back) {
+        return;
+    }
+
+    if navigation.current_screen == Some(ScreenId::Lifecycle) {
+        lifecycle_queue.0.push(InputEvent::Cancel);
+    } else {
+        gameplay_queue.0.push(InputEvent::Cancel);
     }
 }
 
