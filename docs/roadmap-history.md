@@ -681,6 +681,13 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.17: Final Android input compatibility fixes
+- Routed Android system Back button and gesture handling through the AndroidX OnBackPressedDispatcher into the shared semantic Cancel path.
+- Added desktop mouse Back-button mapping to the same semantic navigation path.
+- Synchronized Android GameActivity text-input state with the character-creation EditableText fields and developer console because the existing Bevy IME event path was not delivering committed character text on the tested device.
+- Preserved keyboard dismissal behavior by suppressing navigation while an Android text field remains focused.
+- Bumped the project and Android fallback version metadata to 0.51.17.
+
 ### v0.51.16: Shared graphical presentation regression fix
 - Restored intrinsic height for standalone graphical text labels and muted labels.
 - Consolidated standard action buttons into a bottom-left, stacked group with a 520px maximum width.
