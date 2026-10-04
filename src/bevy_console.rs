@@ -9,6 +9,13 @@ use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
 use crate::presentation::{ConsoleScrollView, ConsoleView};
 
+#[cfg(target_os = "android")]
+#[derive(Resource, Default)]
+struct AndroidConsoleTextSync {
+    active: bool,
+    last_sent_text: String,
+}
+
 #[derive(Resource)]
 pub(crate) struct BevyConsoleState {
     pub(crate) console: ConsoleSession,
@@ -25,9 +32,19 @@ impl Default for BevyConsoleState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<BevyConsoleState>().add_systems(
+    app.init_resource::<BevyConsoleState>()
+        #[cfg(target_os = "android")]
+        .init_resource::<AndroidConsoleTextSync>()
+        .add_systems(
         Update,
-        (open_shortcut, text_input, console_input, render_if_active).chain(),
+        (
+            open_shortcut,
+            #[cfg(target_os = "android")] sync_android_console_text_input,
+            text_input,
+            console_input,
+            render_if_active,
+        )
+            .chain(),
     );
 }
 
@@ -44,6 +61,48 @@ fn open_shortcut(
         navigation.return_screen = Some(ScreenId::Gameplay);
         navigation.current_screen = Some(ScreenId::Console);
         navigation.selected = 0;
+    }
+}
+
+#[cfg(target_os = "android")]
+fn sync_android_console_text_input(
+    navigation: Res<NavigationState>,
+    mut state: ResMut<BevyConsoleState>,
+    mut sync: ResMut<AndroidConsoleTextSync>,
+) {
+    let active = navigation.current_screen == Some(ScreenId::Console);
+    if !active {
+        sync.active = false;
+        sync.last_sent_text.clear();
+        return;
+    }
+
+    let current = state.console.view().input;
+
+    if !sync.active {
+        sync.active = true;
+        sync.last_sent_text = current.clone();
+        bevy_presentation::android_set_text_input_state(&current);
+        return;
+    }
+
+    if let Some(android) = bevy_presentation::android_text_input_state() {
+        if android.text != sync.last_sent_text {
+            let text = android
+                .text
+                .chars()
+                .filter(|character| !character.is_control())
+                .collect::<String>();
+            if text != current {
+                state.console.set_text(&text);
+                state.dirty = true;
+            }
+            sync.last_sent_text = text.clone();
+            bevy_presentation::android_set_text_input_state(&text);
+        } else if current != sync.last_sent_text {
+            sync.last_sent_text = current.clone();
+            bevy_presentation::android_set_text_input_state(&current);
+        }
     }
 }
 
