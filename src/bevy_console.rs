@@ -32,20 +32,14 @@ impl Default for BevyConsoleState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<BevyConsoleState>()
-        #[cfg(target_os = "android")]
-        .init_resource::<AndroidConsoleTextSync>()
-        .add_systems(
-            Update,
-            (
-                open_shortcut,
-                #[cfg(target_os = "android")] sync_android_console_text_input,
-                text_input,
-                console_input,
-                render_if_active,
-            )
-                .chain(),
-        );
+    app.init_resource::<BevyConsoleState>().add_systems(
+        Update,
+        (open_shortcut, text_input, console_input, render_if_active).chain(),
+    );
+
+    #[cfg(target_os = "android")]
+    app.init_resource::<AndroidConsoleTextSync>()
+        .add_systems(Update, sync_android_console_text_input);
 }
 
 fn open_shortcut(
