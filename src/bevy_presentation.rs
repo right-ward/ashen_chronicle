@@ -262,8 +262,6 @@ pub fn install(app: &mut App) {
         )
         .add_systems(Update, keyboard_to_semantic_input)
         .add_systems(Update, mouse_to_semantic_input)
-        #[cfg(target_os = "android")]
-        .add_systems(Update, android_back_to_semantic_input)
         .add_systems(Update, choice_button_input)
         .add_systems(Update, contextual_touch_input)
         .add_systems(PostUpdate, sync_ui_health_gauges)
@@ -273,6 +271,9 @@ pub fn install(app: &mut App) {
         .add_systems(PostUpdate, organize_action_button_groups)
         .add_systems(PostUpdate, sync_ime_window)
         .add_systems(PostUpdate, sync_lifecycle_field_visuals);
+
+    #[cfg(target_os = "android")]
+    app.add_systems(Update, android_back_to_semantic_input);
 }
 
 pub fn spawn_world_root(commands: &mut Commands, background: Color) -> Entity {
