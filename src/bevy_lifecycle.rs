@@ -15,9 +15,16 @@ use crate::persistence::{character_save_path, find_save_files, legacy_save_path,
 use crate::presentation::{DeathView, FactionView, ItemView, ScreenView};
 use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
-use bevy::text::EditableText;
+use bevy::text::{EditableText, TextEdit};
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
+
+#[cfg(target_os = "android")]
+#[derive(Resource, Default)]
+struct AndroidLifecycleTextSync {
+    focused: Option<Entity>,
+    last_sent_text: String,
+}
 
 #[derive(Debug, Clone, Copy, PartialEq, Eq)]
 pub(crate) enum LifecyclePhase {
@@ -70,11 +77,14 @@ pub(crate) struct GameSession {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
+        #[cfg(target_os = "android")]
+        .init_resource::<AndroidLifecycleTextSync>()
         .add_systems(Startup, initialize)
         .add_systems(
             Update,
             (
                 lifecycle_input,
+                #[cfg(target_os = "android")] sync_android_lifecycle_text_input,
                 sync_character_field_values,
                 render_if_dirty,
             )
@@ -143,6 +153,67 @@ fn lifecycle_input(
         .is_some_and(|entity| fields.get(entity).is_ok())
     {
         input_focus.clear();
+    }
+}
+
+#[cfg(target_os = "android")]
+fn sync_android_lifecycle_text_input(
+    lifecycle: Res<LifecycleState>,
+    input_focus: Res<InputFocus>,
+    mut sync: ResMut<AndroidLifecycleTextSync>,
+    mut fields: Query<(Entity, &mut EditableText), With<LifecycleTextField>>,
+) {
+    let focused = if lifecycle.phase == LifecyclePhase::CreateCharacter {
+        input_focus
+            .get()
+            .filter(|entity| fields.get(*entity).is_ok())
+    } else {
+        None
+    };
+
+    if sync.focused != focused {
+        sync.focused = focused;
+        if let Some(entity) = focused {
+            if let Ok((_, field)) = fields.get(entity) {
+                sync.last_sent_text = field.value().to_string();
+                bevy_presentation::android_set_text_input_state(&sync.last_sent_text);
+            }
+        } else {
+            sync.last_sent_text.clear();
+        }
+        return;
+    }
+
+    let Some(entity) = focused else {
+        return;
+    };
+    let Ok((_, mut field)) = fields.get_mut(entity) else {
+        return;
+    };
+
+    if let Some(android) = bevy_presentation::android_text_input_state() {
+        if android.text != sync.last_sent_text {
+            let text = android
+                .text
+                .chars()
+                .filter(|character| !character.is_control())
+                .collect::<String>();
+
+            if field.value() != text {
+                field.clear();
+                if !text.is_empty() {
+                    field.queue_edit(TextEdit::Insert(text.clone().into()));
+                }
+            }
+            sync.last_sent_text = text.clone();
+            bevy_presentation::android_set_text_input_state(&text);
+        } else {
+            let current = field.value().to_string();
+            if current != sync.last_sent_text {
+                sync.last_sent_text = current.clone();
+                bevy_presentation::android_set_text_input_state(&current);
+            }
+        }
     }
 }
 
