@@ -39,6 +39,12 @@ impl ConsoleSession {
         }
     }
 
+    #[cfg(target_os = "android")]
+    pub(crate) fn set_text(&mut self, text: &str) {
+        self.state.input = text.to_string();
+        self.state.history_index = None;
+    }
+
     pub(crate) fn edit(&mut self, key: InputEvent) {
         console_ui::edit_input(&mut self.state, key);
     }

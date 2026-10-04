@@ -150,7 +150,7 @@ static ANDROID_BACK_REQUESTED: AtomicBool = AtomicBool::new(false);
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
 pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeBackNavigation(
-    _env: jni::JNIEnv<'_>,
+    _env: jni::EnvUnowned<'_>,
     _class: jni::objects::JClass<'_>,
 ) {
     ANDROID_BACK_REQUESTED.store(true, Ordering::Release);
