@@ -5,15 +5,16 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.17 development — final Android input compatibility fixes
+v0.51.18 development — Android IME crash fix
 
-Android system Back and desktop mouse Back now enter the shared semantic Cancel path. Android text-entry state is synchronized with the character-creation fields and developer console through the existing GameActivity text-input interface.
+Android system Back and desktop mouse Back enter the shared semantic Cancel path. Android text-entry state is synchronized with the character-creation fields and developer console through GameActivity's event-driven text-input interface.
 
 ## Next
 
-v0.51.17 — release after physical Android verification of the final input pass.
+v0.51.18 — release after physical Android verification of the final input pass.
 
 Completed in this iteration:
+- Android IME crash fix — consume GameActivity text-input updates only when its new-input flag is set instead of polling the shared JNI text buffer every frame
 - Android input compatibility — route system Back through the AndroidX back dispatcher and synchronize GameActivity IME text state for character creation and the developer console
 - #318 — restore shared standalone text layout and constrain graphical action controls
 - #329 — defer Android Quit process termination until after Activity teardown so relaunch can initialize normally

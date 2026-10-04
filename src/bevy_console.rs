@@ -80,7 +80,7 @@ fn sync_android_console_text_input(
         return;
     }
 
-    if let Some(android) = bevy_presentation::android_text_input_state() {
+    if let Some(android) = bevy_presentation::android_take_text_input_state() {
         if android.text != sync.last_sent_text {
             let text = android
                 .text
@@ -91,11 +91,9 @@ fn sync_android_console_text_input(
                 state.console.set_text(&text);
                 state.dirty = true;
             }
-            sync.last_sent_text = text.clone();
-            bevy_presentation::android_set_text_input_state(&text);
+            sync.last_sent_text = text;
         } else if current != sync.last_sent_text {
             sync.last_sent_text = current.clone();
-            bevy_presentation::android_set_text_input_state(&current);
         }
     }
 }
