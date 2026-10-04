@@ -202,7 +202,7 @@ fn sync_android_lifecycle_text_input(
                 .filter(|character| !character.is_control())
                 .collect::<String>();
 
-            if field.value() != text {
+            if field.value() != &text {
                 field.clear();
                 if !text.is_empty() {
                     field.queue_edit(TextEdit::Insert(text.clone().into()));
