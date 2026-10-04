@@ -156,7 +156,6 @@ pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeBack
     ANDROID_BACK_REQUESTED.store(true, Ordering::Release);
 }
 
-
 #[derive(Resource, Default, Debug)]
 struct TouchScrollState {
     active: Option<(u64, Entity, Vec2)>,
@@ -173,8 +172,11 @@ pub(crate) fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2
 }
 
 #[cfg(target_os = "android")]
-pub(crate) fn android_text_input_state() -> Option<bevy::android::android_activity::input::TextInputState> {
-    bevy::android::ANDROID_APP.get().map(|app| app.text_input_state())
+pub(crate) fn android_text_input_state(
+) -> Option<bevy::android::android_activity::input::TextInputState> {
+    bevy::android::ANDROID_APP
+        .get()
+        .map(|app| app.text_input_state())
 }
 
 #[cfg(target_os = "android")]
@@ -190,7 +192,6 @@ pub(crate) fn android_set_text_input_state(text: &str) {
         compose_region: None,
     });
 }
-
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
 pub struct NavigationState {
@@ -961,7 +962,9 @@ fn process_ime_events(
 ) {
     for event in ime.read() {
         match event {
-            Ime::Commit { window, value } if !cfg!(target_os = "android") && console_focus.active && !value.is_empty() => {
+            Ime::Commit { window, value }
+                if !cfg!(target_os = "android") && console_focus.active && !value.is_empty() =>
+            {
                 keyboard_input.write(KeyboardInput {
                     key_code: KeyCode::Unidentified(NativeKeyCode::Unidentified),
                     logical_key: Key::Character(value.clone().into()),
