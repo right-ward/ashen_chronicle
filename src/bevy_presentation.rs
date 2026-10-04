@@ -14,7 +14,10 @@ use bevy::prelude::*;
 use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::window::PrimaryWindow;
 #[cfg(target_os = "android")]
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{
+    atomic::{AtomicBool, Ordering},
+    Mutex,
+};
 
 use crate::input::InputEvent;
 
@@ -139,13 +142,58 @@ struct ContextualConsoleTab;
 struct ContextualEnhanced;
 
 #[derive(Resource, Default, Debug)]
-struct ConsoleTextInputFocus {
-    active: bool,
+pub(crate) struct ConsoleTextInputFocus {
+    pub(crate) active: bool,
     suppress_next_back: bool,
 }
 
 #[cfg(target_os = "android")]
 static ANDROID_BACK_REQUESTED: AtomicBool = AtomicBool::new(false);
+
+#[cfg(target_os = "android")]
+static ANDROID_TEXT_INPUT_EVENTS: Mutex<Vec<(u8, AndroidTextInputEvent)>> =
+    Mutex::new(Vec::new());
+
+#[cfg(target_os = "android")]
+#[derive(Debug)]
+pub(crate) enum AndroidTextInputEvent {
+    Changed(String),
+    Submitted,
+    Dismissed,
+}
+
+#[cfg(target_os = "android")]
+fn queue_android_text_input_event(target: i32, event: AndroidTextInputEvent) {
+    let Ok(target) = u8::try_from(target) else {
+        return;
+    };
+    if target > 1 {
+        return;
+    }
+
+    if let Ok(mut events) = ANDROID_TEXT_INPUT_EVENTS.lock() {
+        events.push((target, event));
+    }
+}
+
+#[cfg(target_os = "android")]
+pub(crate) fn android_take_text_input_events(target: u8) -> Vec<AndroidTextInputEvent> {
+    let Ok(mut events) = ANDROID_TEXT_INPUT_EVENTS.lock() else {
+        return Vec::new();
+    };
+
+    let mut selected = Vec::new();
+    let mut retained = Vec::with_capacity(events.len());
+    for (event_target, event) in events.drain(..) {
+        if event_target == target {
+            selected.push(event);
+        } else {
+            retained.push((event_target, event));
+        }
+    }
+    *events = retained;
+    selected
+}
 
 #[cfg(target_os = "android")]
 #[unsafe(no_mangle)]
@@ -154,6 +202,44 @@ pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeBack
     _class: jni::objects::JClass<'_>,
 ) {
     ANDROID_BACK_REQUESTED.store(true, Ordering::Release);
+}
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeAndroidTextInputChanged(
+    mut env: jni::EnvUnowned<'_>,
+    _class: jni::objects::JClass<'_>,
+    target: i32,
+    text: jni::objects::JString<'_>,
+) {
+    let result = env.with_env(|env| -> jni::errors::Result<()> {
+        let text = text.try_to_string(env)?;
+        queue_android_text_input_event(target, AndroidTextInputEvent::Changed(text));
+        Ok(())
+    });
+    if let Err(error) = result {
+        bevy::log::warn!("Could not decode Android text input: {error}");
+    }
+}
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeAndroidTextInputSubmitted(
+    _env: jni::EnvUnowned<'_>,
+    _class: jni::objects::JClass<'_>,
+    target: i32,
+) {
+    queue_android_text_input_event(target, AndroidTextInputEvent::Submitted);
+}
+
+#[cfg(target_os = "android")]
+#[unsafe(no_mangle)]
+pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeAndroidTextInputDismissed(
+    _env: jni::EnvUnowned<'_>,
+    _class: jni::objects::JClass<'_>,
+    target: i32,
+) {
+    queue_android_text_input_event(target, AndroidTextInputEvent::Dismissed);
 }
 
 #[derive(Resource, Default, Debug)]
@@ -172,25 +258,43 @@ pub(crate) fn physical_touch_position(position: Vec2, scale_factor: f32) -> Vec2
 }
 
 #[cfg(target_os = "android")]
-pub(crate) fn android_text_input_state(
-) -> Option<bevy::android::android_activity::input::TextInputState> {
-    bevy::android::ANDROID_APP
-        .get()
-        .map(|app| app.text_input_state())
-}
+pub(crate) fn android_set_text_input_target(target: Option<u8>, text: &str) {
+    if let Ok(mut events) = ANDROID_TEXT_INPUT_EVENTS.lock() {
+        events.clear();
+    }
 
-#[cfg(target_os = "android")]
-pub(crate) fn android_set_text_input_state(text: &str) {
-    let Some(app) = bevy::android::ANDROID_APP.get() else {
+    let Some(app) = bevy::android::ANDROID_APP.get().cloned() else {
+        bevy::log::warn!(
+            "Could not set Android text input target: Android app handle is unavailable"
+        );
         return;
     };
 
-    let end = text.len();
-    app.set_text_input_state(bevy::android::android_activity::input::TextInputState {
-        text: text.to_owned(),
-        selection: bevy::android::android_activity::input::TextSpan { start: end, end },
-        compose_region: None,
-    });
+    let java_target = target.map(i32::from).unwrap_or(-1);
+    let text = text.to_owned();
+    let java_app = app.clone();
+    app.run_on_java_main_thread(Box::new(move || {
+        let vm = unsafe { jni::JavaVM::from_raw(java_app.vm_as_ptr().cast()) };
+        if let Err(error) = vm.attach_current_thread(|env| -> jni::errors::Result<()> {
+            let raw_activity = java_app.activity_as_ptr() as jni::sys::jobject;
+            let activity = unsafe {
+                env.as_cast_raw::<jni::refs::Global<jni::objects::JObject>>(&raw_activity)?
+            };
+            let value = env.new_string(&text)?;
+            env.call_method(
+                activity.as_ref(),
+                jni::jni_str!("setAndroidTextInput"),
+                jni::jni_sig!("(ILjava/lang/String;)V"),
+                &[
+                    jni::JValue::from(java_target),
+                    jni::JValue::from(&value),
+                ],
+            )?;
+            Ok(())
+        }) {
+            bevy::log::warn!("Could not update Android native text input: {error}");
+        }
+    }));
 }
 
 #[derive(Resource, Default, Debug, Clone, Copy, PartialEq, Eq)]
@@ -974,7 +1078,7 @@ fn process_ime_events(
                     text: Some(value.clone().into()),
                 });
             }
-            Ime::Disabled { .. } => {
+            Ime::Disabled { .. } if !cfg!(target_os = "android") => {
                 if console_focus.active {
                     console_focus.active = false;
                     console_focus.suppress_next_back = true;
@@ -1366,7 +1470,11 @@ fn sync_ime_window(
     let native_editable_focused = input_focus
         .get()
         .is_some_and(|entity| editable_texts.contains(entity));
-    window.ime_enabled = console_focus.active || native_editable_focused;
+    window.ime_enabled = if cfg!(target_os = "android") {
+        false
+    } else {
+        console_focus.active || native_editable_focused
+    };
 }
 
 fn sync_lifecycle_field_visuals(
