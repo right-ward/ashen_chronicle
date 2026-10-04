@@ -36,16 +36,16 @@ pub(crate) fn install(app: &mut App) {
         #[cfg(target_os = "android")]
         .init_resource::<AndroidConsoleTextSync>()
         .add_systems(
-        Update,
-        (
-            open_shortcut,
-            #[cfg(target_os = "android")] sync_android_console_text_input,
-            text_input,
-            console_input,
-            render_if_active,
-        )
-            .chain(),
-    );
+            Update,
+            (
+                open_shortcut,
+                #[cfg(target_os = "android")] sync_android_console_text_input,
+                text_input,
+                console_input,
+                render_if_active,
+            )
+                .chain(),
+        );
 }
 
 fn open_shortcut(
