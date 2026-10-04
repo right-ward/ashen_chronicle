@@ -15,7 +15,9 @@ use crate::persistence::{character_save_path, find_save_files, legacy_save_path,
 use crate::presentation::{DeathView, FactionView, ItemView, ScreenView};
 use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
-use bevy::text::{EditableText, TextEdit};
+use bevy::text::EditableText;
+#[cfg(target_os = "android")]
+use bevy::text::TextEdit;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
 
@@ -77,20 +79,16 @@ pub(crate) struct GameSession {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<LifecycleState>()
-        #[cfg(target_os = "android")]
-        .init_resource::<AndroidLifecycleTextSync>()
         .add_systems(Startup, initialize)
         .add_systems(
             Update,
-            (
-                lifecycle_input,
-                #[cfg(target_os = "android")] sync_android_lifecycle_text_input,
-                sync_character_field_values,
-                render_if_dirty,
-            )
-                .chain(),
+            (lifecycle_input, sync_character_field_values, render_if_dirty).chain(),
         )
         .add_observer(on_lifecycle_field_focus_gained);
+
+    #[cfg(target_os = "android")]
+    app.init_resource::<AndroidLifecycleTextSync>()
+        .add_systems(Update, sync_android_lifecycle_text_input);
 }
 
 fn initialize(mut lifecycle: ResMut<LifecycleState>) {
