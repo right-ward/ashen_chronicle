@@ -90,10 +90,7 @@ fn sync_android_console_text_input(
     if !sync.active {
         sync.active = true;
         sync.last_sent_text = current.clone();
-        bevy_presentation::android_set_text_input_target(
-            Some(1),
-            &sync.last_sent_text,
-        );
+        bevy_presentation::android_set_text_input_target(Some(1), &sync.last_sent_text);
         return;
     }
 

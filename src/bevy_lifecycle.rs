@@ -180,10 +180,7 @@ fn sync_android_lifecycle_text_input(
         if let Some(entity) = focused {
             if let Ok((_, field)) = fields.get(entity) {
                 sync.last_sent_text = field.value().to_string();
-                bevy_presentation::android_set_text_input_target(
-                    Some(0),
-                    &sync.last_sent_text,
-                );
+                bevy_presentation::android_set_text_input_target(Some(0), &sync.last_sent_text);
             }
         } else {
             sync.last_sent_text.clear();

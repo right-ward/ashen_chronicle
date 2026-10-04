@@ -151,8 +151,7 @@ pub(crate) struct ConsoleTextInputFocus {
 static ANDROID_BACK_REQUESTED: AtomicBool = AtomicBool::new(false);
 
 #[cfg(target_os = "android")]
-static ANDROID_TEXT_INPUT_EVENTS: Mutex<Vec<(u8, AndroidTextInputEvent)>> =
-    Mutex::new(Vec::new());
+static ANDROID_TEXT_INPUT_EVENTS: Mutex<Vec<(u8, AndroidTextInputEvent)>> = Mutex::new(Vec::new());
 
 #[cfg(target_os = "android")]
 #[derive(Debug)]
@@ -285,10 +284,7 @@ pub(crate) fn android_set_text_input_target(target: Option<u8>, text: &str) {
                 activity.as_ref(),
                 jni::jni_str!("setAndroidTextInput"),
                 jni::jni_sig!("(ILjava/lang/String;)V"),
-                &[
-                    jni::JValue::from(java_target),
-                    jni::JValue::from(&value),
-                ],
+                &[jni::JValue::from(java_target), jni::JValue::from(&value)],
             )?;
             Ok(())
         }) {
