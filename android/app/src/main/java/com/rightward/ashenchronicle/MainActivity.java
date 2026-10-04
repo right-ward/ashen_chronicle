@@ -5,8 +5,18 @@ import android.content.Intent;
 import android.net.Uri;
 import android.os.Bundle;
 import android.os.Environment;
+import android.os.Looper;
 import android.util.Log;
+import android.text.Editable;
+import android.text.InputType;
+import android.text.TextWatcher;
+import android.view.Gravity;
+import android.view.KeyEvent;
 import android.view.View;
+import android.view.inputmethod.EditorInfo;
+import android.view.inputmethod.InputMethodManager;
+import android.widget.EditText;
+import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
 
@@ -34,6 +44,11 @@ public class MainActivity extends GameActivity {
     private static final String GAME_CONFIG_STORAGE_URI_KEY = "shared_storage_tree_uri";
     private static final int GAME_CONFIG_VERSION = 1;
     private static final int REQUEST_CODE_OPEN_TREE = 1001;
+    private static final int ANDROID_TEXT_INPUT_TARGET_NONE = -1;
+
+    private AndroidTextInputEditText androidTextInput;
+    private int androidTextInputTarget = ANDROID_TEXT_INPUT_TARGET_NONE;
+    private boolean suppressAndroidTextInputCallbacks;
 
     static {
         System.loadLibrary("ashen_chronicle");
@@ -43,10 +58,13 @@ public class MainActivity extends GameActivity {
     protected void onCreate(Bundle savedInstanceState) {
         prepareGameRoot();
         super.onCreate(savedInstanceState);
+        initializeAndroidTextInput();
         getOnBackPressedDispatcher().addCallback(this, new OnBackPressedCallback(true) {
             @Override
             public void handleOnBackPressed() {
-                nativeBackNavigation();
+                if (!dismissAndroidTextInput()) {
+                    nativeBackNavigation();
+                }
             }
         });
         maybePromptForSharedStorage();
@@ -110,6 +128,169 @@ public class MainActivity extends GameActivity {
      * launcher creates another game instance.
      */
     private static native void nativeBackNavigation();
+    private static native void nativeAndroidTextInputChanged(int target, String text);
+    private static native void nativeAndroidTextInputSubmitted(int target);
+    private static native void nativeAndroidTextInputDismissed(int target);
+
+    private final class AndroidTextInputEditText extends EditText {
+        AndroidTextInputEditText(MainActivity context) {
+            super(context);
+        }
+
+        @Override
+        public boolean onKeyPreIme(int keyCode, KeyEvent event) {
+            if (keyCode == KeyEvent.KEYCODE_BACK
+                    && event.getAction() == KeyEvent.ACTION_UP
+                    && androidTextInputTarget != ANDROID_TEXT_INPUT_TARGET_NONE) {
+                dismissAndroidTextInput();
+                return true;
+            }
+            return super.onKeyPreIme(keyCode, event);
+        }
+    }
+
+    private void initializeAndroidTextInput() {
+        View contentView = findViewById(android.R.id.content);
+        if (!(contentView instanceof android.view.ViewGroup)) {
+            Log.w(TAG, "Could not initialize Android text input: content view is not a ViewGroup");
+            return;
+        }
+
+        AndroidTextInputEditText input = new AndroidTextInputEditText(this);
+        input.setSingleLine(true);
+        input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
+        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        input.setTextColor(0x00000000);
+        input.setBackgroundColor(0x00000000);
+        input.setCursorVisible(false);
+        input.setAlpha(0.0f);
+        input.setFocusable(true);
+        input.setFocusableInTouchMode(true);
+        input.setImportantForAutofill(View.IMPORTANT_FOR_AUTOFILL_NO);
+        input.addTextChangedListener(new TextWatcher() {
+            @Override
+            public void beforeTextChanged(CharSequence source, int start, int count, int after) {
+            }
+
+            @Override
+            public void onTextChanged(CharSequence source, int start, int before, int count) {
+            }
+
+            @Override
+            public void afterTextChanged(Editable editable) {
+                if (!suppressAndroidTextInputCallbacks
+                        && androidTextInputTarget != ANDROID_TEXT_INPUT_TARGET_NONE) {
+                    nativeAndroidTextInputChanged(androidTextInputTarget, editable.toString());
+                }
+            }
+        });
+        input.setOnEditorActionListener(new TextView.OnEditorActionListener() {
+            @Override
+            public boolean onEditorAction(
+                    TextView view,
+                    int actionId,
+                    KeyEvent event) {
+                if (androidTextInputTarget == ANDROID_TEXT_INPUT_TARGET_NONE) {
+                    return false;
+                }
+
+                boolean enterKey =
+                        event != null
+                                && event.getKeyCode() == KeyEvent.KEYCODE_ENTER
+                                && event.getAction() == KeyEvent.ACTION_UP;
+                if (actionId == EditorInfo.IME_ACTION_DONE || enterKey) {
+                    nativeAndroidTextInputSubmitted(androidTextInputTarget);
+                    return true;
+                }
+                return false;
+            }
+        });
+
+        android.view.ViewGroup.LayoutParams params =
+                new android.view.ViewGroup.LayoutParams(1, 1);
+        ((android.view.ViewGroup) contentView).addView(input, params);
+        androidTextInput = input;
+    }
+
+    public void setAndroidTextInput(int target, String text) {
+        Runnable update = () -> setAndroidTextInputOnUiThread(target, text);
+        if (Looper.myLooper() == Looper.getMainLooper()) {
+            update.run();
+        } else {
+            runOnUiThread(update);
+        }
+    }
+
+    private void setAndroidTextInputOnUiThread(int target, String text) {
+        if (androidTextInput == null) {
+            return;
+        }
+
+        androidTextInputTarget = target;
+        suppressAndroidTextInputCallbacks = true;
+        androidTextInput.setText(text == null ? "" : text);
+        androidTextInput.setSelection(androidTextInput.length());
+        suppressAndroidTextInputCallbacks = false;
+
+        if (target == ANDROID_TEXT_INPUT_TARGET_NONE) {
+            InputMethodManager manager =
+                    (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (manager != null) {
+                manager.hideSoftInputFromWindow(androidTextInput.getWindowToken(), 0);
+            }
+            androidTextInput.clearFocus();
+            return;
+        }
+
+        androidTextInput.requestFocus();
+        showAndroidTextInputKeyboard();
+    }
+
+    private void showAndroidTextInputKeyboard() {
+        if (androidTextInput == null
+                || androidTextInputTarget == ANDROID_TEXT_INPUT_TARGET_NONE) {
+            return;
+        }
+
+        androidTextInput.post(() -> {
+            if (androidTextInput == null
+                    || androidTextInputTarget == ANDROID_TEXT_INPUT_TARGET_NONE) {
+                return;
+            }
+
+            androidTextInput.requestFocus();
+            InputMethodManager manager =
+                    (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+            if (manager != null) {
+                manager.restartInput(androidTextInput);
+                manager.showSoftInput(
+                        androidTextInput,
+                        InputMethodManager.SHOW_IMPLICIT);
+            }
+        });
+    }
+
+    private boolean dismissAndroidTextInput() {
+        if (androidTextInput == null
+                || androidTextInputTarget == ANDROID_TEXT_INPUT_TARGET_NONE) {
+            return false;
+        }
+
+        int target = androidTextInputTarget;
+        androidTextInputTarget = ANDROID_TEXT_INPUT_TARGET_NONE;
+        suppressAndroidTextInputCallbacks = true;
+        androidTextInput.setText("");
+        suppressAndroidTextInputCallbacks = false;
+
+        InputMethodManager manager =
+                (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
+        if (manager != null) {
+            manager.hideSoftInputFromWindow(androidTextInput.getWindowToken(), 0);
+        }
+        androidTextInput.clearFocus();
+        nativeAndroidTextInputDismissed(target);
+        return true;
+    }
 
     public void requestGameExit() {
         if (!isFinishing()) {
@@ -136,6 +317,7 @@ public class MainActivity extends GameActivity {
 
         if (hasFocus) {
             hideSystemUi();
+            showAndroidTextInputKeyboard();
         }
     }
 
