@@ -5,15 +5,17 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.20 development — Android build regression fix
+v0.51.21 development — Android IME visibility fix
 
 Android system Back and desktop mouse Back enter the shared semantic Cancel path. On Android, text entry is handled by a hidden native EditText bridge in Java and forwarded to the Bevy text fields through JNI, leaving GameActivity's shared text-input state out of the Android input path.
 
 ## Next
 
-v0.51.20 — release after physical Android verification of the final input pass.
+v0.51.21 — release after physical Android verification of the final input pass.
 
 Completed in this iteration:
+- Android IME visibility fix — leave Android keyboard visibility to the native Java bridge and prevent Bevy/winit from issuing Android IME hide requests
+- Android keyboard-show hardening — use AndroidX WindowInsetsControllerCompat with the legacy InputMethodManager fallback
 - Android build regression fix — handle `jni 0.22.4`'s `EnvOutcome` return type correctly in the Android text-input JNI callback
 - Android native text-input bridge — replace GameActivity text-state polling with a Java EditText, forwarding full text changes, submit actions, and keyboard dismissal to Rust
 - Android IME crash fix — stop using the GameActivity shared text-input state on Android

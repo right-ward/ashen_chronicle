@@ -681,6 +681,11 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.21: Android IME visibility fix
+- Prevented Bevy/winit from changing Android IME visibility while the Java text-input bridge is active, avoiding an immediate native `hideSoftInput` request.
+- Hardened keyboard presentation with AndroidX `WindowInsetsControllerCompat.show(Type.ime())` and retained `InputMethodManager.showSoftInput()` as a compatibility fallback.
+- Bumped the project and Android fallback version metadata to 0.51.21.
+
 ### v0.51.20: Android build regression fix
 - Corrected the Android JNI callback's error handling for `jni 0.22.4`, which returns an `EnvOutcome` from `EnvUnowned::with_env` rather than a standard `Result`.
 - Bumped the project and Android fallback version metadata to 0.51.20.
