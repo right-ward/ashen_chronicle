@@ -1,7 +1,7 @@
 [package]
 name = "ashen_chronicle"
 
-version = "0.51.19"
+version = "0.51.20"
 edition = "2021"
 license = "BUSL-1.1"
 # ---- related to license, `data/` is under CC-BY-NC-ND 4.0 ----
