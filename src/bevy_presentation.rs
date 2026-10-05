@@ -1462,6 +1462,7 @@ fn touch_scroll(
     }
 }
 
+#[cfg(not(target_os = "android"))]
 fn sync_ime_window(
     input_focus: Res<InputFocus>,
     editable_texts: Query<(), With<EditableText>>,
@@ -1474,12 +1475,11 @@ fn sync_ime_window(
     let native_editable_focused = input_focus
         .get()
         .is_some_and(|entity| editable_texts.contains(entity));
-    window.ime_enabled = if cfg!(target_os = "android") {
-        false
-    } else {
-        console_focus.active || native_editable_focused
-    };
+    window.ime_enabled = console_focus.active || native_editable_focused;
 }
+
+#[cfg(target_os = "android")]
+fn sync_ime_window() {}
 
 fn sync_lifecycle_field_visuals(
     input_focus: Res<InputFocus>,
