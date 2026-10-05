@@ -201,7 +201,7 @@ dependencies = [
 
 [[package]]
 name = "ashen_chronicle"
-version = "0.51.18"
+version = "0.51.19"
 dependencies = [
  "atomic-write-file",
  "bevy",

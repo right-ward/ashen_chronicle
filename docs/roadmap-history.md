@@ -681,6 +681,13 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.19: Android native text-input bridge
+- Replaced the Android GameActivity text-state synchronization path with a Java-hosted native EditText that stays outside the game's rendered UI.
+- Forwarded Android text changes, editor submit actions, and keyboard dismissal to Rust through small JNI callbacks, with target routing for character creation and the developer console.
+- Disabled Bevy's Android Window::ime_enabled path so the Android text-entry fix no longer touches GameActivity's shared GameTextInput state.
+- Kept desktop text input and the existing Android system Back/navigation behavior intact.
+- Bumped the project and Android fallback version metadata to 0.51.19.
+
 ### v0.51.17: Final Android input compatibility fixes
 - Routed Android system Back button and gesture handling through the AndroidX OnBackPressedDispatcher into the shared semantic Cancel path.
 - Added desktop mouse Back-button mapping to the same semantic navigation path.

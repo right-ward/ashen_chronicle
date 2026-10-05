@@ -63,11 +63,25 @@ fn sync_android_console_text_input(
     navigation: Res<NavigationState>,
     mut state: ResMut<BevyConsoleState>,
     mut sync: ResMut<AndroidConsoleTextSync>,
+    mut console_focus: ResMut<bevy_presentation::ConsoleTextInputFocus>,
+    mut input_queue: ResMut<GameplayInputQueue>,
 ) {
-    let active = navigation.current_screen == Some(ScreenId::Console);
-    if !active {
+    if navigation.current_screen != Some(ScreenId::Console) {
+        if sync.active {
+            bevy_presentation::android_set_text_input_target(None, "");
+        }
         sync.active = false;
         sync.last_sent_text.clear();
+        console_focus.active = false;
+        return;
+    }
+
+    if !console_focus.active {
+        if sync.active {
+            bevy_presentation::android_set_text_input_target(None, "");
+            sync.active = false;
+            sync.last_sent_text.clear();
+        }
         return;
     }
 
@@ -76,24 +90,31 @@ fn sync_android_console_text_input(
     if !sync.active {
         sync.active = true;
         sync.last_sent_text = current.clone();
-        bevy_presentation::android_set_text_input_state(&current);
+        bevy_presentation::android_set_text_input_target(Some(1), &sync.last_sent_text);
         return;
     }
 
-    if let Some(android) = bevy_presentation::android_text_input_state() {
-        if android.text != sync.last_sent_text {
-            let text = android
-                .text
-                .chars()
-                .filter(|character| !character.is_control())
-                .collect::<String>();
-            if text != current {
-                state.console.set_text(&text);
-                state.dirty = true;
+    for event in bevy_presentation::android_take_text_input_events(1) {
+        match event {
+            bevy_presentation::AndroidTextInputEvent::Changed(text) => {
+                let text = text
+                    .chars()
+                    .filter(|character| !character.is_control())
+                    .collect::<String>();
+                if text != current {
+                    state.console.set_text(&text);
+                    state.dirty = true;
+                }
+                sync.last_sent_text = text;
             }
-            sync.last_sent_text = text;
-        } else if current != sync.last_sent_text {
-            sync.last_sent_text = current.clone();
+            bevy_presentation::AndroidTextInputEvent::Submitted => {
+                input_queue.0.push(InputEvent::Confirm);
+            }
+            bevy_presentation::AndroidTextInputEvent::Dismissed => {
+                console_focus.active = false;
+                sync.active = false;
+                sync.last_sent_text.clear();
+            }
         }
     }
 }

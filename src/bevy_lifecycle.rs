@@ -162,8 +162,9 @@ fn lifecycle_input(
 #[cfg(target_os = "android")]
 fn sync_android_lifecycle_text_input(
     lifecycle: Res<LifecycleState>,
-    input_focus: Res<InputFocus>,
+    mut input_focus: ResMut<InputFocus>,
     mut sync: ResMut<AndroidLifecycleTextSync>,
+    mut input_queue: ResMut<SemanticInputQueue>,
     mut fields: Query<(Entity, &mut EditableText), With<LifecycleTextField>>,
 ) {
     let focused = if lifecycle.phase == LifecyclePhase::CreateCharacter {
@@ -179,10 +180,11 @@ fn sync_android_lifecycle_text_input(
         if let Some(entity) = focused {
             if let Ok((_, field)) = fields.get(entity) {
                 sync.last_sent_text = field.value().to_string();
-                bevy_presentation::android_set_text_input_state(&sync.last_sent_text);
+                bevy_presentation::android_set_text_input_target(Some(0), &sync.last_sent_text);
             }
         } else {
             sync.last_sent_text.clear();
+            bevy_presentation::android_set_text_input_target(None, "");
         }
         return;
     }
@@ -194,25 +196,29 @@ fn sync_android_lifecycle_text_input(
         return;
     };
 
-    if let Some(android) = bevy_presentation::android_text_input_state() {
-        if android.text != sync.last_sent_text {
-            let text = android
-                .text
-                .chars()
-                .filter(|character| !character.is_control())
-                .collect::<String>();
+    for event in bevy_presentation::android_take_text_input_events(0) {
+        match event {
+            bevy_presentation::AndroidTextInputEvent::Changed(text) => {
+                let text = text
+                    .chars()
+                    .filter(|character| !character.is_control())
+                    .collect::<String>();
 
-            if field.value() != &text {
-                field.clear();
-                if !text.is_empty() {
-                    field.queue_edit(TextEdit::Insert(text.clone().into()));
+                if field.value() != &text {
+                    field.clear();
+                    if !text.is_empty() {
+                        field.queue_edit(TextEdit::Insert(text.clone().into()));
+                    }
                 }
+                sync.last_sent_text = text;
             }
-            sync.last_sent_text = text;
-        } else {
-            let current = field.value().to_string();
-            if current != sync.last_sent_text {
-                sync.last_sent_text = current.clone();
+            bevy_presentation::AndroidTextInputEvent::Submitted => {
+                input_queue.0.push(InputEvent::Confirm);
+            }
+            bevy_presentation::AndroidTextInputEvent::Dismissed => {
+                input_focus.clear();
+                sync.focused = None;
+                sync.last_sent_text.clear();
             }
         }
     }
