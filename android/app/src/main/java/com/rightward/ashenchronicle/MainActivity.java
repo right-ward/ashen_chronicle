@@ -18,6 +18,9 @@ import android.widget.EditText;
 import android.widget.TextView;
 
 import androidx.activity.OnBackPressedCallback;
+import androidx.core.view.WindowCompat;
+import androidx.core.view.WindowInsetsCompat;
+import androidx.core.view.WindowInsetsControllerCompat;
 
 import androidx.documentfile.provider.DocumentFile;
 
@@ -258,6 +261,13 @@ public class MainActivity extends GameActivity {
             }
 
             androidTextInput.requestFocus();
+
+            WindowInsetsControllerCompat insetsController =
+                    WindowCompat.getInsetsController(getWindow(), androidTextInput);
+            if (insetsController != null) {
+                insetsController.show(WindowInsetsCompat.Type.ime());
+            }
+
             InputMethodManager manager =
                     (InputMethodManager) getSystemService(INPUT_METHOD_SERVICE);
             if (manager != null) {
