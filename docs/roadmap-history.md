@@ -681,6 +681,10 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.20: Android build regression fix
+- Corrected the Android JNI callback's error handling for `jni 0.22.4`, which returns an `EnvOutcome` from `EnvUnowned::with_env` rather than a standard `Result`.
+- Bumped the project and Android fallback version metadata to 0.51.20.
+
 ### v0.51.19: Android native text-input bridge
 - Replaced the Android GameActivity text-state synchronization path with a Java-hosted native EditText that stays outside the game's rendered UI.
 - Forwarded Android text changes, editor submit actions, and keyboard dismissal to Rust through small JNI callbacks, with target routing for character creation and the developer console.

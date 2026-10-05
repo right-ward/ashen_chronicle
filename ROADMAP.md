@@ -5,15 +5,16 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.19 development — Android native text-input bridge
+v0.51.20 development — Android build regression fix
 
 Android system Back and desktop mouse Back enter the shared semantic Cancel path. On Android, text entry is handled by a hidden native EditText bridge in Java and forwarded to the Bevy text fields through JNI, leaving GameActivity's shared text-input state out of the Android input path.
 
 ## Next
 
-v0.51.19 — release after physical Android verification of the final input pass.
+v0.51.20 — release after physical Android verification of the final input pass.
 
 Completed in this iteration:
+- Android build regression fix — handle `jni 0.22.4`'s `EnvOutcome` return type correctly in the Android text-input JNI callback
 - Android native text-input bridge — replace GameActivity text-state polling with a Java EditText, forwarding full text changes, submit actions, and keyboard dismissal to Rust
 - Android IME crash fix — stop using the GameActivity shared text-input state on Android
 - Android input compatibility — route system Back through the AndroidX back dispatcher and synchronize GameActivity IME text state for character creation and the developer console

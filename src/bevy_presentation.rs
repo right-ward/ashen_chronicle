@@ -211,13 +211,21 @@ pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeAndr
     target: i32,
     text: jni::objects::JString<'_>,
 ) {
-    let result = env.with_env(|env| -> jni::errors::Result<()> {
-        let text = text.try_to_string(env)?;
-        queue_android_text_input_event(target, AndroidTextInputEvent::Changed(text));
-        Ok(())
-    });
-    if let Err(error) = result {
-        bevy::log::warn!("Could not decode Android text input: {error}");
+    match env
+        .with_env(|env| -> jni::errors::Result<()> {
+            let text = text.try_to_string(env)?;
+            queue_android_text_input_event(target, AndroidTextInputEvent::Changed(text));
+            Ok(())
+        })
+        .into_outcome()
+    {
+        jni::Outcome::Ok(()) => {}
+        jni::Outcome::Err(error) => {
+            bevy::log::warn!("Could not decode Android text input: {error}");
+        }
+        jni::Outcome::Panic(_) => {
+            bevy::log::warn!("Android text input JNI callback panicked");
+        }
     }
 }
 
