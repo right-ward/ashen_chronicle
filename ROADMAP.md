@@ -5,15 +5,17 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.21 development — Android IME visibility fix
+v0.51.22 development — Android text-edit cursor safety
 
 Android system Back and desktop mouse Back enter the shared semantic Cancel path. On Android, text entry is handled by a hidden native EditText bridge in Java and forwarded to the Bevy text fields through JNI, leaving GameActivity's shared text-input state out of the Android input path.
 
 ## Next
 
-v0.51.21 — release after physical Android verification of the final input pass.
+v0.51.22 — release after physical Android verification of Android text editing.
 
 Completed in this iteration:
+- Android text snapshot safety — replace lifecycle field buffers directly and reset the cursor to the end instead of inserting full Android snapshots at a retained cursor
+- Android input presentation — suppress the IME's fullscreen/extract editing UI for the hidden native field
 - Android IME visibility fix — leave Android keyboard visibility to the native Java bridge and prevent Bevy/winit from issuing Android IME hide requests
 - Android keyboard-show hardening — use AndroidX WindowInsetsControllerCompat with the legacy InputMethodManager fallback
 - Android build regression fix — handle `jni 0.22.4`'s `EnvOutcome` return type correctly in the Android text-input JNI callback
