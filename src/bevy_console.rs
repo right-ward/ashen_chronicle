@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::bevy_lifecycle::LifecycleState;
 use crate::bevy_presentation::{
-    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, TextContent,
 };
 use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
