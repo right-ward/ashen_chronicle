@@ -5,15 +5,17 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.22 development — Android text-edit cursor safety
+v0.51.23 development — developer-console input and close control
 
 Android system Back and desktop mouse Back enter the shared semantic Cancel path. On Android, text entry is handled by a hidden native EditText bridge in Java and forwarded to the Bevy text fields through JNI, leaving GameActivity's shared text-input state out of the Android input path.
 
 ## Next
 
-v0.51.22 — release after physical Android verification of Android text editing.
+v0.51.23 — release after verifying console input and close behavior on desktop and Android.
 
 Completed in this iteration:
+- Developer-console input ownership — mark only the live input row for touch input, leaving executed command history as plain output
+- Developer-console close control — add an upper-corner Close button that follows the console exit/reset path
 - Android text snapshot safety — replace lifecycle field buffers directly and reset the cursor to the end instead of inserting full Android snapshots at a retained cursor
 - Android input presentation — suppress the IME's fullscreen/extract editing UI for the hidden native field
 - Android IME visibility fix — leave Android keyboard visibility to the native Java bridge and prevent Bevy/winit from issuing Android IME hide requests
