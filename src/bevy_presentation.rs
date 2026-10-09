@@ -133,13 +133,7 @@ pub(crate) struct LifecycleTextField {
 struct ContextualConsoleInput;
 
 #[derive(Component)]
-struct ContextualConsoleInputRow;
-
-#[derive(Component)]
 struct ContextualConsoleTab;
-
-#[derive(Component)]
-struct ContextualEnhanced;
 
 #[derive(Resource, Default, Debug)]
 pub(crate) struct ConsoleTextInputFocus {
@@ -376,7 +370,6 @@ pub fn install(app: &mut App) {
         .add_systems(PostUpdate, sync_ui_health_gauges)
         .add_systems(PostUpdate, sync_ui_button_visuals)
         .add_systems(Update, touch_scroll)
-        .add_systems(PostUpdate, contextual_touch_targets)
         .add_systems(PostUpdate, organize_action_button_groups)
         .add_systems(PostUpdate, sync_ime_window)
         .add_systems(PostUpdate, sync_lifecycle_field_visuals);
@@ -566,6 +559,79 @@ pub fn spawn_text_input_field(
     commands.entity(row).add_child(field);
     commands.entity(parent).add_child(row);
     field
+}
+
+pub(crate) fn spawn_console_input_row(
+    commands: &mut Commands,
+    parent: Entity,
+    text: impl Into<String>,
+) -> Entity {
+    let row = commands
+        .spawn(Node {
+            width: percent(100),
+            min_width: px(0),
+            flex_direction: FlexDirection::Row,
+            column_gap: vmin(1.111),
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .id();
+
+    let input = commands
+        .spawn((
+            Button,
+            ContextualConsoleInput,
+            Text::new(text.into()),
+            Node {
+                width: percent(84),
+                min_width: px(0),
+                max_width: percent(100),
+                min_height: px(48),
+                flex_grow: 1.0,
+                flex_shrink: 1.0,
+                padding: UiRect::axes(vmin(1.389), vmin(0.833)),
+                border: UiRect::all(px(1)),
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            TextLayout::new(Justify::Left, LineBreak::WordOrCharacter),
+            TextContent,
+            TextFont::from_font_size(label_font_size()),
+            TextColor(THEME_TEXT),
+            BorderColor::all(THEME_ACCENT),
+            BackgroundColor(THEME_PANEL_ALT),
+        ))
+        .id();
+
+    let tab = commands
+        .spawn((
+            Button,
+            ContextualConsoleTab,
+            Node {
+                width: px(64),
+                min_width: px(64),
+                min_height: px(48),
+                padding: UiRect::axes(px(10), px(6)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(THEME_ACCENT),
+            BackgroundColor(THEME_PANEL_ALT),
+            children![(
+                Text::new("Tab"),
+                TextContent,
+                TextFont::from_font_size(muted_font_size()),
+                TextColor(THEME_TEXT),
+            )],
+        ))
+        .id();
+
+    commands.entity(row).add_child(input);
+    commands.entity(row).add_child(tab);
+    commands.entity(parent).add_child(row);
+    input
 }
 
 pub fn responsive_compact_gap() -> Val {
@@ -1292,96 +1358,6 @@ fn contextual_touch_input(
     }
 }
 
-#[allow(clippy::type_complexity)] // For text_fields
-fn contextual_touch_targets(
-    mut commands: Commands,
-    navigation: Res<NavigationState>,
-    mut text_fields: Query<
-        (
-            Entity,
-            &Text,
-            &mut Node,
-            Option<&ContextualEnhanced>,
-            Option<&ContextualConsoleInput>,
-        ),
-        With<TextContent>,
-    >,
-    panels: Query<Entity, With<TouchScrollablePanel>>,
-    tabs: Query<Entity, With<ContextualConsoleTab>>,
-) {
-    let console_tab_exists = tabs.single().is_ok();
-    let console_panel = if navigation.current_screen == Some(ScreenId::Console) {
-        panels.iter().next()
-    } else {
-        None
-    };
-
-    for (entity, text, mut node, enhanced, console_input) in &mut text_fields {
-        if enhanced.is_some() {
-            continue;
-        }
-        if navigation.current_screen == Some(ScreenId::Console)
-            && console_input.is_none()
-            && text.as_str().starts_with("> ")
-        {
-            node.min_height = px(48);
-            node.width = percent(84);
-            node.padding = UiRect::axes(vmin(1.389), vmin(0.833));
-            commands.entity(entity).insert((
-                Button,
-                ContextualConsoleInput,
-                ContextualEnhanced,
-                BorderColor::all(THEME_ACCENT),
-                BackgroundColor(THEME_PANEL_ALT),
-            ));
-            if !console_tab_exists {
-                if let Some(panel) = console_panel {
-                    let row = commands
-                        .spawn((
-                            ContextualConsoleInputRow,
-                            Node {
-                                width: percent(100),
-                                min_width: px(0),
-                                flex_direction: FlexDirection::Row,
-                                column_gap: vmin(1.111),
-                                align_items: AlignItems::Center,
-                                ..default()
-                            },
-                        ))
-                        .id();
-                    commands.entity(panel).add_child(row);
-                    commands.entity(row).add_child(entity);
-                    let tab = commands
-                        .spawn((
-                            Button,
-                            ContextualConsoleTab,
-                            Node {
-                                width: px(64),
-                                min_width: px(64),
-                                min_height: px(48),
-                                padding: UiRect::axes(px(10), px(6)),
-                                justify_content: JustifyContent::Center,
-                                align_items: AlignItems::Center,
-                                border: UiRect::all(px(1)),
-                                ..default()
-                            },
-                            BorderColor::all(THEME_ACCENT),
-                            BackgroundColor(THEME_PANEL_ALT),
-                            children![(
-                                Text::new("Tab"),
-                                TextContent,
-                                TextFont::from_font_size(muted_font_size()),
-                                TextColor(THEME_TEXT),
-                            )],
-                        ))
-                        .id();
-                    commands.entity(row).add_child(tab);
-                }
-            }
-        }
-    }
-}
-
 fn organize_action_button_groups(
     mut commands: Commands,
     parents: Query<(Entity, &Children, Option<&UiActionButtonGroup>)>,
@@ -1512,6 +1488,39 @@ mod tests {
     fn touch_coordinates_convert_from_logical_to_physical_space() {
         let position = physical_touch_position(Vec2::new(100.0, 50.0), 2.5);
         assert_eq!(position, Vec2::new(250.0, 125.0));
+    }
+
+    fn spawn_console_input_regression_fixture(mut commands: Commands) {
+        let panel = commands.spawn_empty().id();
+        spawn_label(&mut commands, panel, "> help");
+        spawn_console_input_row(&mut commands, panel, "> ");
+    }
+
+    #[test]
+    fn console_history_prefix_does_not_create_an_extra_text_input() {
+        let mut world = World::new();
+        let mut schedule = Schedule::default();
+        schedule.add_systems(spawn_console_input_regression_fixture);
+        schedule.run(&mut world);
+
+        let input_count = {
+            let mut inputs = world.query_filtered::<Entity, With<ContextualConsoleInput>>();
+            inputs.iter(&world).count()
+        };
+        let tab_count = {
+            let mut tabs = world.query_filtered::<Entity, With<ContextualConsoleTab>>();
+            tabs.iter(&world).count()
+        };
+        let command_echo_is_plain_text = {
+            let mut labels = world.query::<(&Text, Option<&ContextualConsoleInput>)>();
+            labels
+                .iter(&world)
+                .any(|(text, input)| text.as_str() == "> help" && input.is_none())
+        };
+
+        assert_eq!(input_count, 1);
+        assert_eq!(tab_count, 1);
+        assert!(command_echo_is_plain_text);
     }
 
     #[test]

@@ -681,6 +681,11 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.23: Developer console input and close control
+- Marked only the active console input row for touch input and autocomplete, preventing executed command-history lines from becoming duplicate input fields.
+- Added an upper-corner Close button that exits the console through the same session reset path as the existing close behavior.
+- Bumped the project and Android fallback version metadata to 0.51.23.
+
 ### v0.51.22: Android text-edit cursor safety
 - Replaced full-snapshot Android lifecycle text synchronization with direct text-buffer replacement and a queued cursor-to-end operation, avoiding insertion at a stale cursor offset.
 - Added regression coverage for repeated replacement, stale pending edits, and multibyte Unicode text.

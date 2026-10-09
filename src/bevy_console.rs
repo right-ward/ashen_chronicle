@@ -3,7 +3,7 @@ use bevy::prelude::*;
 
 use crate::bevy_lifecycle::LifecycleState;
 use crate::bevy_presentation::{
-    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, TextContent,
 };
 use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
@@ -15,6 +15,9 @@ struct AndroidConsoleTextSync {
     active: bool,
     last_sent_text: String,
 }
+
+#[derive(Component)]
+struct ConsoleCloseButton;
 
 #[derive(Resource)]
 pub(crate) struct BevyConsoleState {
@@ -34,7 +37,14 @@ impl Default for BevyConsoleState {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<BevyConsoleState>().add_systems(
         Update,
-        (open_shortcut, text_input, console_input, render_if_active).chain(),
+        (
+            open_shortcut,
+            text_input,
+            close_button_input,
+            console_input,
+            render_if_active,
+        )
+            .chain(),
     );
 
     #[cfg(target_os = "android")]
@@ -133,6 +143,26 @@ fn text_input(
             state.dirty = true;
         }
     }
+}
+
+fn close_button_input(
+    interactions: Query<&Interaction, (Changed<Interaction>, With<ConsoleCloseButton>)>,
+    mut state: ResMut<BevyConsoleState>,
+    mut lifecycle: ResMut<LifecycleState>,
+    mut navigation: ResMut<NavigationState>,
+) {
+    if navigation.current_screen != Some(ScreenId::Console)
+        || !interactions
+            .iter()
+            .any(|interaction| *interaction == Interaction::Pressed)
+    {
+        return;
+    }
+
+    if let Some(session) = lifecycle.session.as_mut() {
+        crate::game::console::bootstrap_after_console(&mut session.state);
+    }
+    leave_console(&mut state, &mut navigation);
 }
 
 fn console_input(
@@ -261,6 +291,7 @@ fn render_if_active(
 
 fn render(commands: &mut Commands, view: &ConsoleView) {
     let root = bevy_presentation::spawn_screen(commands, "DEVELOPER CONSOLE");
+    spawn_console_close_button(commands, root);
     let panel = bevy_presentation::spawn_panel(commands, root);
     bevy_presentation::spawn_muted_label(
         commands,
@@ -270,7 +301,7 @@ fn render(commands: &mut Commands, view: &ConsoleView) {
     for line in visible_output(view) {
         bevy_presentation::spawn_label(commands, panel, line);
     }
-    bevy_presentation::spawn_label(commands, panel, format!("> {}", view.input));
+    bevy_presentation::spawn_console_input_row(commands, panel, format!("> {}", view.input));
     if view.autocomplete && !view.candidates.is_empty() {
         bevy_presentation::spawn_muted_label(commands, panel, "Completions:");
         let visible = view.candidates.len().min(8);
@@ -286,6 +317,38 @@ fn render(commands: &mut Commands, view: &ConsoleView) {
             );
         }
     }
+}
+
+fn spawn_console_close_button(commands: &mut Commands, root: Entity) {
+    let button = commands
+        .spawn((
+            Button,
+            ConsoleCloseButton,
+            Node {
+                position_type: PositionType::Absolute,
+                top: px(0),
+                right: px(0),
+                width: px(80),
+                min_width: px(80),
+                min_height: px(48),
+                padding: UiRect::axes(px(10), px(6)),
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_ACCENT),
+            BackgroundColor(bevy_presentation::THEME_PANEL_ALT),
+            ZIndex(1),
+            children![(
+                Text::new("Close"),
+                TextContent,
+                TextFont::from_font_size(bevy_presentation::muted_font_size()),
+                TextColor(bevy_presentation::THEME_TEXT),
+            )],
+        ))
+        .id();
+    commands.entity(root).add_child(button);
 }
 
 fn visible_output(view: &ConsoleView) -> Vec<String> {
