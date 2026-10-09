@@ -681,6 +681,12 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
+### v0.51.22: Android text-edit cursor safety
+- Replaced full-snapshot Android lifecycle text synchronization with direct text-buffer replacement and a queued cursor-to-end operation, avoiding insertion at a stale cursor offset.
+- Added regression coverage for repeated replacement, stale pending edits, and multibyte Unicode text.
+- Disabled the Android IME's fullscreen extract editor for the hidden native EditText to keep native input presentation aligned with the in-game field.
+- Bumped the project and Android fallback version metadata to 0.51.22.
+
 ### v0.51.21: Android IME visibility fix
 - Prevented Bevy/winit from changing Android IME visibility while the Java text-input bridge is active, avoiding an immediate native `hideSoftInput` request.
 - Hardened keyboard presentation with AndroidX `WindowInsetsControllerCompat.show(Type.ime())` and retained `InputMethodManager.showSoftInput()` as a compatibility fallback.

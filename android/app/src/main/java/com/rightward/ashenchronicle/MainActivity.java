@@ -161,7 +161,10 @@ public class MainActivity extends GameActivity {
         AndroidTextInputEditText input = new AndroidTextInputEditText(this);
         input.setSingleLine(true);
         input.setInputType(InputType.TYPE_CLASS_TEXT | InputType.TYPE_TEXT_FLAG_NO_SUGGESTIONS);
-        input.setImeOptions(EditorInfo.IME_ACTION_DONE);
+        input.setImeOptions(
+                EditorInfo.IME_ACTION_DONE
+                        | EditorInfo.IME_FLAG_NO_EXTRACT_UI
+                        | EditorInfo.IME_FLAG_NO_FULLSCREEN);
         input.setTextColor(0x00000000);
         input.setBackgroundColor(0x00000000);
         input.setCursorVisible(false);

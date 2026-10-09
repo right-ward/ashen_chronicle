@@ -16,7 +16,7 @@ use crate::presentation::{DeathView, FactionView, ItemView, ScreenView};
 use bevy::input_focus::{FocusCause, FocusGained, InputFocus};
 use bevy::prelude::*;
 use bevy::text::EditableText;
-#[cfg(target_os = "android")]
+#[cfg(any(target_os = "android", test))]
 use bevy::text::TextEdit;
 use std::path::{Path, PathBuf};
 use std::time::{SystemTime, UNIX_EPOCH};
@@ -159,6 +159,15 @@ fn lifecycle_input(
     }
 }
 
+#[cfg(any(target_os = "android", test))]
+fn replace_text_snapshot(field: &mut EditableText, text: &str) {
+    // Native Android input sends the entire current value, not an insertion delta.
+    // Replace the buffer directly so Parley never inserts a full snapshot at a stale cursor.
+    field.clear();
+    field.editor.set_text(text);
+    field.queue_edit(TextEdit::TextEnd(false));
+}
+
 #[cfg(target_os = "android")]
 fn sync_android_lifecycle_text_input(
     lifecycle: Res<LifecycleState>,
@@ -205,10 +214,7 @@ fn sync_android_lifecycle_text_input(
                     .collect::<String>();
 
                 if field.value() != &text {
-                    field.clear();
-                    if !text.is_empty() {
-                        field.queue_edit(TextEdit::Insert(text.clone().into()));
-                    }
+                    replace_text_snapshot(&mut field, &text);
                 }
                 sync.last_sent_text = text;
             }
@@ -1315,6 +1321,24 @@ mod tests {
             path,
             PathBuf::from("saves/ashen_chronicle_save_Ash Walker.json.gz")
         );
+    }
+
+    #[test]
+    fn android_text_snapshots_replace_the_buffer_and_reset_the_cursor() {
+        let mut field = EditableText::new("The Ashen Crown");
+
+        field.queue_edit(TextEdit::Insert("stale pending edit".into()));
+        super::replace_text_snapshot(&mut field, "Málaga 🜏");
+
+        assert_eq!(field.value().to_string(), "Málaga 🜏");
+        assert_eq!(field.pending_edits.len(), 1);
+        assert_eq!(field.pending_edits[0], TextEdit::TextEnd(false));
+
+        super::replace_text_snapshot(&mut field, "Short");
+
+        assert_eq!(field.value().to_string(), "Short");
+        assert_eq!(field.pending_edits.len(), 1);
+        assert_eq!(field.pending_edits[0], TextEdit::TextEnd(false));
     }
 
     #[test]
