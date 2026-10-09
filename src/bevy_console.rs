@@ -37,7 +37,14 @@ impl Default for BevyConsoleState {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<BevyConsoleState>().add_systems(
         Update,
-        (open_shortcut, text_input, close_button_input, console_input, render_if_active).chain(),
+        (
+            open_shortcut,
+            text_input,
+            close_button_input,
+            console_input,
+            render_if_active,
+        )
+            .chain(),
     );
 
     #[cfg(target_os = "android")]
