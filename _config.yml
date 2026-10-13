@@ -1,7 +1,7 @@
 title: "The Ashen Chronicle"
 description: "A dark-fantasy RPG where your choices outlive your character and the world remembers."
 url: "https://right-ward.github.io"
-baseurl: "/ashen_chronicle"
+baseurl: "/projects/ashen_chronicle"
 lang: "en"
 markdown: kramdown
 permalink: /blog/:year/:month/:day/:title/
