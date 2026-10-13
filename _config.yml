@@ -1,5 +1,5 @@
 title: "The Ashen Chronicle"
-description: "Roguelike game written in Rust"
+description: "A dark-fantasy RPG where your choices outlive your character and the world remembers."
 url: "https://right-ward.github.io"
 baseurl: "/ashen_chronicle"
 lang: "en"
@@ -13,6 +13,7 @@ plugins:
   - jekyll-feed
 header_pages:
   - index.html
+  - game.md
   - blog.md
 style: dark
 listen_for_clients_preferred_style: true
