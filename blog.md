@@ -1,13 +1,17 @@
 ---
 layout: default
-title: Blog
+title: Devlog
 permalink: /blog/
-description: "Posts and notes by right-ward."
+description: "Development notes from the making of The Ashen Chronicle: its world, gameplay, interface, and ongoing experiments."
 ---
 
-# Blog
+# Devlog
 
-<p>Read posts here or subscribe using the <a href="{{ '/feed.xml' | relative_url }}">Atom feed</a>.</p>
+The Ashen Chronicle is being built in the open. These notes cover the decisions, improvements, experiments, and rough edges that shape the game as it grows.
+
+This is a development log, not a promise that every idea is already in the game. Posts aim to make it clear what has changed, what is still being worked on, and where the project might go next.
+
+Subscribe with the <a href="{{ '/feed.xml' | relative_url }}">Atom feed</a>, or [follow the project on GitHub](https://github.com/right-ward/ashen_chronicle).
 
 {% assign blog_posts = site.posts %}
 {% if blog_posts.size > 0 %}
@@ -22,5 +26,5 @@ description: "Posts and notes by right-ward."
 {% endfor %}
 </ul>
 {% else %}
-<p>No posts published yet. New posts will appear here automatically once they are added to <code>_posts/</code>.</p>
+<p>No posts yet. New entries will appear here as the project develops.</p>
 {% endif %}
