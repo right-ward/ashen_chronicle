@@ -1,0 +1,31 @@
+title: "The Ashen Chronicle"
+description: "Roguelike game written in Rust"
+url: "https://right-ward.github.io"
+baseurl: "/ashen_chronicle/"
+lang: "en"
+markdown: kramdown
+permalink: /blog/:year/:month/:day/:title/
+
+remote_theme: b2a3e8/jekyll-theme-console
+plugins:
+  - jekyll-remote-theme
+  - jekyll-seo-tag
+  - jekyll-feed
+header_pages:
+  - index.html
+  - blog.md
+  - projects.md
+  - about.md
+style: dark
+listen_for_clients_preferred_style: true
+disable_google_fonts: true
+footer: '© right-ward · <a href="https://github.com/right-ward">GitHub</a> · <a href="https://right-ward.github.io/feed.xml">Atom feed</a>'
+
+feed:
+  posts_limit: 20
+
+exclude:
+  - Gemfile
+  - Gemfile.lock
+  - node_modules
+  - vendor
