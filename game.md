@@ -37,7 +37,7 @@ Travel and exploration lead into quests, discoveries, and turn-based encounters.
 
 ## A game that can grow with its world
 
-The game already has a foundation for loading and extending world content, with included content packs such as **Ashen Expansion** and **Echoes of Depth**. The content/mod system is still developing; it is a foundation for growth, not a claim that there is already a large established mod scene.
+The game already has a foundation for loading and extending world content, with included campaigns such as **Echoes of the Ashen Road** and **Echoes of the Ashen Road: The Deeper Road**. The content/mod system is still developing; it is a foundation for growth, not a claim that there is already a large established mod scene.
 
 ## Where the game stands today
 
