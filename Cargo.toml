@@ -24,7 +24,7 @@ bevy = { version = "0.19.1", default-features = false, features = [
     "x11",
     "android-game-activity",
     "bevy_ui_widgets",
-    "jpeg",
+    "png",
     "keyboard",
     "mouse",
     "touch",
