@@ -73,6 +73,11 @@ pub(crate) struct GameplayRuntimeState {
     paused: bool,
 }
 
+#[derive(Resource, Debug, Default)]
+struct LocationArtAssets {
+    ashen_gate: Option<Handle<Image>>,
+}
+
 impl GameplayRuntimeState {
     pub(crate) fn is_paused(self) -> bool {
         self.paused
@@ -116,8 +121,27 @@ impl GameplayState {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
         .init_resource::<GameplayRuntimeState>()
+        .add_systems(Startup, load_location_art)
         .add_systems(Update, (gameplay_input, render_if_active).chain())
         .add_systems(Update, animate_world_clouds);
+}
+
+fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+    let ashen_gate = Image::from_buffer(
+        include_bytes!("../data/assets/locations/ashen_gate.jpg"),
+        bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
+        bevy::image::CompressedImageFormats::NONE,
+        true,
+        bevy::image::ImageSampler::Default,
+        bevy::asset::RenderAssetUsages::default(),
+    )
+    .map(|image| images.add(image))
+    .map_err(|error| {
+        warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
+    })
+    .ok();
+
+    commands.insert_resource(LocationArtAssets { ashen_gate });
 }
 
 fn gameplay_input(
@@ -498,6 +522,7 @@ fn render_if_active(
     lifecycle: Res<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
     navigation_state: Res<NavigationState>,
+    location_art: Res<LocationArtAssets>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -522,6 +547,7 @@ fn render_if_active(
             render_dashboard(
                 &mut commands,
                 &view,
+                &location_art,
                 &actions,
                 gameplay.selected,
                 gameplay.message.as_deref(),
@@ -539,6 +565,7 @@ fn render_if_active(
             let root = render_dashboard(
                 &mut commands,
                 &view,
+                &location_art,
                 &actions,
                 gameplay.selected,
                 gameplay.message.as_deref(),
@@ -553,6 +580,7 @@ fn render_if_active(
 fn render_dashboard(
     commands: &mut Commands,
     view: &WorldView,
+    location_art: &LocationArtAssets,
     actions: &[GameplayAction],
     selected: usize,
     message: Option<&str>,
@@ -595,7 +623,7 @@ fn render_dashboard(
         });
     }
     spawn_celestial(commands, world, sky);
-    render_location(commands, world, view);
+    render_location(commands, world, view, location_art);
     render_world_context(commands, world, view, message);
     render_player_hud(commands, world, view);
     render_action_area(commands, root, actions, selected);
@@ -685,7 +713,12 @@ fn spawn_celestial(commands: &mut Commands, parent: Entity, sky: SkyVisual) {
     });
 }
 
-fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
+fn render_location(
+    commands: &mut Commands,
+    parent: Entity,
+    view: &WorldView,
+    location_art: &LocationArtAssets,
+) {
     let card = commands
         .spawn((
             bevy_presentation::UiSurface,
@@ -721,7 +754,26 @@ fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
             card,
             format!("{} · {}", view.world_name, location.region_name),
         );
-        if let Some(art) = &view.art {
+        let banner = if location.name == "Ashen Gate" {
+            location_art.ashen_gate.as_ref()
+        } else {
+            None
+        };
+        if let Some(image) = banner {
+            let art_entity = commands
+                .spawn((
+                    ImageNode::new(image.clone()),
+                    Node {
+                        width: percent(100),
+                        min_width: px(0),
+                        aspect_ratio: Some(4.8),
+                        flex_shrink: 0.0,
+                        ..default()
+                    },
+                ))
+                .id();
+            commands.entity(card).add_child(art_entity);
+        } else if let Some(art) = &view.art {
             let art_entity = commands
                 .spawn((
                     Text::new(art.clone()),
