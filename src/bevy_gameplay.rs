@@ -127,21 +127,60 @@ pub(crate) fn install(app: &mut App) {
 }
 
 fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let ashen_gate = Image::from_buffer(
-        include_bytes!("../data/assets/locations/ashen_gate.jpg"),
-        bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
-        bevy::image::CompressedImageFormats::NONE,
-        true,
-        bevy::image::ImageSampler::Default,
-        bevy::asset::RenderAssetUsages::default(),
-    )
-    .map(|image| images.add(image))
-    .map_err(|error| {
-        warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
-    })
-    .ok();
+    let ashen_gate = match decode_base64(include_str!(
+        "../data/assets/locations/ashen_gate.jpg.b64"
+    )) {
+        Ok(bytes) => match Image::from_buffer(
+            &bytes,
+            bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
+            bevy::image::CompressedImageFormats::NONE,
+            true,
+            bevy::image::ImageSampler::Default,
+            bevy::asset::RenderAssetUsages::default(),
+        ) {
+            Ok(image) => Some(images.add(image)),
+            Err(error) => {
+                warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
+                None
+            }
+        },
+        Err(error) => {
+            warn!("Could not read Ashen Gate banner; using ASCII art fallback: {error}");
+            None
+        }
+    };
 
     commands.insert_resource(LocationArtAssets { ashen_gate });
+}
+
+fn decode_base64(input: &str) -> Result<Vec<u8>, &'static str> {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut output = Vec::with_capacity(input.len().saturating_mul(3) / 4);
+    let mut accumulator = 0u32;
+    let mut bits = 0u8;
+
+    for byte in input.bytes().filter(|byte| !byte.is_ascii_whitespace()) {
+        if byte == b'=' {
+            break;
+        }
+        let value = ALPHABET
+            .iter()
+            .position(|candidate| *candidate == byte)
+            .ok_or("encoded banner contains invalid base64")? as u32;
+        accumulator = (accumulator << 6) | value;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            output.push((accumulator >> bits) as u8);
+        }
+    }
+
+    if output.is_empty() {
+        Err("encoded banner is empty")
+    } else {
+        Ok(output)
+    }
 }
 
 fn gameplay_input(
