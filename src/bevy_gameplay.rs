@@ -73,6 +73,11 @@ pub(crate) struct GameplayRuntimeState {
     paused: bool,
 }
 
+#[derive(Resource, Debug, Default)]
+struct LocationArtAssets {
+    ashen_gate: Option<Handle<Image>>,
+}
+
 impl GameplayRuntimeState {
     pub(crate) fn is_paused(self) -> bool {
         self.paused
@@ -116,8 +121,65 @@ impl GameplayState {
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<GameplayState>()
         .init_resource::<GameplayRuntimeState>()
+        .add_systems(Startup, load_location_art)
         .add_systems(Update, (gameplay_input, render_if_active).chain())
         .add_systems(Update, animate_world_clouds);
+}
+
+fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
+    let ashen_gate =
+        match decode_base64(include_str!("../data/assets/locations/ashen_gate.jpg.b64")) {
+            Ok(bytes) => match Image::from_buffer(
+                &bytes,
+                bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
+                bevy::image::CompressedImageFormats::NONE,
+                true,
+                bevy::image::ImageSampler::Default,
+                bevy::asset::RenderAssetUsages::default(),
+            ) {
+                Ok(image) => Some(images.add(image)),
+                Err(error) => {
+                    warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
+                    None
+                }
+            },
+            Err(error) => {
+                warn!("Could not read Ashen Gate banner; using ASCII art fallback: {error}");
+                None
+            }
+        };
+
+    commands.insert_resource(LocationArtAssets { ashen_gate });
+}
+
+fn decode_base64(input: &str) -> Result<Vec<u8>, &'static str> {
+    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
+
+    let mut output = Vec::with_capacity(input.len().saturating_mul(3) / 4);
+    let mut accumulator = 0u32;
+    let mut bits = 0u8;
+
+    for byte in input.bytes().filter(|byte| !byte.is_ascii_whitespace()) {
+        if byte == b'=' {
+            break;
+        }
+        let value = ALPHABET
+            .iter()
+            .position(|candidate| *candidate == byte)
+            .ok_or("encoded banner contains invalid base64")? as u32;
+        accumulator = (accumulator << 6) | value;
+        bits += 6;
+        if bits >= 8 {
+            bits -= 8;
+            output.push((accumulator >> bits) as u8);
+        }
+    }
+
+    if output.is_empty() {
+        Err("encoded banner is empty")
+    } else {
+        Ok(output)
+    }
 }
 
 fn gameplay_input(
@@ -498,6 +560,7 @@ fn render_if_active(
     lifecycle: Res<LifecycleState>,
     mut gameplay: ResMut<GameplayState>,
     navigation_state: Res<NavigationState>,
+    location_art: Res<LocationArtAssets>,
     roots: Query<Entity, With<BevyScreenRoot>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -522,6 +585,7 @@ fn render_if_active(
             render_dashboard(
                 &mut commands,
                 &view,
+                &location_art,
                 &actions,
                 gameplay.selected,
                 gameplay.message.as_deref(),
@@ -539,6 +603,7 @@ fn render_if_active(
             let root = render_dashboard(
                 &mut commands,
                 &view,
+                &location_art,
                 &actions,
                 gameplay.selected,
                 gameplay.message.as_deref(),
@@ -553,6 +618,7 @@ fn render_if_active(
 fn render_dashboard(
     commands: &mut Commands,
     view: &WorldView,
+    location_art: &LocationArtAssets,
     actions: &[GameplayAction],
     selected: usize,
     message: Option<&str>,
@@ -595,7 +661,7 @@ fn render_dashboard(
         });
     }
     spawn_celestial(commands, world, sky);
-    render_location(commands, world, view);
+    render_location(commands, world, view, location_art);
     render_world_context(commands, world, view, message);
     render_player_hud(commands, world, view);
     render_action_area(commands, root, actions, selected);
@@ -685,7 +751,12 @@ fn spawn_celestial(commands: &mut Commands, parent: Entity, sky: SkyVisual) {
     });
 }
 
-fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
+fn render_location(
+    commands: &mut Commands,
+    parent: Entity,
+    view: &WorldView,
+    location_art: &LocationArtAssets,
+) {
     let card = commands
         .spawn((
             bevy_presentation::UiSurface,
@@ -721,7 +792,26 @@ fn render_location(commands: &mut Commands, parent: Entity, view: &WorldView) {
             card,
             format!("{} · {}", view.world_name, location.region_name),
         );
-        if let Some(art) = &view.art {
+        let banner = if location.name == "Ashen Gate" {
+            location_art.ashen_gate.as_ref()
+        } else {
+            None
+        };
+        if let Some(image) = banner {
+            let art_entity = commands
+                .spawn((
+                    ImageNode::new(image.clone()),
+                    Node {
+                        width: percent(100),
+                        min_width: px(0),
+                        aspect_ratio: Some(4.8),
+                        flex_shrink: 0.0,
+                        ..default()
+                    },
+                ))
+                .id();
+            commands.entity(card).add_child(art_entity);
+        } else if let Some(art) = &view.art {
             let art_entity = commands
                 .spawn((
                     Text::new(art.clone()),
