@@ -128,13 +128,13 @@ pub(crate) fn install(app: &mut App) {
 
 fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let ashen_gate =
-        match decode_base64(include_str!("../data/assets/locations/ashen_gate.jpg.b64")) {
+        match decode_base64(include_str!("../data/assets/locations/ashen_gate.png.b64")) {
             Ok(bytes) => match Image::from_buffer(
                 &bytes,
-                bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
+                bevy::image::ImageType::Format(bevy::image::ImageFormat::Png),
                 bevy::image::CompressedImageFormats::NONE,
                 true,
-                bevy::image::ImageSampler::Default,
+                bevy::image::ImageSampler::nearest(),
                 bevy::asset::RenderAssetUsages::default(),
             ) {
                 Ok(image) => Some(images.add(image)),
