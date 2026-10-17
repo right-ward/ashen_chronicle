@@ -127,28 +127,27 @@ pub(crate) fn install(app: &mut App) {
 }
 
 fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let ashen_gate = match decode_base64(include_str!(
-        "../data/assets/locations/ashen_gate.jpg.b64"
-    )) {
-        Ok(bytes) => match Image::from_buffer(
-            &bytes,
-            bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
-            bevy::image::CompressedImageFormats::NONE,
-            true,
-            bevy::image::ImageSampler::Default,
-            bevy::asset::RenderAssetUsages::default(),
-        ) {
-            Ok(image) => Some(images.add(image)),
+    let ashen_gate =
+        match decode_base64(include_str!("../data/assets/locations/ashen_gate.jpg.b64")) {
+            Ok(bytes) => match Image::from_buffer(
+                &bytes,
+                bevy::image::ImageType::Format(bevy::image::ImageFormat::Jpeg),
+                bevy::image::CompressedImageFormats::NONE,
+                true,
+                bevy::image::ImageSampler::Default,
+                bevy::asset::RenderAssetUsages::default(),
+            ) {
+                Ok(image) => Some(images.add(image)),
+                Err(error) => {
+                    warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
+                    None
+                }
+            },
             Err(error) => {
-                warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
+                warn!("Could not read Ashen Gate banner; using ASCII art fallback: {error}");
                 None
             }
-        },
-        Err(error) => {
-            warn!("Could not read Ashen Gate banner; using ASCII art fallback: {error}");
-            None
-        }
-    };
+        };
 
     commands.insert_resource(LocationArtAssets { ashen_gate });
 }
