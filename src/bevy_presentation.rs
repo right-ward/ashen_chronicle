@@ -316,6 +316,7 @@ pub enum ScreenId {
     Conversation,
     Remains,
     RemainsResult,
+    SpatialExploration,
     Combat,
     Console,
     Options,
@@ -1546,12 +1547,13 @@ mod tests {
             ScreenId::Conversation,
             ScreenId::Remains,
             ScreenId::RemainsResult,
+            ScreenId::SpatialExploration,
             ScreenId::Combat,
             ScreenId::Console,
             ScreenId::Options,
             ScreenId::Feedback,
         ];
-        assert_eq!(screens.len(), 16);
+        assert_eq!(screens.len(), 17);
     }
 
     #[test]

@@ -16,7 +16,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 The first implementation slice is tracked in [#354 — spatial state and deterministic local-map generation](https://github.com/right-ward/ashen_chronicle/issues/354), [#355 — continuous movement and discovery](https://github.com/right-ward/ashen_chronicle/issues/355), and [#356 — exploration persistence and inheritance](https://github.com/right-ward/ashen_chronicle/issues/356).
 
-The current focus is a renderer-neutral, bounded local-map model with deterministic generation and a guaranteed reachable point of interest. The playable Bevy view, movement, interaction, and persistence integration follow in their respective tasks.
+The renderer-neutral map model and deterministic generator are in place. The current implementation adds a first Bevy exploration view for dangerous locations, continuous keyboard/touch movement with blocked-terrain collision, camera tracking, and one contextual point-of-interest interaction recorded in world history. Map state is currently held in runtime memory; save/load, inheritance behavior, and end-to-end platform validation remain in #356 and the remaining work under #355.
 
 Keep the existing world model, quests, time, narrative, and location-level actions authoritative. Spatial exploration supplements rather than replaces them. Real-time spatial combat and audio remain outside this milestone.
 
