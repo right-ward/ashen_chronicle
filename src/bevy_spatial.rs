@@ -618,14 +618,13 @@ mod tests {
     #[test]
     fn movement_does_not_cross_blocked_terrain() {
         let mut map = generate_local_map(4, "location.test", LocalMapConfig::default());
-        let start = Vec2::new(f32::from(map.entry.x) + 0.5, f32::from(map.entry.y) + 0.5);
+        let start = Vec2::new(f32::from(map.entry.x) + 0.8, f32::from(map.entry.y) + 0.5);
         let wall = GridPosition {
             x: map.entry.x + 1,
             y: map.entry.y,
         };
         map.set_terrain(wall, Terrain::Wall);
-        let moved = advance_position(&map, start, Vec2::X, 1.0, PLAYER_SPEED);
-        assert!(moved.x < f32::from(wall.x + 1));
-        assert_eq!(moved.x.floor() as u16, map.entry.x);
+        let moved = advance_position(&map, start, Vec2::X, 0.1, PLAYER_SPEED);
+        assert_eq!(moved, start);
     }
 }
