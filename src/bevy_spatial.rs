@@ -235,15 +235,22 @@ fn sync_spatial_to_game(state: &SpatialExplorationState, lifecycle: &mut Lifecyc
         .iter_mut()
         .find(|existing| existing.location_id == map.location_id)
     {
-        *existing = map.clone();
+        if existing != map {
+            *existing = map.clone();
+        }
     } else {
         game_session.state.world.local_maps.push(map.clone());
     }
-    game_session.state.character.exploration_session = Some(session.clone());
-    game_session.state.character.exploration_position = Some(ExplorationPosition {
+    if game_session.state.character.exploration_session.as_ref() != Some(session) {
+        game_session.state.character.exploration_session = Some(session.clone());
+    }
+    let position = ExplorationPosition {
         x: state.position.x,
         y: state.position.y,
-    });
+    };
+    if game_session.state.character.exploration_position != Some(position) {
+        game_session.state.character.exploration_position = Some(position);
+    }
 }
 
 fn session_position(state: &SpatialExplorationState) -> Vec2 {
