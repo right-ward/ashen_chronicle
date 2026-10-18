@@ -108,6 +108,7 @@ pub(crate) fn enter(
     navigation.selected = 0;
 }
 
+#[allow(clippy::too_many_arguments)] // Bevy systems require independent resources and queries.
 fn spatial_input(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -276,6 +277,7 @@ fn exit_spatial(state: &mut SpatialExplorationState, navigation: &mut Navigation
     navigation.selected = 0;
 }
 
+#[allow(clippy::too_many_arguments)] // Bevy systems require independent resources and queries.
 fn update_spatial_world(
     mut commands: Commands,
     time: Res<Time>,
