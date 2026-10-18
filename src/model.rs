@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::content::{load_campaign_content, CampaignContent};
+use crate::spatial::{ExplorationSession, LocalMap};
 
 pub type EntityId = u64;
 const MAX_HISTORY_ENTRIES: usize = 500;
@@ -65,6 +66,9 @@ pub struct World {
     pub completed_quest_ids: Vec<String>,
     #[serde(default)]
     pub event_cooldowns: Vec<EventCooldown>,
+    /// World-persistent local maps and their lasting discoveries/changes.
+    #[serde(default)]
+    pub local_maps: Vec<LocalMap>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
@@ -136,6 +140,18 @@ pub struct Character {
     #[serde(default)]
     pub conditions: Vec<Condition>,
     pub notes: Vec<String>,
+    /// Character-specific active spatial exploration session, if any.
+    #[serde(default)]
+    pub exploration_session: Option<ExplorationSession>,
+    /// Exact continuous local-map position in tile coordinates.
+    #[serde(default)]
+    pub exploration_position: Option<ExplorationPosition>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ExplorationPosition {
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -326,6 +342,7 @@ impl World {
             day: 1,
             completed_quest_ids: Vec::new(),
             event_cooldowns: Vec::new(),
+            local_maps: Vec::new(),
         }
     }
 
@@ -432,6 +449,8 @@ impl Character {
             },
             conditions: Vec::new(),
             notes: vec!["Born into ash, with no past worth keeping.".to_string()],
+            exploration_session: None,
+            exploration_position: None,
         }
     }
 
