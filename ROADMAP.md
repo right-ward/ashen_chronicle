@@ -5,61 +5,24 @@
 The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
 
 ## Current state
-v0.51.23 development — developer-console input and close control
 
-Android system Back and desktop mouse Back enter the shared semantic Cancel path. On Android, text entry is handled by a hidden native EditText bridge in Java and forwarded to the Bevy text fields through JNI, leaving GameActivity's shared text-input state out of the Android input path.
+**v0.51.23 — release complete.** Android text-input and graphical gameplay stabilization are complete. The developer console has explicit input ownership and a Close control.
+
+**v0.52.x — Phase 1: location banner prototype.** Ashen Gate now uses a full-width pixel-art PNG banner with nearest-neighbor sampling; other locations and banner-load failures retain the ASCII fallback.
 
 ## Next
 
-v0.51.23 — release after verifying console input and close behavior on desktop and Android.
+**v0.52.x — Phase 2: spatial exploration prototype**
 
-Completed in this iteration:
-- Developer-console input ownership — mark only the live input row for touch input, leaving executed command history as plain output
-- Developer-console close control — add an upper-corner Close button that follows the console exit/reset path
-- Android text snapshot safety — replace lifecycle field buffers directly and reset the cursor to the end instead of inserting full Android snapshots at a retained cursor
-- Android input presentation — suppress the IME's fullscreen/extract editing UI for the hidden native field
-- Android IME visibility fix — leave Android keyboard visibility to the native Java bridge and prevent Bevy/winit from issuing Android IME hide requests
-- Android keyboard-show hardening — use AndroidX WindowInsetsControllerCompat with the legacy InputMethodManager fallback
-- Android build regression fix — handle `jni 0.22.4`'s `EnvOutcome` return type correctly in the Android text-input JNI callback
-- Android native text-input bridge — replace GameActivity text-state polling with a Java EditText, forwarding full text changes, submit actions, and keyboard dismissal to Rust
-- Android IME crash fix — stop using the GameActivity shared text-input state on Android
-- Android input compatibility — route system Back through the AndroidX back dispatcher and synchronize GameActivity IME text state for character creation and the developer console
-- #318 — restore shared standalone text layout and constrain graphical action controls
-- #329 — defer Android Quit process termination until after Activity teardown so relaunch can initialize normally
-- #330 — add an atmospheric Android launch splash and configurable desktop display modes
-- #319 — add an Android long-press gesture for the developer console
-- #317 — unify the gameplay burger menu and pause screen, including Android Back navigation
-- #320 — make the gameplay pause menu pause runtime gameplay simulation
-- #314 — restore Start screen Options navigation
-- #316 — fix Load screen Back navigation and migrate its controls to the current shared button style
-- #315 — migrate legacy graphical buttons to the current shared button style
-- #313 — make Android Quit safely terminate the activity/process so relaunch starts cleanly
-- #298 — restore user-facing graphical text rendering
-- #299 — display the contextual quit-confirmation question
-- #300 — restore persisted desktop game-data root startup resolution
-- #301 — restore compact Game Data options controls
-- #302 — add Options to the graphical start screen
-- Android build regression — keep desktop-only game root resolution out of Android compilation
-- #305 — keep conversation time and character turn progression consistent
-- #306 — keep remains-search time and turn progression consistent
-- #307 — preserve pause-menu selection when returning from Options
-- #308 — remove stale gameplay navigation bridge mapping
-- #309 — keep world view construction renderer-neutral
-- #310 — centralize semantic choice-button activation
-- Atmospheric quit-confirmation variants — refine bundle semantics and add darker/sadder presentation variants
-- #311 — make the gameplay menu button satisfy the shared touch-target contract
+Keep the first implementation deliberately small and validate one complete exploration loop before expanding the system:
 
-Previous v0.51.3 regression fixes:
-- #291 — persist the resolved desktop game-data root after first-launch selection
-- #292 — constrain the gameplay sky to the world presentation area
-- #293 — keep shared graphical choices/options content within its parent bounds
-- #294 — keep event metadata out of transient gameplay messages
-- #295 — restore the dedicated graphical quit presentation and wire choice activation correctly
-- #278 — shared graphical UI foundation
-- #279 — world-first gameplay HUD redesign
-- #227 — dedicated tabbed Options screen and configurable game data root
-- Android configuration persistence mirror — private app config with shared game-folder synchronization
-- #226 — gameplay pause menu with Resume, lifecycle actions, Options, and Quit confirmation
+- Define the minimum tile/grid representation, camera and coordinate rules, movement, interaction, and state/persistence boundary.
+- Connect the existing Explore action to one dangerous location's spatial view.
+- Support movement and one meaningful point of interest or encounter, then return to the existing gameplay screen with world state intact.
+- Keep the current world model, quests, time, narrative, and location-level actions authoritative; spatial exploration supplements rather than replaces them.
+- Align the environment art and layout with the incremental pixel-art direction in issue #229, with desktop and Android landscape behavior in mind.
+
+Related design issues: [#228 — hybrid world exploration](https://github.com/right-ward/ashen_chronicle/issues/228), [#229 — pixel-art visual direction](https://github.com/right-ward/ashen_chronicle/issues/229), and [#252 — future spatial combat design](https://github.com/right-ward/ashen_chronicle/issues/252). Keep real-time combat and audio as separate design/implementation steps rather than prerequisites for the first exploration loop.
 
 ## Longer-term direction
 
