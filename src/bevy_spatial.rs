@@ -9,11 +9,13 @@ use std::collections::HashMap;
 use bevy::prelude::*;
 
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
-use crate::bevy_presentation::{self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId};
+use crate::bevy_presentation::{
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+};
 use crate::input::InputEvent;
 use crate::model::GameState;
 use crate::spatial::{
-    generate_local_map, GridPosition, LocalMap, LocalMapConfig, ExplorationSession, Terrain,
+    generate_local_map, ExplorationSession, GridPosition, LocalMap, LocalMapConfig, Terrain,
 };
 
 const TILE_SIZE: f32 = 32.0;
@@ -48,11 +50,10 @@ pub(crate) struct SpatialExplorationState {
 }
 
 pub(crate) fn install(app: &mut App) {
-    app.init_resource::<SpatialExplorationState>()
-        .add_systems(
-            Update,
-            (spatial_input, update_spatial_world, render_spatial_screen).chain(),
-        );
+    app.init_resource::<SpatialExplorationState>().add_systems(
+        Update,
+        (spatial_input, update_spatial_world, render_spatial_screen).chain(),
+    );
 }
 
 pub(crate) fn enter(
@@ -234,12 +235,14 @@ fn interact_with_poi(state: &mut SpatialExplorationState, lifecycle: &mut Lifecy
         f32::from(poi.position.y) + 0.5,
     );
     if position.distance(poi_position) > 1.25 {
-        state.message = Some("Nothing close enough to examine. Move toward the marked remains.".to_string());
+        state.message =
+            Some("Nothing close enough to examine. Move toward the marked remains.".to_string());
         state.dirty = true;
         return;
     }
     if poi.interacted {
-        state.message = Some("The remains offer nothing more. The wrongness is still there.".to_string());
+        state.message =
+            Some("The remains offer nothing more. The wrongness is still there.".to_string());
         state.dirty = true;
         return;
     }
@@ -252,7 +255,10 @@ fn interact_with_poi(state: &mut SpatialExplorationState, lifecycle: &mut Lifecy
         let turn = session.state.character.turn;
         session.state.world.record_history(
             turn,
-            format!("{}: {} {}", title, description, "The discovery has been recorded."),
+            format!(
+                "{}: {} {}",
+                title, description, "The discovery has been recorded."
+            ),
         );
     }
     state.message = Some(format!(
@@ -341,10 +347,8 @@ fn render_spatial_screen(
             let position = GridPosition { x, y };
             let terrain = map.terrain_at(position).unwrap_or(Terrain::Wall);
             let color = terrain_color(terrain, map.is_tile_discovered(position));
-            let world_position = map_to_world(
-                Vec2::new(f32::from(x) + 0.5, f32::from(y) + 0.5),
-                Some(map),
-            );
+            let world_position =
+                map_to_world(Vec2::new(f32::from(x) + 0.5, f32::from(y) + 0.5), Some(map));
             commands.spawn((
                 SpatialWorldEntity,
                 SpatialTile(position),
@@ -356,7 +360,10 @@ fn render_spatial_screen(
 
     if let Some(poi) = map.points_of_interest.first() {
         let poi_position = map_to_world(
-            Vec2::new(f32::from(poi.position.x) + 0.5, f32::from(poi.position.y) + 0.5),
+            Vec2::new(
+                f32::from(poi.position.x) + 0.5,
+                f32::from(poi.position.y) + 0.5,
+            ),
             Some(map),
         );
         commands.spawn((
@@ -411,11 +418,25 @@ fn render_spatial_screen(
     let location_name = lifecycle
         .session
         .as_ref()
-        .and_then(|session| session.state.world.location_by_id(session.state.character.location_id))
+        .and_then(|session| {
+            session
+                .state
+                .world
+                .location_by_id(session.state.character.location_id)
+        })
         .map(|location| location.name.to_uppercase())
         .unwrap_or_else(|| "DANGEROUS LOCATION".to_string());
-    spawn_label(&mut commands, header, format!("{location_name} — ASHEN GROUND"));
-    spawn_control(&mut commands, header, "Leave", bevy_spatial_action(SpatialAction::Exit));
+    spawn_label(
+        &mut commands,
+        header,
+        format!("{location_name} — ASHEN GROUND"),
+    );
+    spawn_control(
+        &mut commands,
+        header,
+        "Leave",
+        bevy_spatial_action(SpatialAction::Exit),
+    );
 
     let status = commands
         .spawn((
@@ -431,7 +452,10 @@ fn render_spatial_screen(
     spawn_label(
         &mut commands,
         status,
-        state.message.as_deref().unwrap_or("Move carefully. The walls are not all stone."),
+        state
+            .message
+            .as_deref()
+            .unwrap_or("Move carefully. The walls are not all stone."),
     );
 
     let footer = commands
@@ -464,14 +488,23 @@ fn render_spatial_screen(
         })
         .id();
     commands.entity(pad).add_child(middle);
-    spawn_control(&mut commands, middle, "←", bevy_spatial_direction(Vec2::NEG_X));
+    spawn_control(
+        &mut commands,
+        middle,
+        "←",
+        bevy_spatial_direction(Vec2::NEG_X),
+    );
     spawn_control(&mut commands, middle, "↓", bevy_spatial_direction(Vec2::Y));
     spawn_control(&mut commands, middle, "→", bevy_spatial_direction(Vec2::X));
 
     spawn_control(
         &mut commands,
         footer,
-        if map.points_of_interest.first().is_some_and(|poi| poi.interacted) {
+        if map
+            .points_of_interest
+            .first()
+            .is_some_and(|poi| poi.interacted)
+        {
             "Examine again (E)"
         } else {
             "Examine (E)"

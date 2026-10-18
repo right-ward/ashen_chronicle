@@ -489,11 +489,7 @@ fn activate_selection(
                         .world
                         .location_is_dangerous(session.state.character.location_id)
                     {
-                        crate::bevy_spatial::enter(
-                            spatial_state,
-                            &session.state,
-                            navigation_state,
-                        );
+                        crate::bevy_spatial::enter(spatial_state, &session.state, navigation_state);
                         gameplay.message = None;
                     } else {
                         gameplay.message = session
