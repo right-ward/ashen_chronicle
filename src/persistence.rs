@@ -313,8 +313,11 @@ mod tests {
             .expect("character should be an object");
         character.remove("exploration_session");
         character.remove("exploration_position");
-        fs::write(&path, serde_json::to_vec(&json).expect("legacy JSON should serialize"))
-            .expect("legacy save should be written");
+        fs::write(
+            &path,
+            serde_json::to_vec(&json).expect("legacy JSON should serialize"),
+        )
+        .expect("legacy save should be written");
 
         let loaded = load_game(&path).expect("older save should remain loadable");
         assert!(loaded.world.local_maps.is_empty());
