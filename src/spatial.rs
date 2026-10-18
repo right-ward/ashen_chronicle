@@ -110,7 +110,8 @@ impl LocalMap {
         {
             change.terrain = terrain;
         } else {
-            self.terrain_changes.push(TerrainChange { position, terrain });
+            self.terrain_changes
+                .push(TerrainChange { position, terrain });
         }
         true
     }
@@ -191,7 +192,10 @@ pub fn generate_local_map(
     let mut rng = DeterministicRng::new(seed);
     let width = config.width;
     let height = config.height;
-    let entry = GridPosition { x: 1, y: height / 2 };
+    let entry = GridPosition {
+        x: 1,
+        y: height / 2,
+    };
     let poi_position = GridPosition {
         x: width - 2,
         y: 1 + rng.gen_range(0..usize::from(height - 2)) as u16,
@@ -289,10 +293,24 @@ pub fn has_walkable_path(map: &LocalMap, start: GridPosition, goal: GridPosition
             return true;
         }
         let neighbors = [
-            position.x.checked_sub(1).map(|x| GridPosition { x, y: position.y }),
-            position.x.checked_add(1).filter(|x| *x < map.width).map(|x| GridPosition { x, y: position.y }),
-            position.y.checked_sub(1).map(|y| GridPosition { x: position.x, y }),
-            position.y.checked_add(1).filter(|y| *y < map.height).map(|y| GridPosition { x: position.x, y }),
+            position
+                .x
+                .checked_sub(1)
+                .map(|x| GridPosition { x, y: position.y }),
+            position
+                .x
+                .checked_add(1)
+                .filter(|x| *x < map.width)
+                .map(|x| GridPosition { x, y: position.y }),
+            position
+                .y
+                .checked_sub(1)
+                .map(|y| GridPosition { x: position.x, y }),
+            position
+                .y
+                .checked_add(1)
+                .filter(|y| *y < map.height)
+                .map(|y| GridPosition { x: position.x, y }),
         ];
         for neighbor in neighbors.into_iter().flatten() {
             let index = index_of(neighbor);
@@ -328,7 +346,10 @@ mod tests {
     fn generated_map_has_valid_bounds_and_reachable_point_of_interest() {
         for seed in 0..64 {
             let map = generate_local_map(seed, "location.old_shrine", LocalMapConfig::default());
-            assert_eq!(map.terrain.len(), usize::from(map.width) * usize::from(map.height));
+            assert_eq!(
+                map.terrain.len(),
+                usize::from(map.width) * usize::from(map.height)
+            );
             assert!(map.contains(map.entry));
             assert!(map.is_walkable(map.entry));
             let poi = &map.points_of_interest[0];
@@ -343,11 +364,17 @@ mod tests {
         let map = generate_local_map(
             1,
             "location.test",
-            LocalMapConfig { width: 1, height: u16::MAX },
+            LocalMapConfig {
+                width: 1,
+                height: u16::MAX,
+            },
         );
         assert_eq!(map.width, MIN_MAP_DIMENSION);
         assert_eq!(map.height, MAX_MAP_DIMENSION);
-        assert_eq!(map.terrain.len(), usize::from(map.width) * usize::from(map.height));
+        assert_eq!(
+            map.terrain.len(),
+            usize::from(map.width) * usize::from(map.height)
+        );
     }
 
     #[test]
