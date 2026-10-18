@@ -27,6 +27,9 @@ struct SpatialWorldEntity;
 struct SpatialPlayer;
 
 #[derive(Component, Clone, Copy)]
+struct SpatialTile(GridPosition);
+
+#[derive(Component, Clone, Copy)]
 struct SpatialDirection(Vec2);
 
 #[derive(Component, Clone, Copy)]
@@ -153,7 +156,6 @@ fn spatial_input(
             y: next.y.floor().max(0.0) as u16,
         };
         map_mark_discovered(&mut state, next);
-        state.dirty = true;
     }
 
     if keyboard.just_pressed(KeyCode::KeyE) || keyboard.just_pressed(KeyCode::Enter) {
@@ -264,6 +266,7 @@ fn update_spatial_world(
     navigation: Res<NavigationState>,
     mut camera: Query<&mut Transform, (With<Camera2d>, Without<SpatialPlayer>)>,
     mut player: Query<&mut Transform, With<SpatialPlayer>>,
+    mut tiles: Query<(&SpatialTile, &mut Sprite)>,
     world_entities: Query<Entity, With<SpatialWorldEntity>>,
 ) {
     if navigation.current_screen != Some(ScreenId::SpatialExploration) {
@@ -275,7 +278,14 @@ fn update_spatial_world(
     let Some(session) = state.session.as_ref() else {
         return;
     };
-    let target = map_to_world(session_position(&state), state.maps.get(&session.location_id));
+    let Some(map) = state.maps.get(&session.location_id) else {
+        return;
+    };
+    let target = map_to_world(session_position(&state), Some(map));
+    for (tile, mut sprite) in &mut tiles {
+        let terrain = map.terrain_at(tile.0).unwrap_or(Terrain::Wall);
+        sprite.color = terrain_color(terrain, map.is_tile_discovered(tile.0));
+    }
     for mut transform in &mut player {
         transform.translation.x = target.x;
         transform.translation.y = target.y;
@@ -326,6 +336,7 @@ fn render_spatial_screen(
             );
             commands.spawn((
                 SpatialWorldEntity,
+                SpatialTile(position),
                 Sprite::from_color(color, Vec2::splat(TILE_SIZE - 1.0)),
                 Transform::from_xyz(world_position.x, world_position.y, 0.0),
             ));
@@ -557,7 +568,7 @@ fn advance_position(
     if direction.length_squared() == 0.0 {
         return position;
     }
-    let delta = direction.normalize() * speed * delta_secs.max(0.0);
+    let delta = direction.normalize() * speed * delta_secs.clamp(0.0, 0.1);
     let mut result = position;
     let candidate_x = result.x + delta.x;
     if is_position_walkable(map, Vec2::new(candidate_x, result.y)) {
