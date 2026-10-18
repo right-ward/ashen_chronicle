@@ -712,6 +712,50 @@ mod tests {
     }
 
     #[test]
+    fn inherited_world_keeps_spatial_maps_but_resets_character_session() {
+        let mut state = create_new_state(
+            "Spatial Inheritance",
+            WorldMode::New,
+            "First Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+        let mut map = crate::spatial::generate_local_map(
+            91,
+            "location.old_shrine",
+            crate::spatial::LocalMapConfig::default(),
+        );
+        map.mark_tile_discovered(map.entry);
+        map.points_of_interest[0].discovered = true;
+        map.points_of_interest[0].interacted = true;
+        map.set_terrain(map.entry, crate::spatial::Terrain::Rubble);
+        state.world.local_maps.push(map.clone());
+        state.character.exploration_session = Some(crate::spatial::ExplorationSession {
+            location_id: map.location_id.clone(),
+            position: map.entry,
+        });
+        state.character.exploration_position = Some(ExplorationPosition {
+            x: f32::from(map.entry.x) + 0.7,
+            y: f32::from(map.entry.y) + 0.2,
+        });
+
+        let inherited = create_inherited_state(
+            &state,
+            "Second Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+
+        assert_eq!(inherited.world.local_maps, vec![map.clone()]);
+        assert!(inherited.world.local_maps[0].is_tile_discovered(map.entry));
+        assert!(inherited.world.local_maps[0].points_of_interest[0].interacted);
+        assert_eq!(
+            inherited.world.local_maps[0].terrain_at(map.entry),
+            Some(crate::spatial::Terrain::Rubble)
+        );
+        assert!(inherited.character.exploration_session.is_none());
+        assert!(inherited.character.exploration_position.is_none());
+    }
+
+    #[test]
     fn objective_defaults_are_safe_for_old_saves() {
         let json = r#"{
             "kind": "acquire_item",
