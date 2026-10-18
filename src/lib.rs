@@ -31,6 +31,7 @@ pub mod procedural_entities;
 pub mod procedural_opportunities;
 pub mod procedural_relationships;
 pub mod rng;
+pub mod spatial;
 
 pub fn run() {
     if let Err(error) = game_paths::GamePaths::initialize() {
