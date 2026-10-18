@@ -2,6 +2,7 @@ use serde::{Deserialize, Serialize};
 use std::time::{SystemTime, UNIX_EPOCH};
 
 use crate::content::{load_campaign_content, CampaignContent};
+use crate::spatial::{ExplorationSession, LocalMap};
 
 pub type EntityId = u64;
 const MAX_HISTORY_ENTRIES: usize = 500;
@@ -65,6 +66,9 @@ pub struct World {
     pub completed_quest_ids: Vec<String>,
     #[serde(default)]
     pub event_cooldowns: Vec<EventCooldown>,
+    /// World-persistent local maps and their lasting discoveries/changes.
+    #[serde(default)]
+    pub local_maps: Vec<LocalMap>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default, PartialEq, Eq)]
@@ -136,6 +140,18 @@ pub struct Character {
     #[serde(default)]
     pub conditions: Vec<Condition>,
     pub notes: Vec<String>,
+    /// Character-specific active spatial exploration session, if any.
+    #[serde(default)]
+    pub exploration_session: Option<ExplorationSession>,
+    /// Exact continuous local-map position in tile coordinates.
+    #[serde(default)]
+    pub exploration_position: Option<ExplorationPosition>,
+}
+
+#[derive(Debug, Clone, Copy, PartialEq, Serialize, Deserialize)]
+pub struct ExplorationPosition {
+    pub x: f32,
+    pub y: f32,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, Default)]
@@ -326,6 +342,7 @@ impl World {
             day: 1,
             completed_quest_ids: Vec::new(),
             event_cooldowns: Vec::new(),
+            local_maps: Vec::new(),
         }
     }
 
@@ -432,6 +449,8 @@ impl Character {
             },
             conditions: Vec::new(),
             notes: vec!["Born into ash, with no past worth keeping.".to_string()],
+            exploration_session: None,
+            exploration_position: None,
         }
     }
 
@@ -690,6 +709,50 @@ mod tests {
         assert_eq!(inherited.world.event_cooldowns, state.world.event_cooldowns);
         assert_eq!(inherited.world.event_cooldowns[0].ready_at_turn, 14);
         assert_eq!(inherited.world.generation, state.world.generation);
+    }
+
+    #[test]
+    fn inherited_world_keeps_spatial_maps_but_resets_character_session() {
+        let mut state = create_new_state(
+            "Spatial Inheritance",
+            WorldMode::New,
+            "First Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+        let mut map = crate::spatial::generate_local_map(
+            91,
+            "location.old_shrine",
+            crate::spatial::LocalMapConfig::default(),
+        );
+        map.mark_tile_discovered(map.entry);
+        map.points_of_interest[0].discovered = true;
+        map.points_of_interest[0].interacted = true;
+        map.set_terrain(map.entry, crate::spatial::Terrain::Rubble);
+        state.world.local_maps.push(map.clone());
+        state.character.exploration_session = Some(crate::spatial::ExplorationSession {
+            location_id: map.location_id.clone(),
+            position: map.entry,
+        });
+        state.character.exploration_position = Some(ExplorationPosition {
+            x: f32::from(map.entry.x) + 0.7,
+            y: f32::from(map.entry.y) + 0.2,
+        });
+
+        let inherited = create_inherited_state(
+            &state,
+            "Second Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+
+        assert_eq!(inherited.world.local_maps, vec![map.clone()]);
+        assert!(inherited.world.local_maps[0].is_tile_discovered(map.entry));
+        assert!(inherited.world.local_maps[0].points_of_interest[0].interacted);
+        assert_eq!(
+            inherited.world.local_maps[0].terrain_at(map.entry),
+            Some(crate::spatial::Terrain::Rubble)
+        );
+        assert!(inherited.character.exploration_session.is_none());
+        assert!(inherited.character.exploration_position.is_none());
     }
 
     #[test]

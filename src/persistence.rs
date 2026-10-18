@@ -229,6 +229,24 @@ mod tests {
             event_id: "travel.ruined-road".to_string(),
             ready_at_turn: 11,
         });
+        let mut map = crate::spatial::generate_local_map(
+            77,
+            "location.1",
+            crate::spatial::LocalMapConfig::default(),
+        );
+        map.mark_tile_discovered(map.entry);
+        map.points_of_interest[0].discovered = true;
+        map.points_of_interest[0].interacted = true;
+        map.set_terrain(map.entry, crate::spatial::Terrain::Rubble);
+        state.world.local_maps.push(map.clone());
+        state.character.exploration_session = Some(crate::spatial::ExplorationSession {
+            location_id: map.location_id.clone(),
+            position: map.entry,
+        });
+        state.character.exploration_position = Some(crate::model::ExplorationPosition {
+            x: f32::from(map.entry.x) + 0.73,
+            y: f32::from(map.entry.y) + 0.29,
+        });
 
         let generation = state.world.generation;
         let original_description = state.world.locations[0].description.clone();
@@ -249,12 +267,62 @@ mod tests {
         assert_eq!(loaded.character.turn, 7);
         assert_eq!(loaded.character.name, "Tester");
         assert_eq!(loaded.world.event_cooldowns, state.world.event_cooldowns);
+        assert_eq!(loaded.world.local_maps, vec![map.clone()]);
+        assert!(loaded.world.local_maps[0].points_of_interest[0].interacted);
+        assert!(loaded.world.local_maps[0].is_tile_discovered(map.entry));
+        assert_eq!(
+            loaded.character.exploration_session,
+            state.character.exploration_session
+        );
+        assert_eq!(
+            loaded.character.exploration_position,
+            state.character.exploration_position
+        );
         assert_eq!(loaded.rng_state, state.rng_state);
         assert_eq!(loaded.world.generation, generation);
         assert_eq!(loaded.world.locations[0].description, mutated_description);
         assert_ne!(loaded.world.locations[0].description, original_description);
         assert_eq!(loaded.world.locations[0].exits, original_exits);
         assert_eq!(loaded.world.history.len(), history_len);
+        fs::remove_dir_all(&dir).expect("temporary directory should be removed");
+    }
+
+    #[test]
+    fn older_save_without_spatial_fields_loads_with_defaults() {
+        let dir = temp_dir();
+        let path = dir.join("older-save.json");
+        let state = create_new_state(
+            "Legacy Spatial World",
+            WorldMode::New,
+            "Legacy Warden".to_string(),
+            "Ash Walker".to_string(),
+        );
+        let payload = SaveFile {
+            save_file_version: SAVE_FILE_VERSION,
+            game: &state,
+            runtime_generated_events: Vec::new(),
+        };
+        let mut json: serde_json::Value =
+            serde_json::to_value(payload).expect("save should serialize");
+        let world = json["game"]["world"]
+            .as_object_mut()
+            .expect("world should be an object");
+        world.remove("local_maps");
+        let character = json["game"]["character"]
+            .as_object_mut()
+            .expect("character should be an object");
+        character.remove("exploration_session");
+        character.remove("exploration_position");
+        fs::write(
+            &path,
+            serde_json::to_vec(&json).expect("legacy JSON should serialize"),
+        )
+        .expect("legacy save should be written");
+
+        let loaded = load_game(&path).expect("older save should remain loadable");
+        assert!(loaded.world.local_maps.is_empty());
+        assert!(loaded.character.exploration_session.is_none());
+        assert!(loaded.character.exploration_position.is_none());
         fs::remove_dir_all(&dir).expect("temporary directory should be removed");
     }
 
