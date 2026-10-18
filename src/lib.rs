@@ -11,6 +11,7 @@ mod bevy_options;
 mod bevy_presentation;
 mod bevy_records;
 mod bevy_runtime;
+mod bevy_spatial;
 mod bevy_touch;
 mod content;
 #[cfg(not(target_os = "android"))]
