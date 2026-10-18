@@ -268,7 +268,7 @@ mod tests {
         assert_eq!(loaded.character.name, "Tester");
         assert_eq!(loaded.world.event_cooldowns, state.world.event_cooldowns);
         assert_eq!(loaded.world.local_maps, vec![map.clone()]);
-        assert_eq!(loaded.world.local_maps[0].points_of_interest[0].interacted, true);
+        assert!(loaded.world.local_maps[0].points_of_interest[0].interacted);
         assert!(loaded.world.local_maps[0].is_tile_discovered(map.entry));
         assert_eq!(
             loaded.character.exploration_session,
