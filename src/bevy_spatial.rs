@@ -39,6 +39,7 @@ enum SpatialAction {
 pub(crate) struct SpatialExplorationState {
     maps: HashMap<String, LocalMap>,
     session: Option<ExplorationSession>,
+    position: Vec2,
     message: Option<String>,
     dirty: bool,
 }
@@ -74,15 +75,20 @@ pub(crate) fn enter(
         .session
         .as_ref()
         .filter(|session| session.location_id == location_id)
-        .map(|session| session.position)
-        .filter(|position| map.is_walkable(GridPosition {
-            x: position.x.floor().max(0.0) as u16,
-            y: position.y.floor().max(0.0) as u16,
-        }))
+        .map(|_| state.position)
+        .filter(|position| {
+            position.x >= 0.0
+                && position.y >= 0.0
+                && map.is_walkable(GridPosition {
+                    x: position.x.floor() as u16,
+                    y: position.y.floor() as u16,
+                })
+        })
         .unwrap_or(Vec2::new(
             f32::from(map.entry.x) + 0.5,
             f32::from(map.entry.y) + 0.5,
         ));
+    state.position = position;
     state.session = Some(ExplorationSession {
         location_id,
         position: GridPosition {
@@ -90,6 +96,7 @@ pub(crate) fn enter(
             y: position.y.floor().max(0.0) as u16,
         },
     });
+    map_mark_discovered(state, position);
     state.message = Some("The air grows still. Something waits among the ash.".to_string());
     state.dirty = true;
     navigation.return_screen = Some(ScreenId::Gameplay);
@@ -104,7 +111,6 @@ fn spatial_input(
     mut navigation: ResMut<NavigationState>,
     mut queue: ResMut<GameplayInputQueue>,
     mut state: ResMut<SpatialExplorationState>,
-    directions: Query<&SpatialDirection, With<Interaction>>,
     direction_buttons: Query<(&Interaction, &SpatialDirection)>,
     action_buttons: Query<(&Interaction, &SpatialAction), Changed<Interaction>>,
 ) {
@@ -132,8 +138,6 @@ fn spatial_input(
             direction += control.0;
         }
     }
-    let _ = &directions;
-
     if direction.length_squared() > 0.0 {
         let Some(session) = state.session.as_mut() else {
             return;
@@ -141,8 +145,9 @@ fn spatial_input(
         let Some(map) = state.maps.get(&session.location_id) else {
             return;
         };
-        let current = session_position(session);
+        let current = state.position;
         let next = advance_position(map, current, direction, time.delta_secs(), PLAYER_SPEED);
+        state.position = next;
         session.position = GridPosition {
             x: next.x.floor().max(0.0) as u16,
             y: next.y.floor().max(0.0) as u16,
@@ -176,11 +181,8 @@ fn spatial_input(
     }
 }
 
-fn session_position(session: &ExplorationSession) -> Vec2 {
-    Vec2::new(
-        f32::from(session.position.x) + 0.5,
-        f32::from(session.position.y) + 0.5,
-    )
+fn session_position(state: &SpatialExplorationState) -> Vec2 {
+    state.position
 }
 
 fn map_mark_discovered(state: &mut SpatialExplorationState, position: Vec2) {
@@ -188,10 +190,15 @@ fn map_mark_discovered(state: &mut SpatialExplorationState, position: Vec2) {
         return;
     };
     if let Some(map) = state.maps.get_mut(&session.location_id) {
-        map.mark_tile_discovered(GridPosition {
+        let center = GridPosition {
             x: position.x.floor().max(0.0) as u16,
             y: position.y.floor().max(0.0) as u16,
-        });
+        };
+        for y in center.y.saturating_sub(2)..=center.y.saturating_add(2).min(map.height - 1) {
+            for x in center.x.saturating_sub(2)..=center.x.saturating_add(2).min(map.width - 1) {
+                map.mark_tile_discovered(GridPosition { x, y });
+            }
+        }
     }
 }
 
@@ -200,7 +207,7 @@ fn interact_with_poi(state: &mut SpatialExplorationState, lifecycle: &mut Lifecy
         return;
     };
     let location_id = session.location_id.clone();
-    let position = session_position(session);
+    let position = session_position(state);
     let Some(map) = state.maps.get_mut(&location_id) else {
         return;
     };
@@ -251,19 +258,24 @@ fn exit_spatial(state: &mut SpatialExplorationState, navigation: &mut Navigation
 }
 
 fn update_spatial_world(
+    mut commands: Commands,
     time: Res<Time>,
     state: Res<SpatialExplorationState>,
     navigation: Res<NavigationState>,
     mut camera: Query<&mut Transform, (With<Camera2d>, Without<SpatialPlayer>)>,
     mut player: Query<&mut Transform, With<SpatialPlayer>>,
+    world_entities: Query<Entity, With<SpatialWorldEntity>>,
 ) {
     if navigation.current_screen != Some(ScreenId::SpatialExploration) {
+        for entity in &world_entities {
+            commands.entity(entity).despawn();
+        }
         return;
     }
     let Some(session) = state.session.as_ref() else {
         return;
     };
-    let target = map_to_world(session_position(session), state.maps.get(&session.location_id));
+    let target = map_to_world(session_position(&state), state.maps.get(&session.location_id));
     for mut transform in &mut player {
         transform.translation.x = target.x;
         transform.translation.y = target.y;
@@ -339,7 +351,7 @@ fn render_spatial_screen(
         ));
     }
 
-    let player_position = map_to_world(session_position(session), Some(map));
+    let player_position = map_to_world(session_position(&state), Some(map));
     commands.spawn((
         SpatialWorldEntity,
         SpatialPlayer,
@@ -374,9 +386,14 @@ fn render_spatial_screen(
         })
         .id();
     commands.entity(root).add_child(header);
-    spawn_label(&mut commands, header, "OLD SHRINE — ASHEN GROUND");
-    let exit = spawn_control(&mut commands, header, "Leave", bevy_spatial_action(SpatialAction::Exit));
-    let _ = exit;
+    let location_name = lifecycle
+        .session
+        .as_ref()
+        .and_then(|session| session.state.world.location_by_id(session.state.character.location_id))
+        .map(|location| location.name.to_uppercase())
+        .unwrap_or_else(|| "DANGEROUS LOCATION".to_string());
+    spawn_label(&mut commands, header, format!("{location_name} — ASHEN GROUND"));
+    spawn_control(&mut commands, header, "Leave", bevy_spatial_action(SpatialAction::Exit));
 
     let status = commands
         .spawn((
@@ -429,7 +446,7 @@ fn render_spatial_screen(
     spawn_control(&mut commands, middle, "↓", bevy_spatial_direction(Vec2::NEG_Y));
     spawn_control(&mut commands, middle, "→", bevy_spatial_direction(Vec2::X));
 
-    let interact = spawn_control(
+    spawn_control(
         &mut commands,
         footer,
         if map.points_of_interest.first().is_some_and(|poi| poi.interacted) {
@@ -439,7 +456,6 @@ fn render_spatial_screen(
         },
         bevy_spatial_action(SpatialAction::Interact),
     );
-    let _ = interact;
     state.dirty = false;
 }
 
