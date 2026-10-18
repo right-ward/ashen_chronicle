@@ -13,7 +13,7 @@ use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
 };
 use crate::input::InputEvent;
-use crate::model::GameState;
+use crate::model::{ExplorationPosition, GameState};
 use crate::spatial::{
     generate_local_map, ExplorationSession, GridPosition, LocalMap, LocalMapConfig, Terrain,
 };
@@ -71,15 +71,39 @@ pub(crate) fn enter(
         .map(|generation| generation.seed)
         .unwrap_or(game.world.id);
 
-    state.maps.entry(location_id.clone()).or_insert_with(|| {
-        generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
-    });
+    if !state.maps.contains_key(&location_id) {
+        let map = game
+            .world
+            .local_maps
+            .iter()
+            .find(|map| map.location_id == location_id)
+            .cloned()
+            .unwrap_or_else(|| {
+                generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
+            });
+        state.maps.insert(location_id.clone(), map);
+    }
     let map = state.maps.get(&location_id).expect("map was just inserted");
-    let position = state
-        .session
+    let saved_position = game
+        .character
+        .exploration_session
         .as_ref()
         .filter(|session| session.location_id == location_id)
-        .map(|_| state.position)
+        .and(game.character.exploration_position)
+        .map(|position| Vec2::new(position.x, position.y))
+        .or_else(|| {
+            game.character
+                .exploration_session
+                .as_ref()
+                .filter(|session| session.location_id == location_id)
+                .map(|session| {
+                    Vec2::new(
+                        f32::from(session.position.x) + 0.5,
+                        f32::from(session.position.y) + 0.5,
+                    )
+                })
+        });
+    let position = saved_position
         .filter(|position| {
             position.x >= 0.0
                 && position.y >= 0.0
@@ -194,6 +218,34 @@ fn spatial_input(
             exit_spatial(&mut state, &mut navigation);
         }
     }
+
+    sync_spatial_to_game(&state, &mut lifecycle);
+}
+
+fn sync_spatial_to_game(state: &SpatialExplorationState, lifecycle: &mut LifecycleState) {
+    let (Some(session), Some(game_session)) = (state.session.as_ref(), lifecycle.session.as_mut())
+    else {
+        return;
+    };
+    let Some(map) = state.maps.get(&session.location_id) else {
+        return;
+    };
+    if let Some(existing) = game_session
+        .state
+        .world
+        .local_maps
+        .iter_mut()
+        .find(|existing| existing.location_id == map.location_id)
+    {
+        *existing = map.clone();
+    } else {
+        game_session.state.world.local_maps.push(map.clone());
+    }
+    game_session.state.character.exploration_session = Some(session.clone());
+    game_session.state.character.exploration_position = Some(ExplorationPosition {
+        x: state.position.x,
+        y: state.position.y,
+    });
 }
 
 fn session_position(state: &SpatialExplorationState) -> Vec2 {
