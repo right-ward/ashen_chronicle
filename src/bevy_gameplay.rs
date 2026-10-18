@@ -188,6 +188,7 @@ fn gameplay_input(
     mut runtime_state: ResMut<GameplayRuntimeState>,
     mut navigation_state: ResMut<NavigationState>,
     mut combat_state: ResMut<CombatState>,
+    mut spatial_state: ResMut<crate::bevy_spatial::SpatialExplorationState>,
     mut input_queue: ResMut<GameplayInputQueue>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
@@ -251,6 +252,7 @@ fn gameplay_input(
                     &mut runtime_state,
                     &mut navigation_state,
                     &mut combat_state,
+                    &mut spatial_state,
                 );
             }
             _ => {}
@@ -375,6 +377,7 @@ fn activate_selection(
     runtime_state: &mut GameplayRuntimeState,
     navigation_state: &mut NavigationState,
     combat_state: &mut CombatState,
+    spatial_state: &mut crate::bevy_spatial::SpatialExplorationState,
 ) {
     match gameplay.screen {
         GameplayScreen::Pause => {
@@ -481,29 +484,42 @@ fn activate_selection(
                     open_dedicated_screen(navigation_state, ScreenId::Talk);
                 }
                 GameplayAction::Explore => {
-                    gameplay.message = session
+                    if session
                         .state
-                        .campaign_content
-                        .clone()
-                        .unwrap_or_else(crate::content::load_campaign_content)
-                        .atmospheres
-                        .iter()
-                        .find(|entry| {
-                            session
-                                .state
-                                .world
-                                .location_by_id(session.state.character.location_id)
-                                .map(|location| entry.location_name == location.name)
-                                .unwrap_or(false)
-                        })
-                        .map(|entry| entry.text.clone())
-                        .or_else(|| {
-                            session
-                                .state
-                                .world
-                                .location_by_id(session.state.character.location_id)
-                                .map(|location| location.description.clone())
-                        });
+                        .world
+                        .location_is_dangerous(session.state.character.location_id)
+                    {
+                        crate::bevy_spatial::enter(
+                            spatial_state,
+                            &session.state,
+                            navigation_state,
+                        );
+                        gameplay.message = None;
+                    } else {
+                        gameplay.message = session
+                            .state
+                            .campaign_content
+                            .clone()
+                            .unwrap_or_else(crate::content::load_campaign_content)
+                            .atmospheres
+                            .iter()
+                            .find(|entry| {
+                                session
+                                    .state
+                                    .world
+                                    .location_by_id(session.state.character.location_id)
+                                    .map(|location| entry.location_name == location.name)
+                                    .unwrap_or(false)
+                            })
+                            .map(|entry| entry.text.clone())
+                            .or_else(|| {
+                                session
+                                    .state
+                                    .world
+                                    .location_by_id(session.state.character.location_id)
+                                    .map(|location| location.description.clone())
+                            });
+                    }
                     gameplay.dirty = true;
                 }
             }
