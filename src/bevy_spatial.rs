@@ -142,19 +142,30 @@ fn spatial_input(
         }
     }
     if direction.length_squared() > 0.0 {
-        let Some(session) = state.session.as_mut() else {
+        let Some(location_id) = state
+            .session
+            .as_ref()
+            .map(|session| session.location_id.clone())
+        else {
             return;
         };
-        let Some(map) = state.maps.get(&session.location_id) else {
+        let Some(map) = state.maps.get(&location_id) else {
             return;
         };
-        let current = state.position;
-        let next = advance_position(map, current, direction, time.delta_secs(), PLAYER_SPEED);
+        let next = advance_position(
+            map,
+            state.position,
+            direction,
+            time.delta_secs(),
+            PLAYER_SPEED,
+        );
         state.position = next;
-        session.position = GridPosition {
-            x: next.x.floor().max(0.0) as u16,
-            y: next.y.floor().max(0.0) as u16,
-        };
+        if let Some(session) = state.session.as_mut() {
+            session.position = GridPosition {
+                x: next.x.floor().max(0.0) as u16,
+                y: next.y.floor().max(0.0) as u16,
+            };
+        }
         map_mark_discovered(&mut state, next);
     }
 
