@@ -681,9 +681,13 @@ src/
 - Deferred the process kill until after the Java Activity's destroy callback has fully unwound, avoiding an immediate process death inside `GameActivity.onDestroy()`.
 - Hardened the Android Quit path to target the post-Quit relaunch splash regression by allowing Activity teardown to unwind before process termination.
 
-### v0.51.23: Developer console input and close control
+### v0.51.23: Developer console, Android input, and Ashen Gate pixel-art banner — complete
 - Marked only the active console input row for touch input and autocomplete, preventing executed command-history lines from becoming duplicate input fields.
 - Added an upper-corner Close button that exits the console through the same session reset path as the existing close behavior.
+- Stabilized Android text entry across character creation and the developer console, including native keyboard visibility, cursor-safe text updates, IME presentation, JNI compatibility, and shared Back navigation.
+- Completed the release verification for desktop and Android console input and close behavior.
+- Replaced Ashen Gate's ASCII scene art with a full-width environmental panorama while leaving the location card and surrounding gameplay UI unchanged (#350).
+- Replaced the JPEG intermediate with a 600×125 PNG and nearest-neighbor image sampling for crisp pixel-art edges; retained the ASCII fallback for other locations and banner-load failures (#351).
 - Bumped the project and Android fallback version metadata to 0.51.23.
 
 ### v0.51.22: Android text-edit cursor safety
