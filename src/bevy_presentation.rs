@@ -316,6 +316,7 @@ pub enum ScreenId {
     Conversation,
     Remains,
     RemainsResult,
+    SpatialExploration,
     Combat,
     Console,
     Options,
