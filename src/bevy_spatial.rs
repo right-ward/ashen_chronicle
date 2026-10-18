@@ -125,10 +125,10 @@ fn spatial_input(
 
     let mut direction = Vec2::ZERO;
     if keyboard.pressed(KeyCode::ArrowUp) || keyboard.pressed(KeyCode::KeyW) {
-        direction.y += 1.0;
+        direction.y -= 1.0;
     }
     if keyboard.pressed(KeyCode::ArrowDown) || keyboard.pressed(KeyCode::KeyS) {
-        direction.y -= 1.0;
+        direction.y += 1.0;
     }
     if keyboard.pressed(KeyCode::ArrowLeft) || keyboard.pressed(KeyCode::KeyA) {
         direction.x -= 1.0;
@@ -455,7 +455,7 @@ fn render_spatial_screen(
         })
         .id();
     commands.entity(footer).add_child(pad);
-    spawn_control(&mut commands, pad, "↑", bevy_spatial_direction(Vec2::Y));
+    spawn_control(&mut commands, pad, "↑", bevy_spatial_direction(Vec2::NEG_Y));
     let middle = commands
         .spawn(Node {
             flex_direction: FlexDirection::Row,
@@ -465,7 +465,7 @@ fn render_spatial_screen(
         .id();
     commands.entity(pad).add_child(middle);
     spawn_control(&mut commands, middle, "←", bevy_spatial_direction(Vec2::NEG_X));
-    spawn_control(&mut commands, middle, "↓", bevy_spatial_direction(Vec2::NEG_Y));
+    spawn_control(&mut commands, middle, "↓", bevy_spatial_direction(Vec2::Y));
     spawn_control(&mut commands, middle, "→", bevy_spatial_direction(Vec2::X));
 
     spawn_control(
