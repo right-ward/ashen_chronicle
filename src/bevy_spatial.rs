@@ -71,18 +71,16 @@ pub(crate) fn enter(
         .map(|generation| generation.seed)
         .unwrap_or(game.world.id);
 
-    if !state.maps.contains_key(&location_id) {
-        let map = game
-            .world
-            .local_maps
-            .iter()
-            .find(|map| map.location_id == location_id)
-            .cloned()
-            .unwrap_or_else(|| {
-                generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
-            });
-        state.maps.insert(location_id.clone(), map);
-    }
+    let map = game
+        .world
+        .local_maps
+        .iter()
+        .find(|map| map.location_id == location_id)
+        .cloned()
+        .unwrap_or_else(|| {
+            generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
+        });
+    state.maps.insert(location_id.clone(), map);
     let map = state.maps.get(&location_id).expect("map was just inserted");
     let saved_position = game
         .character
