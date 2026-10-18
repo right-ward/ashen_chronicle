@@ -6,7 +6,9 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-**v0.51.23 — release complete.** Android text-input and graphical gameplay stabilization are complete. The developer console has explicit input ownership and a Close control. Ashen Gate now uses a full-width pixel-art PNG banner with nearest-neighbor sampling; other locations and banner-load failures retain the ASCII fallback.
+**v0.51.23 — release complete.** Android text-input and graphical gameplay stabilization are complete. The developer console has explicit input ownership and a Close control.
+
+**v0.52.x — Phase 1: location banner prototype.** Ashen Gate now uses a full-width pixel-art PNG banner with nearest-neighbor sampling; other locations and banner-load failures retain the ASCII fallback.
 
 ## Next
 
