@@ -52,6 +52,9 @@ jobs:
         run: |
           set -euo pipefail
 
+          # Resolve and persist dependency updates before formatting; this is
+          # also used to refresh Cargo.lock when manifest versions change.
+          cargo metadata --format-version 1 > /dev/null
           cargo fmt --all
 
           if git diff --quiet; then
@@ -64,7 +67,7 @@ jobs:
           git config user.name "github-actions[bot]"
           git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
           git add --all
-          git commit -m "style: apply rustfmt"
+          git commit -m "chore: refresh dependency lock and format source"
           git push origin "HEAD:$HEAD_BRANCH"
 
           echo "changed=true" >> "$GITHUB_OUTPUT"
