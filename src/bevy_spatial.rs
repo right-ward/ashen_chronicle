@@ -578,7 +578,11 @@ fn render_spatial_screen(
                 SpatialTile(position),
                 Mesh2d(assets.diamond_mesh.clone()),
                 MeshMaterial2d(assets.tile_materials[material_index].clone()),
-                Transform::from_xyz(world_position.x, world_position.y + top_offset, top_depth),
+                Transform::from_xyz(
+            world_position.x,
+            world_position.y + top_offset,
+            top_depth,
+        ),
             ));
         }
     }
@@ -727,7 +731,7 @@ fn render_spatial_screen(
     spawn_control(
         &mut commands,
         middle,
-        "←",
+        "A",
         bevy_spatial_direction(Vec2::NEG_X),
         Display::Flex,
     );
@@ -854,7 +858,10 @@ fn update_spatial_context_prompt(
 }
 
 fn update_spatial_control_feedback(
-    mut controls: Query<(&Interaction, &mut BackgroundColor), (Changed<Interaction>, With<SpatialControlButton>)>,
+    mut controls: Query<
+        (&Interaction, &mut BackgroundColor),
+        (Changed<Interaction>, With<SpatialControlButton>),
+    >,
 ) {
     for (interaction, mut background) in &mut controls {
         background.0 = match *interaction {
@@ -926,8 +933,9 @@ fn clamp_camera_axis(target: f32, map_half_extent: f32, viewport_half_extent: f3
 }
 
 fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
-    let map_half_width = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
-    let map_half_height = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
+    let map_half_width =
+        (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
+    let map_half_height = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5 + WALL_HEIGHT;
     Vec2::new(
         clamp_camera_axis(target.x, map_half_width, viewport.x * 0.5),
         clamp_camera_axis(target.y, map_half_height, viewport.y * 0.5),
@@ -938,8 +946,13 @@ fn poi_interaction_available(map: &LocalMap, position: Vec2) -> bool {
     let Some(poi) = map.points_of_interest.first() else {
         return false;
     };
-    let target = Vec2::new(f32::from(poi.position.x) + 0.5, f32::from(poi.position.y) + 0.5);
-    if map_to_world(position, Some(map)).distance(map_to_world(target, Some(map))) > INTERACTION_RANGE_PX {
+    let target = Vec2::new(
+        f32::from(poi.position.x) + 0.5,
+        f32::from(poi.position.y) + 0.5,
+    );
+    if map_to_world(position, Some(map)).distance(map_to_world(target, Some(map)))
+        > INTERACTION_RANGE_PX
+    {
         return false;
     }
     has_line_of_sight(map, position, target)
@@ -974,7 +987,8 @@ fn advance_position(
     if world_units_per_pixel.length_squared() == 0.0 {
         return position;
     }
-    let delta = world_units_per_pixel * speed_pixels_per_second * delta_secs.clamp(0.0, 0.1);
+    let delta =
+        world_units_per_pixel * speed_pixels_per_second * delta_secs.clamp(0.0, 0.1);
     let mut result = position;
     let candidate_x = result.x + delta.x;
     if is_position_walkable(map, Vec2::new(candidate_x, result.y)) {
