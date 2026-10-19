@@ -185,8 +185,12 @@ fn setup_spatial_render_assets(
             [0.0, -TILE_HALF_HEIGHT, 0.0],
         ],
         [
-            [0.5, 1.0], [0.5, 0.0], [1.0, 0.5],
-            [0.5, 1.0], [0.0, 0.5], [0.5, 0.0],
+            [0.5, 1.0],
+            [0.5, 0.0],
+            [1.0, 0.5],
+            [0.5, 1.0],
+            [0.0, 0.5],
+            [0.5, 0.0],
         ],
     ));
     let wall_left_mesh = meshes.add(mesh_from_triangles(
@@ -199,8 +203,12 @@ fn setup_spatial_render_assets(
             [0.0, WALL_HEIGHT - TILE_HALF_HEIGHT, 0.0],
         ],
         [
-            [0.0, 1.0], [0.0, 0.0], [1.0, 0.0],
-            [0.0, 1.0], [1.0, 0.0], [1.0, 1.0],
+            [0.0, 1.0],
+            [0.0, 0.0],
+            [1.0, 0.0],
+            [0.0, 1.0],
+            [1.0, 0.0],
+            [1.0, 1.0],
         ],
     ));
     let wall_right_mesh = meshes.add(mesh_from_triangles(
@@ -213,8 +221,12 @@ fn setup_spatial_render_assets(
             [TILE_HALF_WIDTH, 0.0, 0.0],
         ],
         [
-            [1.0, 1.0], [0.0, 1.0], [0.0, 0.0],
-            [1.0, 1.0], [0.0, 0.0], [1.0, 0.0],
+            [1.0, 1.0],
+            [0.0, 1.0],
+            [0.0, 0.0],
+            [1.0, 1.0],
+            [0.0, 0.0],
+            [1.0, 0.0],
         ],
     ));
 
@@ -467,7 +479,10 @@ fn update_spatial_world(
     mut camera: Query<(&mut Transform, &Camera), (With<Camera2d>, Without<SpatialPlayer>)>,
     mut player: Query<&mut Transform, With<SpatialPlayer>>,
     mut tiles: Query<(&SpatialTile, &mut MeshMaterial2d<ColorMaterial>), Without<SpatialWallSide>>,
-    mut wall_sides: Query<(&SpatialWallSide, &mut MeshMaterial2d<ColorMaterial>), Without<SpatialTile>>,
+    mut wall_sides: Query<
+        (&SpatialWallSide, &mut MeshMaterial2d<ColorMaterial>),
+        Without<SpatialTile>,
+    >,
     world_entities: Query<Entity, With<SpatialWorldEntity>>,
 ) {
     if navigation.current_screen != Some(ScreenId::SpatialExploration) {
@@ -486,16 +501,22 @@ fn update_spatial_world(
     let target = map_to_world(position, Some(map));
     for (tile, mut material) in &mut tiles {
         let terrain = map.terrain_at(tile.0).unwrap_or(Terrain::Wall);
-        let desired = assets.tile_materials[
-            terrain_material_index(terrain, map.is_tile_discovered(tile.0))
-        ].clone();
+        let desired = assets.tile_materials
+            [terrain_material_index(terrain, map.is_tile_discovered(tile.0))]
+        .clone();
         if material.0 != desired {
             material.0 = desired;
         }
     }
     for (side, mut material) in &mut wall_sides {
         let discovered = map.is_tile_discovered(side.tile);
-        let index = if !discovered { 0 } else if side.right_face { 2 } else { 1 };
+        let index = if !discovered {
+            0
+        } else if side.right_face {
+            2
+        } else {
+            1
+        };
         let desired = assets.wall_face_materials[index].clone();
         if material.0 != desired {
             material.0 = desired;
@@ -507,7 +528,9 @@ fn update_spatial_world(
         transform.translation.z = depth_for(position) + PLAYER_DEPTH_OFFSET;
     }
     for (mut transform, camera_component) in &mut camera {
-        let viewport = camera_component.logical_viewport_size().unwrap_or(Vec2::ZERO);
+        let viewport = camera_component
+            .logical_viewport_size()
+            .unwrap_or(Vec2::ZERO);
         let current = transform.translation.truncate();
         let dead_zone_target = camera_target_with_dead_zone(target, current, viewport);
         let camera_target = clamp_camera_target(dead_zone_target, map, viewport);
@@ -559,14 +582,20 @@ fn render_spatial_screen(
                 let wall_material_index = if discovered { 1 } else { 0 };
                 commands.spawn((
                     SpatialWorldEntity,
-                    SpatialWallSide { tile: position, right_face: false },
+                    SpatialWallSide {
+                        tile: position,
+                        right_face: false,
+                    },
                     Mesh2d(assets.wall_left_mesh.clone()),
                     MeshMaterial2d(assets.wall_face_materials[wall_material_index].clone()),
                     Transform::from_xyz(world_position.x, world_position.y, depth + 0.01),
                 ));
                 commands.spawn((
                     SpatialWorldEntity,
-                    SpatialWallSide { tile: position, right_face: true },
+                    SpatialWallSide {
+                        tile: position,
+                        right_face: true,
+                    },
                     Mesh2d(assets.wall_right_mesh.clone()),
                     MeshMaterial2d(
                         assets.wall_face_materials[if discovered { 2 } else { 0 }].clone(),
@@ -576,18 +605,18 @@ fn render_spatial_screen(
             }
 
             let material_index = terrain_material_index(terrain, discovered);
-            let top_offset = if terrain == Terrain::Wall { WALL_HEIGHT } else { 0.0 };
+            let top_offset = if terrain == Terrain::Wall {
+                WALL_HEIGHT
+            } else {
+                0.0
+            };
             let top_depth = depth + if terrain == Terrain::Wall { 0.02 } else { 0.0 };
             commands.spawn((
                 SpatialWorldEntity,
                 SpatialTile(position),
                 Mesh2d(assets.diamond_mesh.clone()),
                 MeshMaterial2d(assets.tile_materials[material_index].clone()),
-                Transform::from_xyz(
-                    world_position.x,
-                    world_position.y + top_offset,
-                    top_depth,
-                ),
+                Transform::from_xyz(world_position.x, world_position.y + top_offset, top_depth),
             ));
         }
     }
@@ -724,7 +753,13 @@ fn render_spatial_screen(
         })
         .id();
     commands.entity(footer).add_child(pad);
-    spawn_control(&mut commands, pad, "W", bevy_spatial_direction(Vec2::Y), Display::Flex);
+    spawn_control(
+        &mut commands,
+        pad,
+        "W",
+        bevy_spatial_direction(Vec2::Y),
+        Display::Flex,
+    );
     let middle = commands
         .spawn(Node {
             flex_direction: FlexDirection::Row,
@@ -740,8 +775,20 @@ fn render_spatial_screen(
         bevy_spatial_direction(Vec2::NEG_X),
         Display::Flex,
     );
-    spawn_control(&mut commands, middle, "S", bevy_spatial_direction(Vec2::NEG_Y), Display::Flex);
-    spawn_control(&mut commands, middle, "D", bevy_spatial_direction(Vec2::X), Display::Flex);
+    spawn_control(
+        &mut commands,
+        middle,
+        "S",
+        bevy_spatial_direction(Vec2::NEG_Y),
+        Display::Flex,
+    );
+    spawn_control(
+        &mut commands,
+        middle,
+        "D",
+        bevy_spatial_direction(Vec2::X),
+        Display::Flex,
+    );
 
     let interaction_display = if poi_interaction_available(map, session_position(&state)) {
         Display::Flex
@@ -854,7 +901,11 @@ fn update_spatial_context_prompt(
         .as_ref()
         .and_then(|session| state.maps.get(&session.location_id))
         .is_some_and(|map| poi_interaction_available(map, session_position(&state)));
-    let display = if available { Display::Flex } else { Display::None };
+    let display = if available {
+        Display::Flex
+    } else {
+        Display::None
+    };
     for mut node in &mut prompts {
         if node.display != display {
             node.display = display;
@@ -963,20 +1014,13 @@ fn clamp_camera_axis(target: f32, min: f32, max: f32, viewport_half_extent: f32)
 }
 
 fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
-    let map_half_width =
-        (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
-    let map_half_height =
-        (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
+    let map_half_width = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
+    let map_half_height = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
     // Wall tops extend farther upward than the floor tiles extend downward.
     let min_y = -map_half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT);
     let max_y = map_half_height;
     Vec2::new(
-        clamp_camera_axis(
-            target.x,
-            -map_half_width,
-            map_half_width,
-            viewport.x * 0.5,
-        ),
+        clamp_camera_axis(target.x, -map_half_width, map_half_width, viewport.x * 0.5),
         clamp_camera_axis(target.y, min_y, max_y, viewport.y * 0.5),
     )
 }
@@ -1026,8 +1070,7 @@ fn advance_position(
     if world_units_per_pixel.length_squared() == 0.0 {
         return position;
     }
-    let delta =
-        world_units_per_pixel * speed_pixels_per_second * delta_secs.clamp(0.0, 0.1);
+    let delta = world_units_per_pixel * speed_pixels_per_second * delta_secs.clamp(0.0, 0.1);
     let mut result = position;
     let candidate_x = result.x + delta.x;
     if is_position_walkable(map, Vec2::new(candidate_x, result.y)) {
@@ -1102,7 +1145,10 @@ mod tests {
         let camera = Vec2::new(20.0, -10.0);
         let viewport = Vec2::new(800.0, 450.0);
         let player = camera + Vec2::new(40.0, -20.0);
-        assert_eq!(camera_target_with_dead_zone(player, camera, viewport), camera);
+        assert_eq!(
+            camera_target_with_dead_zone(player, camera, viewport),
+            camera
+        );
     }
 
     #[test]
@@ -1125,8 +1171,7 @@ mod tests {
                 height: 8,
             },
         );
-        let target =
-            clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
+        let target = clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
         assert_eq!(target, Vec2::new(0.0, -6.0));
     }
 
@@ -1135,16 +1180,13 @@ mod tests {
         let map = generate_local_map(4, "location.test", LocalMapConfig::default());
         let viewport = Vec2::new(320.0, 180.0);
         let target = clamp_camera_target(Vec2::new(10000.0, -10000.0), &map, viewport);
-        let half_width =
-            (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
-        let half_height =
-            (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
+        let half_width = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
+        let half_height = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
         assert!(target.x <= half_width - viewport.x * 0.5 + 0.001);
         assert!(target.x >= -half_width + viewport.x * 0.5 - 0.001);
         assert!(target.y <= half_height - viewport.y * 0.5 + 0.001);
         assert!(
-            target.y
-                >= -half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT) + viewport.y * 0.5 - 0.001
+            target.y >= -half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT) + viewport.y * 0.5 - 0.001
         );
     }
 
@@ -1152,7 +1194,10 @@ mod tests {
     fn contextual_interaction_requires_range_and_clear_approach() {
         let map = generate_local_map(4, "location.test", LocalMapConfig::default());
         let poi = &map.points_of_interest[0];
-        let near = Vec2::new(f32::from(poi.position.x) + 0.5, f32::from(poi.position.y) + 0.5);
+        let near = Vec2::new(
+            f32::from(poi.position.x) + 0.5,
+            f32::from(poi.position.y) + 0.5,
+        );
         assert!(poi_interaction_available(&map, near));
         assert!(!poi_interaction_available(&map, near + Vec2::new(3.0, 0.0)));
     }
