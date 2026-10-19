@@ -10,7 +10,10 @@ use bevy::input_focus::{
     tab_navigation::{TabGroup, TabIndex},
     AutoFocus, FocusCause, InputFocus,
 };
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::ui::Pressed;
+use bevy::ui_widgets::Button;
 use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::window::PrimaryWindow;
 #[cfg(target_os = "android")]
@@ -531,6 +534,7 @@ pub fn spawn_text_input_field(
     let field = commands
         .spawn((
             Button,
+            Hovered::default(),
             LifecycleTextField { index },
             EditableText::new(&value),
             TextCursorStyle::default(),
@@ -581,6 +585,7 @@ pub(crate) fn spawn_console_input_row(
     let input = commands
         .spawn((
             Button,
+            Hovered::default(),
             ContextualConsoleInput,
             Text::new(text.into()),
             Node {
@@ -607,6 +612,7 @@ pub(crate) fn spawn_console_input_row(
     let tab = commands
         .spawn((
             Button,
+            Hovered::default(),
             ContextualConsoleTab,
             Node {
                 width: px(64),
@@ -748,6 +754,7 @@ pub fn spawn_action_button(
     let button = commands
         .spawn((
             Button,
+            Hovered::default(),
             ChoiceButton { index },
             UiActionButton,
             UiStackedActionButton,
@@ -808,6 +815,7 @@ pub fn spawn_primary_action_button(
     let button = commands
         .spawn((
             Button,
+            Hovered::default(),
             ChoiceButton { index },
             UiActionButton,
             UiStyledButton,
@@ -879,6 +887,7 @@ pub fn spawn_menu_button(
     let button = commands
         .spawn((
             Button,
+            Hovered::default(),
             UiMenuButton,
             UiStyledButton,
             Node {
@@ -1073,7 +1082,8 @@ fn sync_ui_health_gauges(
 fn sync_ui_button_visuals(
     mut buttons: Query<
         (
-            &Interaction,
+            &Hovered,
+            Has<Pressed>,
             Option<&UiSelected>,
             &mut BorderColor,
             &mut BackgroundColor,
@@ -1081,13 +1091,15 @@ fn sync_ui_button_visuals(
         With<UiStyledButton>,
     >,
 ) {
-    for (interaction, selected, mut border, mut background) in &mut buttons {
-        let selected = selected.is_some();
-        let (border_color, background_color) = match *interaction {
-            Interaction::Pressed => (THEME_ACCENT, THEME_PRESSED),
-            Interaction::Hovered => (THEME_ACCENT, THEME_HOVER),
-            Interaction::None if selected => (THEME_ACCENT, THEME_SELECTED),
-            Interaction::None => (THEME_BORDER, THEME_SURFACE),
+    for (hovered, pressed, selected, mut border, mut background) in &mut buttons {
+        let (border_color, background_color) = if pressed {
+            (THEME_ACCENT, THEME_PRESSED)
+        } else if hovered.get() {
+            (THEME_ACCENT, THEME_HOVER)
+        } else if selected.is_some() {
+            (THEME_ACCENT, THEME_SELECTED)
+        } else {
+            (THEME_BORDER, THEME_SURFACE)
         };
         border.set_all(border_color);
         *background = BackgroundColor(background_color);
@@ -1287,18 +1299,14 @@ pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize)
 
 fn choice_button_input(
     mut interaction_query: Query<
-        (&Interaction, &ChoiceButton, Option<&UiTabButton>),
-        Changed<Interaction>,
+        (&ChoiceButton, Option<&UiTabButton>),
+        Added<Pressed>,
     >,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (interaction, choice, tab) in &mut interaction_query {
-        if *interaction != Interaction::Pressed {
-            continue;
-        }
-
+    for (choice, tab) in &mut interaction_query {
         if let Some(tab) = tab {
             if navigation.current_screen == Some(ScreenId::Options) {
                 gameplay_queue.0.push(InputEvent::SelectTab(tab.index));
@@ -1321,23 +1329,19 @@ fn contextual_touch_input(
     mut interaction_query: Query<
         (
             Entity,
-            &Interaction,
             Option<&LifecycleTextField>,
             Option<&ContextualConsoleInput>,
             Option<&ContextualConsoleTab>,
             Option<&UiMenuButton>,
         ),
-        Changed<Interaction>,
+        Added<Pressed>,
     >,
     mut navigation: ResMut<NavigationState>,
     mut input_focus: ResMut<InputFocus>,
     mut console_focus: ResMut<ConsoleTextInputFocus>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (entity, interaction, field, console, tab, menu_button) in &mut interaction_query {
-        if *interaction != Interaction::Pressed {
-            continue;
-        }
+    for (entity, field, console, tab, menu_button) in &mut interaction_query {
         if let Some(field) = field {
             if navigation.current_screen != Some(ScreenId::Lifecycle) {
                 continue;
