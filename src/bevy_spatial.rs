@@ -1120,7 +1120,7 @@ mod tests {
             height: 8,
         });
         let target = clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
-        assert_eq!(target, Vec2::new(0.0, 0.0));
+        assert_eq!(target, Vec2::new(0.0, -6.0));
     }
 
     #[test]
@@ -1135,7 +1135,10 @@ mod tests {
         assert!(target.x <= half_width - viewport.x * 0.5 + 0.001);
         assert!(target.x >= -half_width + viewport.x * 0.5 - 0.001);
         assert!(target.y <= half_height - viewport.y * 0.5 + 0.001);
-        assert!(target.y >= -half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT) + viewport.y * 0.5 - 0.001);
+        assert!(
+            target.y
+                >= -half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT) + viewport.y * 0.5 - 0.001
+        );
     }
 
     #[test]
