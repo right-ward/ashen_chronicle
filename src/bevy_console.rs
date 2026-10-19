@@ -1,5 +1,8 @@
 use bevy::input::keyboard::KeyboardInput;
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::ui::Pressed;
+use bevy::ui_widgets::Button;
 
 use crate::bevy_lifecycle::LifecycleState;
 use crate::bevy_presentation::{
@@ -146,16 +149,12 @@ fn text_input(
 }
 
 fn close_button_input(
-    interactions: Query<&Interaction, (Changed<Interaction>, With<ConsoleCloseButton>)>,
+    interactions: Query<(), (Added<Pressed>, With<ConsoleCloseButton>)>,
     mut state: ResMut<BevyConsoleState>,
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
 ) {
-    if navigation.current_screen != Some(ScreenId::Console)
-        || !interactions
-            .iter()
-            .any(|interaction| *interaction == Interaction::Pressed)
-    {
+    if navigation.current_screen != Some(ScreenId::Console) || interactions.is_empty() {
         return;
     }
 
@@ -323,6 +322,7 @@ fn spawn_console_close_button(commands: &mut Commands, root: Entity) {
     let button = commands
         .spawn((
             Button,
+            Hovered::default(),
             ConsoleCloseButton,
             Node {
                 position_type: PositionType::Absolute,
