@@ -1079,6 +1079,7 @@ fn sync_ui_health_gauges(
     }
 }
 
+#[allow(clippy::type_complexity)] // ECS query combines widget state and visual components.
 fn sync_ui_button_visuals(
     mut buttons: Query<
         (
