@@ -27,6 +27,7 @@ const PLAYER_COLLISION_HALF_EXTENT: f32 = 0.15;
 const INTERACTION_RANGE_PX: f32 = 34.0;
 const PLAYER_SPEED: f32 = 180.0; // Screen-space pixels per second.
 const CAMERA_LERP_SPEED: f32 = 8.0;
+const CAMERA_DEAD_ZONE_FRACTION: f32 = 0.15;
 const DEPTH_STEP: f32 = 0.08;
 const PLAYER_DEPTH_OFFSET: f32 = 0.04;
 
@@ -507,7 +508,9 @@ fn update_spatial_world(
     }
     for (mut transform, camera_component) in &mut camera {
         let viewport = camera_component.logical_viewport_size().unwrap_or(Vec2::ZERO);
-        let camera_target = clamp_camera_target(target, map, viewport);
+        let current = transform.translation.truncate();
+        let dead_zone_target = camera_target_with_dead_zone(target, current, viewport);
+        let camera_target = clamp_camera_target(dead_zone_target, map, viewport);
         let amount = (CAMERA_LERP_SPEED * time.delta_secs()).clamp(0.0, 1.0);
         transform.translation.x += (camera_target.x - transform.translation.x) * amount;
         transform.translation.y += (camera_target.y - transform.translation.y) * amount;
@@ -921,24 +924,58 @@ fn screen_direction_to_world(screen_direction: Vec2) -> Vec2 {
     )
 }
 
-fn clamp_camera_axis(target: f32, map_half_extent: f32, viewport_half_extent: f32) -> f32 {
-    if map_half_extent <= viewport_half_extent {
-        0.0
+fn camera_target_with_dead_zone(player: Vec2, camera: Vec2, viewport: Vec2) -> Vec2 {
+    if viewport.x <= 0.0 || viewport.y <= 0.0 {
+        return player;
+    }
+
+    let half_dead_zone = viewport * (CAMERA_DEAD_ZONE_FRACTION * 0.5);
+    let offset = player - camera;
+    let correction = Vec2::new(
+        if offset.x > half_dead_zone.x {
+            offset.x - half_dead_zone.x
+        } else if offset.x < -half_dead_zone.x {
+            offset.x + half_dead_zone.x
+        } else {
+            0.0
+        },
+        if offset.y > half_dead_zone.y {
+            offset.y - half_dead_zone.y
+        } else if offset.y < -half_dead_zone.y {
+            offset.y + half_dead_zone.y
+        } else {
+            0.0
+        },
+    );
+    camera + correction
+}
+
+fn clamp_camera_axis(target: f32, min: f32, max: f32, viewport_half_extent: f32) -> f32 {
+    let lower = min + viewport_half_extent;
+    let upper = max - viewport_half_extent;
+    if lower > upper {
+        (min + max) * 0.5
     } else {
-        target.clamp(
-            -map_half_extent + viewport_half_extent,
-            map_half_extent - viewport_half_extent,
-        )
+        target.clamp(lower, upper)
     }
 }
 
 fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
     let map_half_width =
         (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
-    let map_half_height = (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5 + WALL_HEIGHT;
+    let map_half_height =
+        (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
+    // Wall tops extend farther upward than the floor tiles extend downward.
+    let min_y = -map_half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT);
+    let max_y = map_half_height;
     Vec2::new(
-        clamp_camera_axis(target.x, map_half_width, viewport.x * 0.5),
-        clamp_camera_axis(target.y, map_half_height, viewport.y * 0.5),
+        clamp_camera_axis(
+            target.x,
+            -map_half_width,
+            map_half_width,
+            viewport.x * 0.5,
+        ),
+        clamp_camera_axis(target.y, min_y, max_y, viewport.y * 0.5),
     )
 }
 
@@ -1056,6 +1093,49 @@ mod tests {
             );
             assert!((projected - screen_direction).length() < 0.001);
         }
+    }
+
+    #[test]
+    fn camera_dead_zone_does_not_follow_small_player_movements() {
+        let camera = Vec2::new(20.0, -10.0);
+        let viewport = Vec2::new(800.0, 450.0);
+        let player = camera + Vec2::new(40.0, -20.0);
+        assert_eq!(camera_target_with_dead_zone(player, camera, viewport), camera);
+    }
+
+    #[test]
+    fn camera_dead_zone_moves_only_by_the_excess_offset() {
+        let camera = Vec2::ZERO;
+        let viewport = Vec2::new(800.0, 450.0);
+        let player = Vec2::new(200.0, -100.0);
+        let target = camera_target_with_dead_zone(player, camera, viewport);
+        assert!((target.x - 140.0).abs() < 0.001);
+        assert!((target.y + 66.25).abs() < 0.001);
+    }
+
+    #[test]
+    fn camera_bounds_center_maps_smaller_than_the_viewport() {
+        let map = generate_local_map(4, "location.test", LocalMapConfig {
+            width: 8,
+            height: 8,
+        });
+        let target = clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
+        assert_eq!(target, Vec2::new(0.0, 0.0));
+    }
+
+    #[test]
+    fn camera_bounds_keep_the_viewport_inside_large_map_extents() {
+        let map = generate_local_map(4, "location.test", LocalMapConfig::default());
+        let viewport = Vec2::new(320.0, 180.0);
+        let target = clamp_camera_target(Vec2::new(10000.0, -10000.0), &map, viewport);
+        let half_width =
+            (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_WIDTH * 0.5;
+        let half_height =
+            (f32::from(map.width) + f32::from(map.height)) * TILE_HALF_HEIGHT * 0.5;
+        assert!(target.x <= half_width - viewport.x * 0.5 + 0.001);
+        assert!(target.x >= -half_width + viewport.x * 0.5 - 0.001);
+        assert!(target.y <= half_height - viewport.y * 0.5 + 0.001);
+        assert!(target.y >= -half_height - (WALL_HEIGHT - TILE_HALF_HEIGHT) + viewport.y * 0.5 - 0.001);
     }
 
     #[test]
