@@ -916,10 +916,7 @@ fn update_spatial_context_prompt(
 }
 
 fn update_spatial_control_feedback(
-    mut controls: Query<
-        (&Hovered, Has<Pressed>, &mut BackgroundColor),
-        With<SpatialControlButton>,
-    >,
+    mut controls: Query<(&Hovered, Has<Pressed>, &mut BackgroundColor), With<SpatialControlButton>>,
 ) {
     for (hovered, pressed, mut background) in &mut controls {
         background.0 = if pressed {

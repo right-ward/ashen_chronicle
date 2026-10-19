@@ -12,9 +12,9 @@ use bevy::input_focus::{
 };
 use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::ui::Pressed;
 use bevy::ui_widgets::Button;
-use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::window::PrimaryWindow;
 #[cfg(target_os = "android")]
 use std::sync::{
@@ -1298,10 +1298,7 @@ pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize)
 }
 
 fn choice_button_input(
-    mut interaction_query: Query<
-        (&ChoiceButton, Option<&UiTabButton>),
-        Added<Pressed>,
-    >,
+    mut interaction_query: Query<(&ChoiceButton, Option<&UiTabButton>), Added<Pressed>>,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
