@@ -7,7 +7,7 @@
 use crate::desktop_display;
 use bevy::input_focus::tab_navigation::TabNavigationPlugin;
 use bevy::prelude::*;
-use bevy_picking::events::{Pointer, Release};
+use bevy_picking::events::PointerRelease;
 
 use crate::{
     bevy_combat, bevy_console, bevy_feedback, bevy_gameplay, bevy_input_diagnostics,
@@ -26,10 +26,10 @@ pub fn run() {
     let window_resolution = (1280, 720);
 
     let mut app = App::new();
-    // Bevy 0.19.1's EditableText widget installs a Pointer<Release> reader even
-    // without the picking plugins. Register its message storage without enabling
-    // Bevy picking, which would conflict with our custom touch interaction layer.
-    app.add_message::<Pointer<Release>>();
+    // EditableText reads PointerRelease even when no input-picking backend is
+    // available. Register its message storage explicitly; touch gestures are
+    // resolved by our adapter and suppressed before widget activation.
+    app.add_message::<PointerRelease>();
     app.add_plugins(DefaultPlugins.set(WindowPlugin {
         primary_window: Some(Window {
             title: WINDOW_TITLE.to_owned(),
