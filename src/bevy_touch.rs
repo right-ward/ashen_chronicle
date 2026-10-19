@@ -5,6 +5,7 @@
 //! suppressed so the surrounding scrollable panel can consume the gesture.
 
 use bevy::prelude::*;
+use bevy::ui::Pressed;
 use bevy::window::PrimaryWindow;
 
 use crate::bevy_presentation::{
@@ -53,11 +54,12 @@ pub fn install(app: &mut App) {
 }
 
 fn suppress_touch_choice_press(
+    mut commands: Commands,
     touches: Res<Touches>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchChoiceState>,
-    mut buttons: Query<
-        (Entity, &mut Interaction, &ComputedNode, &UiGlobalTransform),
+    buttons: Query<
+        (Entity, Option<&Pressed>, &ComputedNode, &UiGlobalTransform),
         With<ChoiceButton>,
     >,
 ) {
@@ -91,23 +93,24 @@ fn suppress_touch_choice_press(
         }
     }
 
-    for (_, mut interaction, _, _) in &mut buttons {
-        if *interaction == Interaction::Pressed {
+    for (entity, pressed, _, _) in &buttons {
+        if pressed.is_some() {
             // Touch presses are confirmed on release by complete_touch_choice.
-            // Clearing Interaction::Pressed prevents the generic button handler
-            // from treating a touch as an immediate click or a scroll as a click.
-            *interaction = Interaction::None;
+            // Removing Pressed prevents the generic widget handler from treating
+            // a touch as an immediate click or a scroll as a click.
+            commands.entity(entity).remove::<Pressed>();
         }
     }
 }
 
 fn suppress_touch_menu_press(
+    mut commands: Commands,
     touches: Res<Touches>,
     time: Res<Time>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchMenuState>,
-    mut buttons: Query<
-        (Entity, &mut Interaction, &ComputedNode, &UiGlobalTransform),
+    buttons: Query<
+        (Entity, Option<&Pressed>, &ComputedNode, &UiGlobalTransform),
         With<UiMenuButton>,
     >,
 ) {
@@ -146,12 +149,10 @@ fn suppress_touch_menu_press(
         });
     }
 
-    if let Ok((_, mut interaction, _, _)) = buttons.get_mut(active.button) {
-        if *interaction == Interaction::Pressed {
-            // Resolve menu gestures ourselves so a touch cannot open the menu
-            // immediately through the generic pointer Interaction path.
-            *interaction = Interaction::None;
-        }
+    if let Ok((_, Some(_), _, _)) = buttons.get(active.button) {
+        // Resolve menu gestures ourselves so a touch cannot open the menu
+        // immediately through the generic widget's pressed-state path.
+        commands.entity(active.button).remove::<Pressed>();
     }
 }
 
