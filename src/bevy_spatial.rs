@@ -1,8 +1,8 @@
 //! First playable local spatial-exploration view for dangerous locations.
 //!
-//! The map and session remain separate from Bevy presentation. This prototype
-//! keeps them in a runtime resource; durable save/load integration belongs to
-//! the follow-up persistence task.
+//! The renderer-neutral map model and character session remain separate from
+//! Bevy presentation. Persistent maps are synchronized with world state, while
+//! the character's continuous position is synchronized with character state.
 
 use std::collections::HashMap;
 
@@ -568,7 +568,9 @@ fn render_spatial_screen(
                     SpatialWorldEntity,
                     SpatialWallSide { tile: position, right_face: true },
                     Mesh2d(assets.wall_right_mesh.clone()),
-                    MeshMaterial2d(assets.wall_face_materials[if discovered { 2 } else { 0 }].clone()),
+                    MeshMaterial2d(
+                        assets.wall_face_materials[if discovered { 2 } else { 0 }].clone(),
+                    ),
                     Transform::from_xyz(world_position.x, world_position.y, depth + 0.01),
                 ));
             }
@@ -582,10 +584,10 @@ fn render_spatial_screen(
                 Mesh2d(assets.diamond_mesh.clone()),
                 MeshMaterial2d(assets.tile_materials[material_index].clone()),
                 Transform::from_xyz(
-            world_position.x,
-            world_position.y + top_offset,
-            top_depth,
-        ),
+                    world_position.x,
+                    world_position.y + top_offset,
+                    top_depth,
+                ),
             ));
         }
     }
@@ -1115,11 +1117,16 @@ mod tests {
 
     #[test]
     fn camera_bounds_center_maps_smaller_than_the_viewport() {
-        let map = generate_local_map(4, "location.test", LocalMapConfig {
-            width: 8,
-            height: 8,
-        });
-        let target = clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
+        let map = generate_local_map(
+            4,
+            "location.test",
+            LocalMapConfig {
+                width: 8,
+                height: 8,
+            },
+        );
+        let target =
+            clamp_camera_target(Vec2::new(200.0, -100.0), &map, Vec2::new(2000.0, 1200.0));
         assert_eq!(target, Vec2::new(0.0, -6.0));
     }
 
