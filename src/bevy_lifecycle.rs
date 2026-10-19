@@ -163,8 +163,11 @@ fn lifecycle_input(
 fn replace_text_snapshot(field: &mut EditableText, text: &str) {
     // Native Android input sends the entire current value, not an insertion delta.
     // Replace the buffer directly so Parley never inserts a full snapshot at a stale cursor.
+    // Bevy 0.20's clear() also queues a cursor-to-start edit; direct replacement
+    // makes that edit obsolete, so replace it with the required cursor-to-end edit.
     field.clear();
     field.editor.set_text(text);
+    field.pending_edits.clear();
     field.queue_edit(TextEdit::TextEnd(false));
 }
 
