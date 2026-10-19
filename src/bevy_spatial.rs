@@ -7,7 +7,11 @@
 use std::collections::HashMap;
 
 use bevy::asset::RenderAssetUsages;
+use bevy::mesh::PrimitiveTopology;
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::ui::Pressed;
+use bevy::ui_widgets::Button;
 
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
@@ -271,8 +275,8 @@ fn spatial_input(
     mut navigation: ResMut<NavigationState>,
     mut queue: ResMut<GameplayInputQueue>,
     mut state: ResMut<SpatialExplorationState>,
-    direction_buttons: Query<(&Interaction, &SpatialDirection)>,
-    action_buttons: Query<(&Interaction, &SpatialAction), Changed<Interaction>>,
+    direction_buttons: Query<(&SpatialDirection, Has<Pressed>)>,
+    action_buttons: Query<&SpatialAction, Added<Pressed>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
         || navigation.current_screen != Some(ScreenId::SpatialExploration)
@@ -293,8 +297,8 @@ fn spatial_input(
     if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
         direction.x += 1.0;
     }
-    for (interaction, control) in &direction_buttons {
-        if *interaction == Interaction::Pressed {
+    for (control, pressed) in &direction_buttons {
+        if pressed {
             direction += control.0;
         }
     }
@@ -334,10 +338,7 @@ fn spatial_input(
         exit_spatial(&mut state, &mut navigation);
     }
 
-    for (interaction, action) in &action_buttons {
-        if *interaction != Interaction::Pressed {
-            continue;
-        }
+    for action in &action_buttons {
         match action {
             SpatialAction::Interact => interact_with_poi(&mut state, &mut lifecycle),
             SpatialAction::Exit => exit_spatial(&mut state, &mut navigation),
@@ -836,6 +837,7 @@ fn spawn_control(
 ) -> Entity {
     let mut entity = commands.spawn((
         Button,
+        Hovered::default(),
         SpatialControlButton,
         Node {
             display,
@@ -915,15 +917,17 @@ fn update_spatial_context_prompt(
 
 fn update_spatial_control_feedback(
     mut controls: Query<
-        (&Interaction, &mut BackgroundColor),
-        (Changed<Interaction>, With<SpatialControlButton>),
+        (&Hovered, Has<Pressed>, &mut BackgroundColor),
+        With<SpatialControlButton>,
     >,
 ) {
-    for (interaction, mut background) in &mut controls {
-        background.0 = match *interaction {
-            Interaction::Pressed => bevy_presentation::THEME_PRESSED,
-            Interaction::Hovered => bevy_presentation::THEME_HOVER,
-            Interaction::None => bevy_presentation::THEME_SURFACE_STRONG,
+    for (hovered, pressed, mut background) in &mut controls {
+        background.0 = if pressed {
+            bevy_presentation::THEME_PRESSED
+        } else if hovered.get() {
+            bevy_presentation::THEME_HOVER
+        } else {
+            bevy_presentation::THEME_SURFACE_STRONG
         };
     }
 }
