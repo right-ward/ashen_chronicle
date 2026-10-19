@@ -1207,7 +1207,9 @@ mod tests {
     fn movement_is_continuous_within_walkable_tiles() {
         let map = generate_local_map(4, "location.test", LocalMapConfig::default());
         let start = Vec2::new(f32::from(map.entry.x) + 0.5, f32::from(map.entry.y) + 0.5);
-        let moved = advance_position(&map, start, Vec2::X, 0.1, PLAYER_SPEED);
+        // Supply a local-world-units-per-pixel scale, not a raw tile-sized vector.
+        let world_units_per_pixel = Vec2::X / 45.0;
+        let moved = advance_position(&map, start, world_units_per_pixel, 0.1, PLAYER_SPEED);
         assert!(moved.x > start.x);
         assert!((moved.x - start.x - 0.4).abs() < 0.001);
     }
@@ -1221,7 +1223,10 @@ mod tests {
             y: map.entry.y,
         };
         map.set_terrain(wall, Terrain::Wall);
-        let moved = advance_position(&map, start, Vec2::X, 0.1, PLAYER_SPEED);
+        // One screen-space pixel must map to a small local displacement; a raw
+        // Vec2::X would represent 18 whole tiles at this speed and timestep.
+        let world_units_per_pixel = Vec2::X / 45.0;
+        let moved = advance_position(&map, start, world_units_per_pixel, 0.1, PLAYER_SPEED);
         assert_eq!(moved, start);
     }
 }
