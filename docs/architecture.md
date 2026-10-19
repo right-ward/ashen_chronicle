@@ -65,6 +65,7 @@ src/
 ├── bevy_interactions.rs     # NPC dialogue and remains-recovery screens
 ├── bevy_records.rs          # character/inventory/quest/meditation/history/journal screens
 ├── bevy_combat.rs           # combat presentation and interaction
+├── bevy_spatial.rs          # Bevy spatial exploration rendering, movement, camera, and controls
 ├── bevy_console.rs          # developer-console presentation and input
 ├── game.rs                  # gameplay module facade
 ├── game/
@@ -94,6 +95,7 @@ src/
 │   └── seeding.rs           # content-to-world translation
 ├── events.rs                # event runtime
 ├── model.rs                 # shared game-state and entity models
+├── spatial.rs               # renderer-neutral local-map model and deterministic generation
 ├── persistence.rs           # save/load and migrations
 ├── input.rs                 # frontend-neutral semantic interaction events
 └── rng.rs                   # deterministic/random generation helpers

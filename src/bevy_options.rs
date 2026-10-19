@@ -4,7 +4,9 @@
 //! resolution remains centralized in game_paths, and Android shared-storage
 //! access remains owned by MainActivity.
 
+use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
+use bevy::ui_widgets::Button;
 
 use crate::bevy_gameplay::GameplayState;
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
@@ -373,6 +375,7 @@ fn render_if_active(
         for (index, label) in [(0, "Game Data"), (1, "Display")] {
             let mut tab = tabs.spawn((
                 Button,
+                Hovered::default(),
                 bevy_presentation::ChoiceButton { index },
                 bevy_presentation::UiTabButton { index },
                 bevy_presentation::UiStyledButton,
