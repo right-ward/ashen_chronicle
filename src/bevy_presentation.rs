@@ -1403,8 +1403,7 @@ fn contextual_touch_input(
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
     for activation in activations.read() {
-        let Ok((entity, field, console, tab, menu_button)) =
-            interaction_query.get(activation.0)
+        let Ok((entity, field, console, tab, menu_button)) = interaction_query.get(activation.0)
         else {
             continue;
         };
@@ -1497,8 +1496,7 @@ fn touch_scroll(
     }
 
     for touch in touches.iter_just_pressed() {
-        let physical_position =
-            physical_touch_position(touch.position(), window.scale_factor());
+        let physical_position = physical_touch_position(touch.position(), window.scale_factor());
         let panel = panels
             .iter()
             .find(|(_, computed, transform, _)| {
