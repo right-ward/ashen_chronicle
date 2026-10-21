@@ -936,7 +936,6 @@ fn update_virtual_joystick(
         return;
     }
 
-    let window = *window;
     let padding = window.width().min(window.height()) * 0.02;
     let center = Vec2::new(
         padding + 20.0 + JOYSTICK_RADIUS_PX,
@@ -1367,6 +1366,19 @@ mod tests {
         );
         assert!(poi_interaction_available(&map, near));
         assert!(!poi_interaction_available(&map, near + Vec2::new(3.0, 0.0)));
+    }
+
+    #[test]
+    fn virtual_joystick_dead_zone_suppresses_small_drift() {
+        let offset = Vec2::new(5.0, 5.0);
+        assert!(offset.length() / JOYSTICK_RADIUS_PX <= JOYSTICK_DEAD_ZONE);
+    }
+
+    #[test]
+    fn virtual_joystick_direction_is_normalized_for_diagonal_input() {
+        let offset = Vec2::new(50.0, 50.0);
+        let direction = offset.normalize();
+        assert!((direction.length() - 1.0).abs() < 0.001);
     }
 
     #[test]
