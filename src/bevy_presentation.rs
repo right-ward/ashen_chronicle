@@ -1469,10 +1469,7 @@ fn touch_scroll(
     mut mouse_wheel: MessageReader<MouseWheel>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchScrollState>,
-    panels: Query<
-        (Entity, &ComputedNode, &UiGlobalTransform),
-        With<TouchScrollablePanel>,
-    >,
+    panels: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<TouchScrollablePanel>>,
     mut scroll_positions: Query<&mut ScrollPosition, With<TouchScrollablePanel>>,
     buttons: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<Button>>,
 ) {
