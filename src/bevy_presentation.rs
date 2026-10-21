@@ -1525,11 +1525,19 @@ fn touch_scroll(
         .find(|touch| touch.id() == active.id)
         .map(|touch| touch.position())
     {
-        if !active.dragging && touch_scroll_dragged(active.start, position) {
+        let crossed_drag_threshold =
+            !active.dragging && touch_scroll_dragged(active.start, position);
+        if crossed_drag_threshold {
             active.dragging = true;
         }
         if active.dragging {
-            let delta = position - active.last;
+            // Apply the full movement once dragging starts so the threshold
+            // distance does not feel like lost input.
+            let delta = if crossed_drag_threshold {
+                position - active.start
+            } else {
+                position - active.last
+            };
             if let Ok(mut scroll) = scroll_positions.get_mut(active.panel) {
                 scroll.0.y = (scroll.0.y - delta.y).max(0.0);
             }
