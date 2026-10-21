@@ -15,7 +15,7 @@ use bevy::ui_widgets::Button;
 
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
-    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId,
+    self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, UiButtonActivation,
 };
 use crate::input::InputEvent;
 use crate::model::{ExplorationPosition, GameState};
@@ -276,8 +276,13 @@ fn spatial_input(
     mut queue: ResMut<GameplayInputQueue>,
     mut state: ResMut<SpatialExplorationState>,
     direction_buttons: Query<(&SpatialDirection, Has<Pressed>)>,
-    action_buttons: Query<&SpatialAction, Added<Pressed>>,
+    mut activations: MessageReader<UiButtonActivation>,
+    action_buttons: Query<&SpatialAction>,
 ) {
+    let activated_buttons = activations
+        .read()
+        .map(|activation| activation.0)
+        .collect::<Vec<_>>();
     if lifecycle.phase != LifecyclePhase::Complete
         || navigation.current_screen != Some(ScreenId::SpatialExploration)
     {
@@ -338,7 +343,10 @@ fn spatial_input(
         exit_spatial(&mut state, &mut navigation);
     }
 
-    for action in &action_buttons {
+    for button in activated_buttons {
+        let Ok(action) = action_buttons.get(button) else {
+            continue;
+        };
         match action {
             SpatialAction::Interact => interact_with_poi(&mut state, &mut lifecycle),
             SpatialAction::Exit => exit_spatial(&mut state, &mut navigation),

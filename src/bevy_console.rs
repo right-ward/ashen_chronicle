@@ -1,12 +1,12 @@
 use bevy::input::keyboard::KeyboardInput;
 use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
-use bevy::ui::Pressed;
 use bevy::ui_widgets::Button;
 
 use crate::bevy_lifecycle::LifecycleState;
 use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, TextContent,
+    UiButtonActivation,
 };
 use crate::game::console::ConsoleSession;
 use crate::input::InputEvent;
@@ -149,12 +149,17 @@ fn text_input(
 }
 
 fn close_button_input(
-    interactions: Query<(), (Added<Pressed>, With<ConsoleCloseButton>)>,
+    mut activations: MessageReader<UiButtonActivation>,
+    close_buttons: Query<(), With<ConsoleCloseButton>>,
     mut state: ResMut<BevyConsoleState>,
     mut lifecycle: ResMut<LifecycleState>,
     mut navigation: ResMut<NavigationState>,
 ) {
-    if navigation.current_screen != Some(ScreenId::Console) || interactions.is_empty() {
+    let mut should_close = false;
+    for activation in activations.read() {
+        should_close |= close_buttons.contains(activation.0);
+    }
+    if navigation.current_screen != Some(ScreenId::Console) || !should_close {
         return;
     }
 
