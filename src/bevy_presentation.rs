@@ -15,7 +15,7 @@ use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
 use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::ui::Pressed;
-use bevy::ui_widgets::Button;
+use bevy::ui_widgets::{Activate, Button};
 use bevy::window::PrimaryWindow;
 #[cfg(target_os = "android")]
 use std::sync::{
@@ -247,10 +247,55 @@ pub extern "system" fn Java_com_rightward_ashenchronicle_MainActivity_nativeAndr
     queue_android_text_input_event(target, AndroidTextInputEvent::Dismissed);
 }
 
+const TOUCH_SCROLL_THRESHOLD_PX: f32 = 12.0;
+
+fn touch_scroll_dragged(start: Vec2, current: Vec2) -> bool {
+    current.distance(start) > TOUCH_SCROLL_THRESHOLD_PX
+}
+
+#[derive(Clone, Copy, Debug)]
+struct ActiveTouchScroll {
+    id: u64,
+    panel: Entity,
+    start: Vec2,
+    last: Vec2,
+    button: Option<Entity>,
+    dragging: bool,
+}
+
 #[derive(Resource, Default, Debug)]
 struct TouchScrollState {
-    active: Option<(u64, Entity, Vec2)>,
+    active: Option<ActiveTouchScroll>,
 }
+
+impl TouchScrollState {
+    fn should_suppress_activation(&self, button: Entity, touches: &Touches) -> bool {
+        let Some(active) = self.active else {
+            return false;
+        };
+        if active.button != Some(button) {
+            return false;
+        }
+        if active.dragging {
+            return true;
+        }
+
+        let current_position = touches
+            .iter()
+            .find(|touch| touch.id() == active.id)
+            .map(|touch| touch.position())
+            .or_else(|| {
+                touches
+                    .iter_just_released()
+                    .find(|touch| touch.id() == active.id)
+                    .map(|touch| touch.position())
+            });
+        current_position.is_some_and(|position| touch_scroll_dragged(active.start, position))
+    }
+}
+
+#[derive(Message, Debug, Clone, Copy)]
+pub(crate) struct UiButtonActivation(pub(crate) Entity);
 
 #[derive(Resource, Default)]
 pub struct SemanticInputQueue(pub Vec<InputEvent>);
@@ -356,7 +401,9 @@ pub(crate) fn muted_font_size() -> FontSize {
 }
 
 pub fn install(app: &mut App) {
-    app.init_resource::<SemanticInputQueue>()
+    app.add_message::<UiButtonActivation>()
+        .add_observer(queue_button_activation)
+        .init_resource::<SemanticInputQueue>()
         .init_resource::<GameplayInputQueue>()
         .init_resource::<NavigationState>()
         .init_resource::<ConsoleTextInputFocus>()
@@ -1299,13 +1346,30 @@ pub(crate) fn queue_choice_activation(queue: &mut Vec<InputEvent>, index: usize)
     queue.push(InputEvent::Confirm);
 }
 
+fn queue_button_activation(
+    activation: On<Activate>,
+    touches: Res<Touches>,
+    scroll_state: Res<TouchScrollState>,
+    mut activations: MessageWriter<UiButtonActivation>,
+) {
+    let button = activation.event_target();
+    if scroll_state.should_suppress_activation(button, &touches) {
+        return;
+    }
+    activations.write(UiButtonActivation(button));
+}
+
 fn choice_button_input(
-    mut interaction_query: Query<(&ChoiceButton, Option<&UiTabButton>), Added<Pressed>>,
+    mut activations: MessageReader<UiButtonActivation>,
+    choices: Query<(&ChoiceButton, Option<&UiTabButton>)>,
     mut navigation: ResMut<NavigationState>,
     mut lifecycle_queue: ResMut<SemanticInputQueue>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (choice, tab) in &mut interaction_query {
+    for activation in activations.read() {
+        let Ok((choice, tab)) = choices.get(activation.0) else {
+            continue;
+        };
         if let Some(tab) = tab {
             if navigation.current_screen == Some(ScreenId::Options) {
                 gameplay_queue.0.push(InputEvent::SelectTab(tab.index));
@@ -1325,22 +1389,24 @@ fn choice_button_input(
 
 #[allow(clippy::type_complexity)] // For interaction_query
 fn contextual_touch_input(
-    mut interaction_query: Query<
-        (
-            Entity,
-            Option<&LifecycleTextField>,
-            Option<&ContextualConsoleInput>,
-            Option<&ContextualConsoleTab>,
-            Option<&UiMenuButton>,
-        ),
-        Added<Pressed>,
-    >,
+    mut activations: MessageReader<UiButtonActivation>,
+    interaction_query: Query<(
+        Entity,
+        Option<&LifecycleTextField>,
+        Option<&ContextualConsoleInput>,
+        Option<&ContextualConsoleTab>,
+        Option<&UiMenuButton>,
+    )>,
     mut navigation: ResMut<NavigationState>,
     mut input_focus: ResMut<InputFocus>,
     mut console_focus: ResMut<ConsoleTextInputFocus>,
     mut gameplay_queue: ResMut<GameplayInputQueue>,
 ) {
-    for (entity, field, console, tab, menu_button) in &mut interaction_query {
+    for activation in activations.read() {
+        let Ok((entity, field, console, tab, menu_button)) = interaction_query.get(activation.0)
+        else {
+            continue;
+        };
         if let Some(field) = field {
             if navigation.current_screen != Some(ScreenId::Lifecycle) {
                 continue;
@@ -1403,23 +1469,19 @@ fn touch_scroll(
     mut mouse_wheel: MessageReader<MouseWheel>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchScrollState>,
-    mut panels: Query<
-        (
-            Entity,
-            &ComputedNode,
-            &UiGlobalTransform,
-            &mut ScrollPosition,
-        ),
-        With<TouchScrollablePanel>,
-    >,
+    panels: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<TouchScrollablePanel>>,
+    mut scroll_positions: Query<&mut ScrollPosition, With<TouchScrollablePanel>>,
+    buttons: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<Button>>,
 ) {
     if let Some(cursor_position) = window.cursor_position() {
         let physical_cursor = physical_touch_position(cursor_position, window.scale_factor());
         let wheel_delta: f32 = mouse_wheel.read().map(|event| event.y).sum();
         if wheel_delta != 0.0 {
-            for (_, computed, transform, mut scroll) in &mut panels {
+            for (entity, computed, transform) in &panels {
                 if computed.contains_point(*transform, physical_cursor) {
-                    scroll.0.y = (scroll.0.y - wheel_delta * 48.0).max(0.0);
+                    if let Ok(mut scroll) = scroll_positions.get_mut(entity) {
+                        scroll.0.y = (scroll.0.y - wheel_delta * 48.0).max(0.0);
+                    }
                     break;
                 }
             }
@@ -1429,32 +1491,61 @@ fn touch_scroll(
     }
 
     for touch in touches.iter_just_pressed() {
-        for (entity, computed, transform, _) in &mut panels {
-            if computed.contains_point(
-                *transform,
-                physical_touch_position(touch.position(), window.scale_factor()),
-            ) {
-                state.active = Some((touch.id(), entity, touch.position()));
-                break;
-            }
-        }
+        let physical_position = physical_touch_position(touch.position(), window.scale_factor());
+        let panel = panels
+            .iter()
+            .find(|(_, computed, transform)| {
+                computed.contains_point(**transform, physical_position)
+            })
+            .map(|(entity, _, _)| entity);
+        let Some(panel) = panel else {
+            continue;
+        };
+        let button = buttons
+            .iter()
+            .find(|(_, computed, transform)| {
+                computed.contains_point(**transform, physical_position)
+            })
+            .map(|(entity, _, _)| entity);
+        state.active = Some(ActiveTouchScroll {
+            id: touch.id(),
+            panel,
+            start: touch.position(),
+            last: touch.position(),
+            button,
+            dragging: false,
+        });
     }
 
-    if let Some((id, entity, last_position)) = state.active {
-        let current = touches
-            .iter()
-            .find(|touch| touch.id() == id)
-            .map(|touch| touch.position());
-        if let Some(position) = current {
-            let delta = position - last_position;
-            if let Ok((_, _, _, mut scroll)) = panels.get_mut(entity) {
+    let Some(mut active) = state.active else {
+        return;
+    };
+    if let Some(position) = touches
+        .iter()
+        .find(|touch| touch.id() == active.id)
+        .map(|touch| touch.position())
+    {
+        let crossed_drag_threshold =
+            !active.dragging && touch_scroll_dragged(active.start, position);
+        if crossed_drag_threshold {
+            active.dragging = true;
+        }
+        if active.dragging {
+            // Apply the full movement once dragging starts so the threshold
+            // distance does not feel like lost input.
+            let delta = if crossed_drag_threshold {
+                position - active.start
+            } else {
+                position - active.last
+            };
+            if let Ok(mut scroll) = scroll_positions.get_mut(active.panel) {
                 scroll.0.y = (scroll.0.y - delta.y).max(0.0);
             }
-            state.active = Some((id, entity, position));
         }
-        if touches.just_released(id) || touches.just_canceled(id) {
-            state.active = None;
-        }
+        active.last = position;
+        state.active = Some(active);
+    } else if touches.just_released(active.id) || touches.just_canceled(active.id) {
+        state.active = None;
     }
 }
 
@@ -1503,6 +1594,13 @@ fn sync_lifecycle_field_visuals(
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn touch_scroll_requires_a_deliberate_drag() {
+        assert!(!touch_scroll_dragged(Vec2::ZERO, Vec2::new(12.0, 0.0)));
+        assert!(!touch_scroll_dragged(Vec2::ZERO, Vec2::new(8.0, 8.0)));
+        assert!(touch_scroll_dragged(Vec2::ZERO, Vec2::new(12.1, 0.0)));
+    }
 
     #[test]
     fn touch_coordinates_convert_from_logical_to_physical_space() {
