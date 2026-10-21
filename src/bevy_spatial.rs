@@ -873,7 +873,6 @@ fn update_virtual_joystick(
             .map(|touch| touch.position() - center)
     });
     if let Some(offset) = offset {
-        let distance = offset.length();
         joystick.direction = virtual_joystick_direction(offset);
         let thumb_offset = offset.clamp_length_max(JOYSTICK_THUMB_TRAVEL_PX);
         for mut node in &mut thumbs {
