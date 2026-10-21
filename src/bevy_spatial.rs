@@ -771,7 +771,13 @@ fn render_spatial_screen(
         ("↑", Vec2::Y),
         ("↗", Vec2::ONE),
     ] {
-        spawn_control(&mut commands, top, label, bevy_spatial_direction(direction), Display::Flex);
+        spawn_control(
+            &mut commands,
+            top,
+            label,
+            bevy_spatial_direction(direction),
+            Display::Flex,
+        );
     }
 
     let middle = commands
@@ -782,12 +788,14 @@ fn render_spatial_screen(
         })
         .id();
     commands.entity(pad).add_child(middle);
-    for (label, direction) in [
-        ("←", Vec2::NEG_X),
-        ("•", Vec2::ZERO),
-        ("→", Vec2::X),
-    ] {
-        spawn_control(&mut commands, middle, label, bevy_spatial_direction(direction), Display::Flex);
+    for (label, direction) in [("←", Vec2::NEG_X), ("•", Vec2::ZERO), ("→", Vec2::X)] {
+        spawn_control(
+            &mut commands,
+            middle,
+            label,
+            bevy_spatial_direction(direction),
+            Display::Flex,
+        );
     }
 
     let bottom = commands
@@ -803,7 +811,13 @@ fn render_spatial_screen(
         ("↓", Vec2::NEG_Y),
         ("↘", Vec2::new(1.0, -1.0)),
     ] {
-        spawn_control(&mut commands, bottom, label, bevy_spatial_direction(direction), Display::Flex);
+        spawn_control(
+            &mut commands,
+            bottom,
+            label,
+            bevy_spatial_direction(direction),
+            Display::Flex,
+        );
     }
 
     let interaction_display = if poi_interaction_available(map, session_position(&state)) {

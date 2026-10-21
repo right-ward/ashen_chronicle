@@ -5,8 +5,8 @@
 //! state into presentation view models and interpreting semantic input events.
 
 use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
-use bevy::input::ButtonState;
 use bevy::input::mouse::MouseWheel;
+use bevy::input::ButtonState;
 use bevy::input_focus::{
     tab_navigation::{TabGroup, TabIndex},
     AutoFocus, FocusCause, InputFocus,
