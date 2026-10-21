@@ -1469,24 +1469,22 @@ fn touch_scroll(
     mut mouse_wheel: MessageReader<MouseWheel>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchScrollState>,
-    mut panels: Query<
-        (
-            Entity,
-            &ComputedNode,
-            &UiGlobalTransform,
-            &mut ScrollPosition,
-        ),
+    panels: Query<
+        (Entity, &ComputedNode, &UiGlobalTransform),
         With<TouchScrollablePanel>,
     >,
+    mut scroll_positions: Query<&mut ScrollPosition, With<TouchScrollablePanel>>,
     buttons: Query<(Entity, &ComputedNode, &UiGlobalTransform), With<Button>>,
 ) {
     if let Some(cursor_position) = window.cursor_position() {
         let physical_cursor = physical_touch_position(cursor_position, window.scale_factor());
         let wheel_delta: f32 = mouse_wheel.read().map(|event| event.y).sum();
         if wheel_delta != 0.0 {
-            for (_, computed, transform, mut scroll) in &mut panels {
+            for (entity, computed, transform) in &panels {
                 if computed.contains_point(*transform, physical_cursor) {
-                    scroll.0.y = (scroll.0.y - wheel_delta * 48.0).max(0.0);
+                    if let Ok(mut scroll) = scroll_positions.get_mut(entity) {
+                        scroll.0.y = (scroll.0.y - wheel_delta * 48.0).max(0.0);
+                    }
                     break;
                 }
             }
@@ -1499,10 +1497,10 @@ fn touch_scroll(
         let physical_position = physical_touch_position(touch.position(), window.scale_factor());
         let panel = panels
             .iter()
-            .find(|(_, computed, transform, _)| {
+            .find(|(_, computed, transform)| {
                 computed.contains_point(**transform, physical_position)
             })
-            .map(|(entity, _, _, _)| entity);
+            .map(|(entity, _, _)| entity);
         let Some(panel) = panel else {
             continue;
         };
@@ -1535,7 +1533,7 @@ fn touch_scroll(
         }
         if active.dragging {
             let delta = position - active.last;
-            if let Ok((_, _, _, mut scroll)) = panels.get_mut(active.panel) {
+            if let Ok(mut scroll) = scroll_positions.get_mut(active.panel) {
                 scroll.0.y = (scroll.0.y - delta.y).max(0.0);
             }
         }
