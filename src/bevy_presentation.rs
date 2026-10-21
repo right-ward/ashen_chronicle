@@ -5,6 +5,7 @@
 //! state into presentation view models and interpreting semantic input events.
 
 use bevy::input::keyboard::{Key, KeyboardInput, NativeKeyCode};
+use bevy::input::mouse::MouseWheel;
 use bevy::input::ButtonState;
 use bevy::input_focus::{
     tab_navigation::{TabGroup, TabIndex},
@@ -1399,6 +1400,7 @@ fn organize_action_button_groups(
 
 fn touch_scroll(
     touches: Res<Touches>,
+    mut mouse_wheel: MessageReader<MouseWheel>,
     window: Single<&Window, With<PrimaryWindow>>,
     mut state: ResMut<TouchScrollState>,
     mut panels: Query<
@@ -1411,6 +1413,21 @@ fn touch_scroll(
         With<TouchScrollablePanel>,
     >,
 ) {
+    if let Some(cursor_position) = window.cursor_position() {
+        let physical_cursor = physical_touch_position(cursor_position, window.scale_factor());
+        let wheel_delta: f32 = mouse_wheel.read().map(|event| event.y).sum();
+        if wheel_delta != 0.0 {
+            for (_, computed, transform, mut scroll) in &mut panels {
+                if computed.contains_point(*transform, physical_cursor) {
+                    scroll.0.y = (scroll.0.y - wheel_delta * 48.0).max(0.0);
+                    break;
+                }
+            }
+        }
+    } else {
+        mouse_wheel.clear();
+    }
+
     for touch in touches.iter_just_pressed() {
         for (entity, computed, transform, _) in &mut panels {
             if computed.contains_point(
