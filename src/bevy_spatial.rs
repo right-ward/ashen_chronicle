@@ -12,6 +12,8 @@ use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
 use bevy::ui::Pressed;
 use bevy::ui_widgets::Button;
+#[cfg(target_os = "android")]
+use bevy::window::PrimaryWindow;
 
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
 use crate::bevy_presentation::{
@@ -30,6 +32,9 @@ const PLAYER_SPRITE_HEIGHT: f32 = 24.0;
 const PLAYER_COLLISION_HALF_EXTENT: f32 = 0.15;
 const INTERACTION_RANGE_PX: f32 = 34.0;
 const PLAYER_SPEED: f32 = 180.0; // Screen-space pixels per second.
+const JOYSTICK_RADIUS_PX: f32 = 68.0;
+const JOYSTICK_DEAD_ZONE: f32 = 0.16;
+const JOYSTICK_THUMB_TRAVEL_PX: f32 = 36.0;
 const CAMERA_LERP_SPEED: f32 = 8.0;
 const CAMERA_DEAD_ZONE_FRACTION: f32 = 0.15;
 const DEPTH_STEP: f32 = 0.08;
@@ -56,6 +61,15 @@ struct SpatialDirection(Vec2);
 
 #[derive(Component)]
 struct SpatialControlButton;
+
+#[derive(Component)]
+struct SpatialJoystickThumb;
+
+#[derive(Resource, Default)]
+struct SpatialJoystickState {
+    active_touch: Option<u64>,
+    direction: Vec2,
+}
 
 #[derive(Component)]
 struct SpatialInteractionPrompt;
@@ -86,6 +100,7 @@ pub(crate) struct SpatialExplorationState {
 
 pub(crate) fn install(app: &mut App) {
     app.init_resource::<SpatialExplorationState>()
+        .init_resource::<SpatialJoystickState>()
         .add_systems(Startup, setup_spatial_render_assets)
         .add_systems(
             Update,
@@ -98,6 +113,8 @@ pub(crate) fn install(app: &mut App) {
             )
                 .chain(),
         );
+    #[cfg(target_os = "android")]
+    app.add_systems(Update, update_virtual_joystick.before(spatial_input));
 }
 
 pub(crate) fn enter(
@@ -275,6 +292,7 @@ fn spatial_input(
     mut navigation: ResMut<NavigationState>,
     mut queue: ResMut<GameplayInputQueue>,
     mut state: ResMut<SpatialExplorationState>,
+    joystick: Res<SpatialJoystickState>,
     direction_buttons: Query<(&SpatialDirection, Has<Pressed>)>,
     mut activations: MessageReader<UiButtonActivation>,
     action_buttons: Query<&SpatialAction>,
@@ -302,6 +320,7 @@ fn spatial_input(
     if keyboard.pressed(KeyCode::ArrowRight) || keyboard.pressed(KeyCode::KeyD) {
         direction.x += 1.0;
     }
+    direction += joystick.direction;
     for (control, pressed) in &direction_buttons {
         if pressed {
             direction += control.0;
@@ -753,19 +772,28 @@ fn render_spatial_screen(
         .id();
     commands.entity(root).add_child(footer);
 
-    let pad = commands
-        .spawn(Node {
-            flex_direction: FlexDirection::Column,
-            align_items: AlignItems::Center,
-            row_gap: px(3),
-            padding: UiRect::all(px(5)),
-            border: UiRect::all(px(1)),
-            ..default()
-        })
-        .insert(BackgroundColor(bevy_presentation::THEME_SURFACE))
-        .id();
-    commands.entity(footer).add_child(pad);
+    #[cfg(not(target_os = "android"))]
+    let pad = {
+        let pad = commands
+            .spawn(Node {
+                flex_direction: FlexDirection::Column,
+                align_items: AlignItems::Center,
+                row_gap: px(3),
+                padding: UiRect::all(px(5)),
+                border: UiRect::all(px(1)),
+                ..default()
+            })
+            .insert(BackgroundColor(bevy_presentation::THEME_SURFACE))
+            .id();
+        commands.entity(footer).add_child(pad);
+        pad
+    };
 
+    #[cfg(target_os = "android")]
+    spawn_virtual_joystick(&mut commands, root);
+
+    #[cfg(not(target_os = "android"))]
+    {
     let top = commands
         .spawn(Node {
             flex_direction: FlexDirection::Row,
@@ -827,6 +855,7 @@ fn render_spatial_screen(
             Display::Flex,
         );
     }
+    }
 
     let interaction_display = if poi_interaction_available(map, session_position(&state)) {
         Display::Flex
@@ -849,6 +878,106 @@ fn render_spatial_screen(
         interaction_display,
     );
     state.dirty = false;
+}
+
+#[cfg(target_os = "android")]
+fn spawn_virtual_joystick(commands: &mut Commands, parent: Entity) {
+    let base = commands
+        .spawn((
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(20),
+                bottom: px(20),
+                width: px(JOYSTICK_RADIUS_PX * 2.0),
+                height: px(JOYSTICK_RADIUS_PX * 2.0),
+                border: UiRect::all(px(2)),
+                border_radius: BorderRadius::MAX,
+                justify_content: JustifyContent::Center,
+                align_items: AlignItems::Center,
+                ..default()
+            },
+            BackgroundColor(Color::srgba(0.07, 0.06, 0.08, 0.70)),
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+        ))
+        .id();
+    commands.entity(parent).add_child(base);
+
+    let thumb = commands
+        .spawn((
+            SpatialJoystickThumb,
+            Node {
+                position_type: PositionType::Absolute,
+                left: px(JOYSTICK_RADIUS_PX - 20.0),
+                top: px(JOYSTICK_RADIUS_PX - 20.0),
+                width: px(40),
+                height: px(40),
+                border_radius: BorderRadius::MAX,
+                border: UiRect::all(px(2)),
+                ..default()
+            },
+            BackgroundColor(bevy_presentation::THEME_ACCENT),
+            BorderColor::all(bevy_presentation::THEME_TEXT),
+        ))
+        .id();
+    commands.entity(base).add_child(thumb);
+}
+
+#[cfg(target_os = "android")]
+fn update_virtual_joystick(
+    touches: Res<Touches>,
+    window: Single<&Window, With<PrimaryWindow>>,
+    navigation: Res<NavigationState>,
+    mut joystick: ResMut<SpatialJoystickState>,
+    mut thumbs: Query<&mut Node, With<SpatialJoystickThumb>>,
+) {
+    if navigation.current_screen != Some(ScreenId::SpatialExploration) {
+        joystick.active_touch = None;
+        joystick.direction = Vec2::ZERO;
+        return;
+    }
+
+    let window = *window;
+    let padding = window.width().min(window.height()) * 0.02;
+    let center = Vec2::new(
+        padding + 20.0 + JOYSTICK_RADIUS_PX,
+        window.height() - padding - 20.0 - JOYSTICK_RADIUS_PX,
+    );
+
+    if joystick.active_touch.is_none() {
+        joystick.active_touch = touches
+            .iter_just_pressed()
+            .find(|touch| touch.position().distance(center) <= JOYSTICK_RADIUS_PX)
+            .map(|touch| touch.id());
+    }
+
+    let offset = joystick.active_touch.and_then(|id| {
+        touches
+            .iter()
+            .find(|touch| touch.id() == id)
+            .map(|touch| touch.position() - center)
+    });
+    if let Some(offset) = offset {
+        let distance = offset.length();
+        let normalized_distance = (distance / JOYSTICK_RADIUS_PX).clamp(0.0, 1.0);
+        joystick.direction = if normalized_distance <= JOYSTICK_DEAD_ZONE {
+            Vec2::ZERO
+        } else {
+            offset.normalize()
+                * ((normalized_distance - JOYSTICK_DEAD_ZONE) / (1.0 - JOYSTICK_DEAD_ZONE))
+        };
+        let thumb_offset = offset.clamp_length_max(JOYSTICK_THUMB_TRAVEL_PX);
+        for mut node in &mut thumbs {
+            node.left = px(JOYSTICK_RADIUS_PX - 20.0 + thumb_offset.x);
+            node.top = px(JOYSTICK_RADIUS_PX - 20.0 + thumb_offset.y);
+        }
+    } else {
+        joystick.active_touch = None;
+        joystick.direction = Vec2::ZERO;
+        for mut node in &mut thumbs {
+            node.left = px(JOYSTICK_RADIUS_PX - 20.0);
+            node.top = px(JOYSTICK_RADIUS_PX - 20.0);
+        }
+    }
 }
 
 fn bevy_spatial_direction(direction: Vec2) -> SpatialControlKind {
