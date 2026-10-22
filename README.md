@@ -23,14 +23,17 @@ The game is inspired by the atmosphere and themes of dark fantasy: dangerous roa
 
 ## Core Concept
 
-Death is not simply a game over.
+The Ashen Chronicle is a dark-fantasy open-world RPG about exploration, self-directed lives, and lasting consequences.
 
-When a character dies, their actions can leave traces behind. Their remains, deeds, consequences, and changes to the world can persist.
+Its procedurally generated world extends beyond the known frontier, offering new places, people, dangers, resources, and opportunities to discover. Exploration should reward curiosity without requiring every location to be handcrafted.
 
-A later character may inherit that world and encounter what the previous character left behind.
+Players choose their own pursuits and shape their lives through the world. Hunting, exploration, relationships, settlement, trade, leadership, and other ways of living can become meaningful goals in their own right, rather than branches of a single predetermined storyline.
 
-The goal is to make the world feel persistent rather than disposable.
+Death ends a character's life, but not necessarily their story. The world and its history persist, allowing a new character to inherit the consequences of previous lives and shape what happens next.
 
+Handcrafted content and mods introduce distinctive characters, places, quests, events, and stories into a world whose possibilities extend beyond any single character's life.
+
+The goal is to create a world worth exploring, a life worth shaping, and a history worth inheriting.
 ## Project Structure
 
 ```text
