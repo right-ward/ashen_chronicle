@@ -528,6 +528,36 @@ mod tests {
     }
 
     #[test]
+    fn generated_passages_remain_reachable_and_persistent_across_seeds() {
+        for seed in 0..32 {
+            for target_count in [1, 2, 3, 4, 6] {
+                let targets = (0..target_count)
+                    .map(|index| 100 + index as u64)
+                    .collect::<Vec<_>>();
+                let mut map =
+                    generate_local_map(seed, "location.spatial_exit_test", LocalMapConfig::default());
+                configure_map_exits(&mut map, &targets);
+
+                assert_eq!(map.exits.len(), target_count);
+                assert!(has_walkable_path(
+                    &map,
+                    map.entry,
+                    map.points_of_interest[0].position
+                ));
+                for exit in &map.exits {
+                    assert!(has_walkable_path(&map, map.entry, exit.position));
+                }
+
+                let json = serde_json::to_string(&map).expect("map with passages should serialize");
+                let restored: LocalMap =
+                    serde_json::from_str(&json).expect("map with passages should deserialize");
+                assert_eq!(restored.exits, map.exits);
+                assert_eq!(restored.terrain, map.terrain);
+            }
+        }
+    }
+
+    #[test]
     fn older_local_map_data_defaults_to_no_passages() {
         let map = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
         let mut value = serde_json::to_value(&map).expect("map should serialize");
