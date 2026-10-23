@@ -23,7 +23,7 @@ use crate::bevy_presentation::{
 use crate::input::InputEvent;
 use crate::model::{EntityId, ExplorationPosition, GameState};
 use crate::spatial::{
-    configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,\
+    configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,
     LocalMapConfig, MapExit, Terrain,
 };
 
@@ -908,9 +908,9 @@ fn render_spatial_screen(
             .first()
             .is_some_and(|poi| poi.interacted)
         {
-            "Examine again (E)"
+            "Examine again"
         } else {
-            "Examine (E)"
+            "Examine"
         },
         SpatialAction::Interact,
         interaction_display,
@@ -927,16 +927,13 @@ fn render_spatial_screen(
             })
             .map(|location| location.name.clone())
             .unwrap_or_else(|| "connected location".to_string());
-        let button = spawn_control(
+        spawn_control(
             &mut commands,
             footer,
-            format!("Passage: {destination_name}"),
+            format!("Passage to {destination_name} (E)"),
             SpatialAction::UseExit(exit.target_location_id),
             Display::None,
         );
-        commands.entity(button).insert(SpatialExitPrompt {
-            target_location_id: exit.target_location_id,
-        });
     }
     state.dirty = false;
 }
