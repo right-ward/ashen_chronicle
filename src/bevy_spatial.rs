@@ -542,7 +542,7 @@ fn interact_contextually(
         .session
         .as_ref()
         .and_then(|session| state.maps.get(&session.location_id))
-        .and_then(|map| nearest_available_exit(map, state.position))
+        .and_then(|map| nearest_contextual_exit(map, state.position))
         .map(|exit| exit.target_location_id);
     if let Some(target_location_id) = target {
         use_map_exit(state, navigation, target_location_id);
@@ -923,7 +923,7 @@ fn render_spatial_screen(
         spawn_control(
             &mut commands,
             footer,
-            format!("Passage to {destination_name} (E)"),
+            format!("Passage to {destination_name}"),
             SpatialAction::UseExit(exit.target_location_id),
             Display::None,
         );
@@ -1252,6 +1252,19 @@ fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
     )
 }
 
+fn nearest_contextual_exit(map: &LocalMap, position: Vec2) -> Option<&MapExit> {
+    let exit = nearest_available_exit(map, position)?;
+    if poi_interaction_available(map, position)
+        && poi_distance_px(map, position).is_some_and(|distance| {
+            distance < exit_distance_px(map, position, exit)
+        })
+    {
+        None
+    } else {
+        Some(exit)
+    }
+}
+
 fn nearest_available_exit(map: &LocalMap, position: Vec2) -> Option<&MapExit> {
     map.exits
         .iter()
@@ -1285,19 +1298,26 @@ fn exit_interaction_available(map: &LocalMap, position: Vec2, exit: &MapExit) ->
     has_line_of_sight(map, position, target)
 }
 
-fn poi_interaction_available(map: &LocalMap, position: Vec2) -> bool {
-    let Some(poi) = map.points_of_interest.first() else {
-        return false;
-    };
+fn poi_distance_px(map: &LocalMap, position: Vec2) -> Option<f32> {
+    let poi = map.points_of_interest.first()?;
     let target = Vec2::new(
         f32::from(poi.position.x) + 0.5,
         f32::from(poi.position.y) + 0.5,
     );
-    if map_to_world(position, Some(map)).distance(map_to_world(target, Some(map)))
-        > INTERACTION_RANGE_PX
-    {
+    Some(map_to_world(position, Some(map)).distance(map_to_world(target, Some(map))))
+}
+
+fn poi_interaction_available(map: &LocalMap, position: Vec2) -> bool {
+    let Some(poi) = map.points_of_interest.first() else {
+        return false;
+    };
+    if poi_distance_px(map, position).is_none_or(|distance| distance > INTERACTION_RANGE_PX) {
         return false;
     }
+    let target = Vec2::new(
+        f32::from(poi.position.x) + 0.5,
+        f32::from(poi.position.y) + 0.5,
+    );
     has_line_of_sight(map, position, target)
 }
 
@@ -1519,6 +1539,27 @@ mod tests {
         );
         assert!(poi_interaction_available(&map, near));
         assert!(!poi_interaction_available(&map, near + Vec2::new(3.0, 0.0)));
+    }
+
+    #[test]
+    fn contextual_interaction_prefers_a_closer_point_of_interest() {
+        let mut map = generate_local_map(4, "location.test", LocalMapConfig::default());
+        configure_map_exits(&mut map, &[99]);
+        let exit_position = map.exits[0].position;
+        map.points_of_interest[0].position = GridPosition {
+            x: map.width - 2,
+            y: exit_position.y,
+        };
+        let poi_position = map.points_of_interest[0].position;
+        let player_position = Vec2::new(
+            f32::from(poi_position.x) + 0.5,
+            f32::from(poi_position.y) + 0.5,
+        );
+        let exit = &map.exits[0];
+
+        assert!(poi_interaction_available(&map, player_position));
+        assert!(exit_interaction_available(&map, player_position, exit));
+        assert!(nearest_contextual_exit(&map, player_position).is_none());
     }
 
     #[test]
