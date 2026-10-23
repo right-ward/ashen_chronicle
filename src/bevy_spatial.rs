@@ -1255,9 +1255,8 @@ fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
 fn nearest_contextual_exit(map: &LocalMap, position: Vec2) -> Option<&MapExit> {
     let exit = nearest_available_exit(map, position)?;
     if poi_interaction_available(map, position)
-        && poi_distance_px(map, position).is_some_and(|distance| {
-            distance < exit_distance_px(map, position, exit)
-        })
+        && poi_distance_px(map, position)
+            .is_some_and(|distance| distance < exit_distance_px(map, position, exit))
     {
         None
     } else {
