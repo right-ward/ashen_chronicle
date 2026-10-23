@@ -792,6 +792,38 @@ fn action_button_node() -> Node {
     }
 }
 
+/// Keep icon labels readable even when the bundled default font lacks a glyph.
+/// ASCII mnemonics are intentionally used as a universal fallback rather than
+/// displaying the missing-glyph rectangle.
+fn safe_icon_text(icon: impl Into<String>) -> String {
+    let icon = icon.into();
+    if icon.is_ascii() {
+        return icon;
+    }
+
+    match icon.as_str() {
+        "←" => "<",
+        "→" | "▸" | "▶" => ">",
+        "≡" => "=",
+        "†" => "!",
+        "◌" | "◉" => "O",
+        "◈" | "◇" | "✦" => "*",
+        "⚑" => "F",
+        "⚔" => "S",
+        "♙" => "P",
+        "⌕" => "?",
+        "⌂" => "H",
+        "▣" => "#",
+        "⌁" => "~",
+        "✎" => "N",
+        "⚙" => "O",
+        "×" => "X",
+        "♥" => "H",
+        _ => "?",
+    }
+    .to_string()
+}
+
 pub fn spawn_action_button(
     commands: &mut Commands,
     parent: Entity,
@@ -822,7 +854,7 @@ pub fn spawn_action_button(
                 },
                 children![
                     (
-                        Text::new(icon.into()),
+                        Text::new(safe_icon_text(icon)),
                         Node {
                             flex_shrink: 0.0,
                             ..default()
@@ -896,7 +928,7 @@ pub fn spawn_primary_action_button(
                 },
                 children![
                     (
-                        Text::new(icon.into()),
+                        Text::new(safe_icon_text(icon)),
                         Node {
                             flex_shrink: 0.0,
                             ..default()
@@ -951,7 +983,7 @@ pub fn spawn_menu_button(
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
-                Text::new(icon.into()),
+                Text::new(safe_icon_text(icon)),
                 TextContent,
                 TextFont::from_font_size(label_font_size()),
                 TextColor(THEME_TEXT),
@@ -1056,7 +1088,7 @@ pub fn spawn_condition_indicator(
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
-                Text::new(icon.into()),
+                Text::new(safe_icon_text(icon)),
                 TextContent,
                 TextFont::from_font_size(muted_font_size()),
                 TextColor(THEME_TEXT),
@@ -1772,5 +1804,26 @@ mod tests {
         assert_eq!(gauge_ratio(-5, 10), 0.0);
         assert_eq!(gauge_ratio(15, 10), 1.0);
         assert_eq!(gauge_ratio(5, 10), 0.5);
+    }
+}
+
+
+#[cfg(test)]
+mod icon_fallback_tests {
+    use super::safe_icon_text;
+
+    #[test]
+    fn known_icon_glyphs_use_ascii_fallbacks() {
+        assert_eq!(safe_icon_text("⚔"), "S");
+        assert_eq!(safe_icon_text("←"), "<");
+        assert_eq!(safe_icon_text("≡"), "=");
+        assert_eq!(safe_icon_text("✎"), "N");
+    }
+
+    #[test]
+    fn unknown_unicode_icons_never_reach_text_rendering() {
+        assert_eq!(safe_icon_text("🜂"), "?");
+        assert_eq!(safe_icon_text("Already ASCII"), "Already ASCII");
+        assert!(safe_icon_text("⚙").is_ascii());
     }
 }
