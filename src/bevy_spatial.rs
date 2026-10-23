@@ -1377,6 +1377,62 @@ mod tests {
     use super::*;
 
     #[test]
+    fn bundled_spatial_art_decodes_with_expected_dimensions() {
+        let assets: [(&str, &[u8], u32, u32); 6] = [
+            (
+                "wood floor",
+                include_bytes!("../data/assets/spatial/terrain_floor.png"),
+                48,
+                24,
+            ),
+            (
+                "ash ground",
+                include_bytes!("../data/assets/spatial/terrain_ash.png"),
+                48,
+                24,
+            ),
+            (
+                "rubble ground",
+                include_bytes!("../data/assets/spatial/terrain_rubble.png"),
+                48,
+                24,
+            ),
+            (
+                "wall top",
+                include_bytes!("../data/assets/spatial/terrain_wall_top.png"),
+                48,
+                24,
+            ),
+            (
+                "player sprite",
+                include_bytes!("../data/assets/spatial/player_ash_warden.png"),
+                16,
+                24,
+            ),
+            (
+                "passage marker",
+                include_bytes!("../data/assets/spatial/passage.png"),
+                24,
+                32,
+            ),
+        ];
+
+        for (name, bytes, width, height) in assets {
+            let image = Image::from_buffer(
+                bytes,
+                ImageType::Extension("png"),
+                CompressedImageFormats::NONE,
+                true,
+                ImageSampler::nearest(),
+                RenderAssetUsages::default(),
+            )
+            .unwrap_or_else(|error| panic!("embedded {name} image should decode: {error}"));
+            assert_eq!(image.texture_descriptor.size.width, width, "{name} width");
+            assert_eq!(image.texture_descriptor.size.height, height, "{name} height");
+        }
+    }
+
+    #[test]
     fn angled_projection_offsets_neighboring_tiles_consistently() {
         let map = generate_local_map(4, "location.test", LocalMapConfig::default());
         let origin = map_to_world(Vec2::new(5.5, 5.5), Some(&map));
