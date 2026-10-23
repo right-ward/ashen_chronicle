@@ -1428,7 +1428,10 @@ mod tests {
             )
             .unwrap_or_else(|error| panic!("embedded {name} image should decode: {error}"));
             assert_eq!(image.texture_descriptor.size.width, width, "{name} width");
-            assert_eq!(image.texture_descriptor.size.height, height, "{name} height");
+            assert_eq!(
+                image.texture_descriptor.size.height, height,
+                "{name} height"
+            );
         }
     }
 

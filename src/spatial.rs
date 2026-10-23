@@ -534,8 +534,11 @@ mod tests {
                 let targets = (0..target_count)
                     .map(|index| 100 + index as u64)
                     .collect::<Vec<_>>();
-                let mut map =
-                    generate_local_map(seed, "location.spatial_exit_test", LocalMapConfig::default());
+                let mut map = generate_local_map(
+                    seed,
+                    "location.spatial_exit_test",
+                    LocalMapConfig::default(),
+                );
                 configure_map_exits(&mut map, &targets);
 
                 assert_eq!(map.exits.len(), target_count);
