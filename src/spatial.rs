@@ -332,15 +332,7 @@ fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
 
 fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
     let mut position = exit;
-    let mut carve = |position: GridPosition| {
-        let index =
-            usize::from(position.y) * usize::from(map.width) + usize::from(position.x);
-        if let Some(terrain) = map.terrain.get_mut(index) {
-            *terrain = Terrain::Floor;
-        }
-    };
-
-    carve(position);
+    carve_generated_floor(map, position);
     match side {
         // Reach the entry column before joining the central entry corridor.
         0 | 1 => {
@@ -350,7 +342,7 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
                 } else {
                     position.x + 1
                 };
-                carve(position);
+                carve_generated_floor(map, position);
             }
             while position.y != map.entry.y {
                 position.y = if position.y > map.entry.y {
@@ -358,7 +350,7 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
                 } else {
                     position.y + 1
                 };
-                carve(position);
+                carve_generated_floor(map, position);
             }
         }
         // North/south passages first move inward, then join the entry corridor.
@@ -369,7 +361,7 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
                 } else {
                     position.y + 1
                 };
-                carve(position);
+                carve_generated_floor(map, position);
             }
             while position.x != map.entry.x {
                 position.x = if position.x > map.entry.x {
@@ -377,9 +369,16 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
                 } else {
                     position.x + 1
                 };
-                carve(position);
+                carve_generated_floor(map, position);
             }
         }
+    }
+}
+
+fn carve_generated_floor(map: &mut LocalMap, position: GridPosition) {
+    let index = usize::from(position.y) * usize::from(map.width) + usize::from(position.x);
+    if let Some(terrain) = map.terrain.get_mut(index) {
+        *terrain = Terrain::Floor;
     }
 }
 
