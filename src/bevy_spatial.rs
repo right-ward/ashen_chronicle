@@ -7,6 +7,7 @@
 use std::collections::HashMap;
 
 use bevy::asset::RenderAssetUsages;
+use bevy::image::{CompressedImageFormats, ImageSampler, ImageType};
 use bevy::mesh::PrimitiveTopology;
 use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
@@ -20,14 +21,16 @@ use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, UiButtonActivation,
 };
 use crate::input::InputEvent;
-use crate::model::{ExplorationPosition, GameState};
+use crate::model::{EntityId, ExplorationPosition, GameState};
 use crate::spatial::{
-    generate_local_map, ExplorationSession, GridPosition, LocalMap, LocalMapConfig, Terrain,
+    configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,\
+    LocalMapConfig, MapExit, Terrain,
 };
 
 const TILE_HALF_WIDTH: f32 = 24.0;
 const TILE_HALF_HEIGHT: f32 = 12.0;
 const WALL_HEIGHT: f32 = 24.0;
+const PLAYER_SPRITE_WIDTH: f32 = 16.0;
 const PLAYER_SPRITE_HEIGHT: f32 = 24.0;
 const PLAYER_COLLISION_HALF_EXTENT: f32 = 0.15;
 const INTERACTION_RANGE_PX: f32 = 34.0;
@@ -79,12 +82,18 @@ struct SpatialJoystickState {
 #[derive(Component)]
 struct SpatialInteractionPrompt;
 
+#[derive(Component)]
+struct SpatialExitPrompt {
+    target_location_id: EntityId,
+}
+
 #[derive(Resource)]
 struct SpatialRenderAssets {
-    diamond_mesh: Handle<Mesh>,
     wall_left_mesh: Handle<Mesh>,
     wall_right_mesh: Handle<Mesh>,
-    tile_materials: [Handle<ColorMaterial>; 5],
+    tile_images: [Handle<Image>; 4],
+    player_image: Handle<Image>,
+    passage_image: Handle<Image>,
     wall_face_materials: [Handle<ColorMaterial>; 3],
 }
 
@@ -92,6 +101,7 @@ struct SpatialRenderAssets {
 enum SpatialAction {
     Interact,
     Exit,
+    UseExit(EntityId),
 }
 
 #[derive(Resource, Default)]
@@ -137,7 +147,7 @@ pub(crate) fn enter(
         .map(|generation| generation.seed)
         .unwrap_or(game.world.id);
 
-    let map = game
+    let mut map = game
         .world
         .local_maps
         .iter()
@@ -146,6 +156,11 @@ pub(crate) fn enter(
         .unwrap_or_else(|| {
             generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
         });
+    // Migrate older saved maps without exits and configure new maps from the
+    // actual world graph. Passage targets are stored as stable world IDs.
+    if map.exits.is_empty() {
+        configure_map_exits(&mut map, &location.exits);
+    }
     state.maps.insert(location_id.clone(), map);
     let map = state.maps.get(&location_id).expect("map was just inserted");
     let saved_position = game
@@ -200,25 +215,8 @@ fn setup_spatial_render_assets(
     mut commands: Commands,
     mut meshes: ResMut<Assets<Mesh>>,
     mut materials: ResMut<Assets<ColorMaterial>>,
+    mut images: ResMut<Assets<Image>>,
 ) {
-    let diamond_mesh = meshes.add(mesh_from_triangles(
-        [
-            [0.0, TILE_HALF_HEIGHT, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-            [TILE_HALF_WIDTH, 0.0, 0.0],
-            [0.0, TILE_HALF_HEIGHT, 0.0],
-            [-TILE_HALF_WIDTH, 0.0, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-        ],
-        [
-            [0.5, 1.0],
-            [0.5, 0.0],
-            [1.0, 0.5],
-            [0.5, 1.0],
-            [0.0, 0.5],
-            [0.5, 0.0],
-        ],
-    ));
     let wall_left_mesh = meshes.add(mesh_from_triangles(
         [
             [-TILE_HALF_WIDTH, WALL_HEIGHT, 0.0],
@@ -257,26 +255,73 @@ fn setup_spatial_render_assets(
     ));
 
     let unseen = terrain_color(Terrain::Floor, false);
-    let tile_materials = [
-        materials.add(ColorMaterial::from(unseen)),
-        materials.add(ColorMaterial::from(terrain_color(Terrain::Floor, true))),
-        materials.add(ColorMaterial::from(terrain_color(Terrain::Ash, true))),
-        materials.add(ColorMaterial::from(terrain_color(Terrain::Rubble, true))),
-        materials.add(ColorMaterial::from(terrain_color(Terrain::Wall, true))),
-    ];
     let wall_face_materials = [
         materials.add(ColorMaterial::from(unseen)),
         materials.add(ColorMaterial::from(Color::srgb(0.16, 0.115, 0.10))),
         materials.add(ColorMaterial::from(Color::srgb(0.105, 0.075, 0.075))),
     ];
 
+    // Decode the small art assets from the binary so desktop and Android use
+    // the same bundled files without depending on a writable asset directory.
+    let tile_images = [
+        load_spatial_image(
+            &mut images,
+            include_bytes!("../data/assets/spatial/terrain_floor.png"),
+            "wood floor",
+        ),
+        load_spatial_image(
+            &mut images,
+            include_bytes!("../data/assets/spatial/terrain_ash.png"),
+            "ash ground",
+        ),
+        load_spatial_image(
+            &mut images,
+            include_bytes!("../data/assets/spatial/terrain_rubble.png"),
+            "rubble ground",
+        ),
+        load_spatial_image(
+            &mut images,
+            include_bytes!("../data/assets/spatial/terrain_wall_top.png"),
+            "wall top",
+        ),
+    ];
+    let player_image = load_spatial_image(
+        &mut images,
+        include_bytes!("../data/assets/spatial/player_ash_warden.png"),
+        "player sprite",
+    );
+    let passage_image = load_spatial_image(
+        &mut images,
+        include_bytes!("../data/assets/spatial/passage.png"),
+        "passage marker",
+    );
+
     commands.insert_resource(SpatialRenderAssets {
-        diamond_mesh,
         wall_left_mesh,
         wall_right_mesh,
-        tile_materials,
+        tile_images,
+        player_image,
+        passage_image,
         wall_face_materials,
     });
+}
+
+fn load_spatial_image(
+    images: &mut Assets<Image>,
+    bytes: &[u8],
+    asset_name: &str,
+) -> Handle<Image> {
+    let mut image = Image::from_buffer(
+        bytes,
+        ImageType::Extension("png"),
+        CompressedImageFormats::NONE,
+        true,
+        ImageSampler::nearest(),
+        RenderAssetUsages::default(),
+    )
+    .unwrap_or_else(|error| panic!("failed to decode spatial image {asset_name}: {error}"));
+    image.sampler = ImageSampler::nearest();
+    images.add(image)
 }
 
 fn mesh_from_triangles(vertices: [[f32; 3]; 6], uvs: [[f32; 2]; 6]) -> Mesh {
@@ -356,7 +401,7 @@ fn spatial_input(
     }
 
     if keyboard.just_pressed(KeyCode::KeyE) || keyboard.just_pressed(KeyCode::Enter) {
-        interact_with_poi(&mut state, &mut lifecycle);
+        interact_contextually(&mut state, &mut lifecycle, &mut navigation);
     }
     if keyboard.just_pressed(KeyCode::Escape) || keyboard.just_pressed(KeyCode::Backspace) {
         exit_spatial(&mut state, &mut navigation);
@@ -369,6 +414,9 @@ fn spatial_input(
         match action {
             SpatialAction::Interact => interact_with_poi(&mut state, &mut lifecycle),
             SpatialAction::Exit => exit_spatial(&mut state, &mut navigation),
+            SpatialAction::UseExit(target_location_id) => {
+                use_map_exit(&mut state, &mut navigation, target_location_id);
+            }
         }
     }
 
@@ -489,6 +537,51 @@ fn interact_with_poi(state: &mut SpatialExplorationState, lifecycle: &mut Lifecy
     state.dirty = true;
 }
 
+fn interact_contextually(
+    state: &mut SpatialExplorationState,
+    lifecycle: &mut LifecycleState,
+    navigation: &mut NavigationState,
+) {
+    let target = state
+        .session
+        .as_ref()
+        .and_then(|session| state.maps.get(&session.location_id))
+        .and_then(|map| nearest_available_exit(map, state.position))
+        .map(|exit| exit.target_location_id);
+    if let Some(target_location_id) = target {
+        use_map_exit(state, navigation, target_location_id);
+    } else {
+        interact_with_poi(state, lifecycle);
+    }
+}
+
+fn use_map_exit(
+    state: &mut SpatialExplorationState,
+    navigation: &mut NavigationState,
+    target_location_id: EntityId,
+) {
+    let available = state
+        .session
+        .as_ref()
+        .and_then(|session| state.maps.get(&session.location_id))
+        .is_some_and(|map| {
+            map.exits
+                .iter()
+                .find(|exit| exit.target_location_id == target_location_id)
+                .is_some_and(|exit| exit_interaction_available(map, state.position, exit))
+        });
+    if !available {
+        state.message = Some("Move closer to the passage and find a clear approach.".to_string());
+        state.dirty = true;
+        return;
+    }
+
+    // Until every connected location has a spatial map, using a physical
+    // passage behaves like Leave. Its stable destination ID is retained in
+    // LocalMap so this can become a true connected-location transition later.
+    exit_spatial(state, navigation);
+}
+
 fn exit_spatial(state: &mut SpatialExplorationState, navigation: &mut NavigationState) {
     state.message = None;
     state.dirty = true;
@@ -506,7 +599,7 @@ fn update_spatial_world(
     assets: Res<SpatialRenderAssets>,
     mut camera: Query<(&mut Transform, &Camera), (With<Camera2d>, Without<SpatialPlayer>)>,
     mut player: Query<&mut Transform, With<SpatialPlayer>>,
-    mut tiles: Query<(&SpatialTile, &mut MeshMaterial2d<ColorMaterial>), Without<SpatialWallSide>>,
+    mut tiles: Query<(&SpatialTile, &mut Sprite), Without<SpatialWallSide>>,
     mut wall_sides: Query<
         (&SpatialWallSide, &mut MeshMaterial2d<ColorMaterial>),
         Without<SpatialTile>,
@@ -527,14 +620,13 @@ fn update_spatial_world(
     };
     let position = session_position(&state);
     let target = map_to_world(position, Some(map));
-    for (tile, mut material) in &mut tiles {
+    for (tile, mut sprite) in &mut tiles {
         let terrain = map.terrain_at(tile.0).unwrap_or(Terrain::Wall);
-        let desired = assets.tile_materials
-            [terrain_material_index(terrain, map.is_tile_discovered(tile.0))]
-        .clone();
-        if material.0 != desired {
-            material.0 = desired;
+        let desired = assets.tile_images[terrain_image_index(terrain)].clone();
+        if sprite.image != desired {
+            sprite.image = desired;
         }
+        sprite.color = terrain_tint(map.is_tile_discovered(tile.0));
     }
     for (side, mut material) in &mut wall_sides {
         let discovered = map.is_tile_discovered(side.tile);
@@ -632,21 +724,48 @@ fn render_spatial_screen(
                 ));
             }
 
-            let material_index = terrain_material_index(terrain, discovered);
             let top_offset = if terrain == Terrain::Wall {
                 WALL_HEIGHT
             } else {
                 0.0
             };
             let top_depth = depth + if terrain == Terrain::Wall { 0.02 } else { 0.0 };
+            let mut tile_sprite = Sprite::from_image(
+                assets.tile_images[terrain_image_index(terrain)].clone(),
+            );
+            tile_sprite.custom_size = Some(Vec2::new(
+                TILE_HALF_WIDTH * 2.0,
+                TILE_HALF_HEIGHT * 2.0,
+            ));
+            tile_sprite.color = terrain_tint(discovered);
             commands.spawn((
                 SpatialWorldEntity,
                 SpatialTile(position),
-                Mesh2d(assets.diamond_mesh.clone()),
-                MeshMaterial2d(assets.tile_materials[material_index].clone()),
+                tile_sprite,
                 Transform::from_xyz(world_position.x, world_position.y + top_offset, top_depth),
             ));
         }
+    }
+
+    for exit in &map.exits {
+        let exit_grid = Vec2::new(
+            f32::from(exit.position.x) + 0.5,
+            f32::from(exit.position.y) + 0.5,
+        );
+        let exit_position = map_to_world(exit_grid, Some(map));
+        commands.spawn((
+            SpatialWorldEntity,
+            Sprite {
+                image: assets.passage_image.clone(),
+                custom_size: Some(Vec2::new(24.0, 32.0)),
+                ..default()
+            },
+            Transform::from_xyz(
+                exit_position.x,
+                exit_position.y + 16.0,
+                depth_for(exit_grid) + PLAYER_DEPTH_OFFSET,
+            ),
+        ));
     }
 
     if let Some(poi) = map.points_of_interest.first() {
@@ -678,10 +797,11 @@ fn render_spatial_screen(
     commands.spawn((
         SpatialWorldEntity,
         SpatialPlayer,
-        Sprite::from_color(
-            Color::srgb(0.88, 0.83, 0.78),
-            Vec2::new(12.0, PLAYER_SPRITE_HEIGHT),
-        ),
+        Sprite {
+            image: assets.player_image.clone(),
+            custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)),
+            ..default()
+        },
         Transform::from_xyz(
             player_position.x,
             player_position.y + PLAYER_SPRITE_HEIGHT * 0.5,
@@ -795,6 +915,29 @@ fn render_spatial_screen(
         SpatialAction::Interact,
         interaction_display,
     );
+    for exit in &map.exits {
+        let destination_name = lifecycle
+            .session
+            .as_ref()
+            .and_then(|game_session| {
+                game_session
+                    .state
+                    .world
+                    .location_by_id(exit.target_location_id)
+            })
+            .map(|location| location.name.clone())
+            .unwrap_or_else(|| "connected location".to_string());
+        let button = spawn_control(
+            &mut commands,
+            footer,
+            format!("Passage: {destination_name}"),
+            SpatialAction::UseExit(exit.target_location_id),
+            Display::None,
+        );
+        commands.entity(button).insert(SpatialExitPrompt {
+            target_location_id: exit.target_location_id,
+        });
+    }
     state.dirty = false;
 }
 
@@ -929,6 +1072,9 @@ fn spawn_control(
     if matches!(action, SpatialAction::Interact) {
         entity.insert(SpatialInteractionPrompt);
     }
+    if let SpatialAction::UseExit(target_location_id) = action {
+        entity.insert(SpatialExitPrompt { target_location_id });
+    }
     let entity = entity.id();
     let text = commands
         .spawn((
@@ -957,24 +1103,47 @@ fn update_spatial_context_prompt(
     state: Res<SpatialExplorationState>,
     navigation: Res<NavigationState>,
     lifecycle: Res<LifecycleState>,
-    mut prompts: Query<&mut Node, With<SpatialInteractionPrompt>>,
+    mut poi_prompts: Query<&mut Node, With<SpatialInteractionPrompt>>,
+    mut exit_prompts: Query<
+        (&SpatialExitPrompt, &mut Node),
+        Without<SpatialInteractionPrompt>,
+    >,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
         || navigation.current_screen != Some(ScreenId::SpatialExploration)
     {
         return;
     }
-    let available = state
+    let current_map = state
         .session
         .as_ref()
-        .and_then(|session| state.maps.get(&session.location_id))
-        .is_some_and(|map| poi_interaction_available(map, session_position(&state)));
-    let display = if available {
+        .and_then(|session| state.maps.get(&session.location_id));
+    let position = session_position(&state);
+    let poi_available = current_map
+        .is_some_and(|map| poi_interaction_available(map, position));
+    let poi_display = if poi_available {
         Display::Flex
     } else {
         Display::None
     };
-    for mut node in &mut prompts {
+    for mut node in &mut poi_prompts {
+        if node.display != poi_display {
+            node.display = poi_display;
+        }
+    }
+
+    for (prompt, mut node) in &mut exit_prompts {
+        let available = current_map.is_some_and(|map| {
+            map.exits
+                .iter()
+                .find(|exit| exit.target_location_id == prompt.target_location_id)
+                .is_some_and(|exit| exit_interaction_available(map, position, exit))
+        });
+        let display = if available {
+            Display::Flex
+        } else {
+            Display::None
+        };
         if node.display != display {
             node.display = display;
         }
@@ -1007,15 +1176,20 @@ fn terrain_color(terrain: Terrain, discovered: bool) -> Color {
     }
 }
 
-fn terrain_material_index(terrain: Terrain, discovered: bool) -> usize {
-    if !discovered {
-        return 0;
-    }
+fn terrain_image_index(terrain: Terrain) -> usize {
     match terrain {
-        Terrain::Floor => 1,
-        Terrain::Ash => 2,
-        Terrain::Rubble => 3,
-        Terrain::Wall => 4,
+        Terrain::Floor => 0,
+        Terrain::Ash => 1,
+        Terrain::Rubble => 2,
+        Terrain::Wall => 3,
+    }
+}
+
+fn terrain_tint(discovered: bool) -> Color {
+    if discovered {
+        Color::WHITE
+    } else {
+        Color::srgb(0.30, 0.28, 0.34)
     }
 }
 
@@ -1090,6 +1264,43 @@ fn clamp_camera_target(target: Vec2, map: &LocalMap, viewport: Vec2) -> Vec2 {
         clamp_camera_axis(target.x, -map_half_width, map_half_width, viewport.x * 0.5),
         clamp_camera_axis(target.y, min_y, max_y, viewport.y * 0.5),
     )
+}
+
+fn nearest_available_exit(map: &LocalMap, position: Vec2) -> Option<&MapExit> {
+    map.exits
+        .iter()
+        .filter(|exit| exit_interaction_available(map, position, exit))
+        .min_by(|left, right| {
+            exit_distance_px(map, position, left)
+                .partial_cmp(&exit_distance_px(map, position, right))
+                .unwrap_or(std::cmp::Ordering::Equal)
+        })
+}
+
+fn exit_distance_px(map: &LocalMap, position: Vec2, exit: &MapExit) -> f32 {
+    let target = Vec2::new(
+        f32::from(exit.position.x) + 0.5,
+        f32::from(exit.position.y) + 0.5,
+    );
+    map_to_world(position, Some(map)).distance(map_to_world(target, Some(map)))
+}
+
+fn exit_interaction_available(
+    map: &LocalMap,
+    position: Vec2,
+    exit: &MapExit,
+) -> bool {
+    if !map.contains(exit.position)
+        || !map.is_walkable(exit.position)
+        || exit_distance_px(map, position, exit) > INTERACTION_RANGE_PX
+    {
+        return false;
+    }
+    let target = Vec2::new(
+        f32::from(exit.position.x) + 0.5,
+        f32::from(exit.position.y) + 0.5,
+    );
+    has_line_of_sight(map, position, target)
 }
 
 fn poi_interaction_available(map: &LocalMap, position: Vec2) -> bool {
