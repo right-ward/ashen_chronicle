@@ -297,7 +297,7 @@ pub fn configure_map_exits(map: &mut LocalMap, target_location_ids: &[u64]) {
     for (index, target_location_id) in targets.iter().copied().enumerate() {
         let side = index % 4;
         let slot = index / 4;
-        let side_count = (targets.len() + 3 - side) / 4;
+        let side_count = targets.iter().skip(side).step_by(4).count();
         let (x, y) = match side {
             // East and west exits are spaced along the vertical edge.
             0 => (
