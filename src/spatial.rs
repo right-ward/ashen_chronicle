@@ -281,10 +281,10 @@ pub fn generate_local_map(
 }
 
 /// Place a physical map-edge passage for each connected world location.
-////
+///
 /// Passages are assigned deterministically to east, west, north, and south
-//// edges. Each gets a clear walkable corridor to the entry area. Exit targets
-//// are world IDs, so destination danger state does not affect passage identity.
+/// edges. Each gets a clear walkable corridor to the entry area. Exit targets
+/// are world IDs, so destination danger state does not affect passage identity.
 pub fn configure_map_exits(map: &mut LocalMap, target_location_ids: &[u64]) {
     let mut targets = Vec::with_capacity(target_location_ids.len());
     for target in target_location_ids {
