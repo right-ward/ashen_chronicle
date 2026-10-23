@@ -817,6 +817,8 @@ fn safe_icon_text(icon: impl Into<String>) -> String {
         "⌁" => "~",
         "✎" => "N",
         "⚙" => "O",
+        "↺" => "R",
+        "↗" => "A",
         "×" => "X",
         "♥" => "H",
         _ => "?",
@@ -1825,5 +1827,20 @@ mod icon_fallback_tests {
         assert_eq!(safe_icon_text("🜂"), "?");
         assert_eq!(safe_icon_text("Already ASCII"), "Already ASCII");
         assert!(safe_icon_text("⚙").is_ascii());
+    }
+
+    #[test]
+    fn every_existing_ui_icon_has_a_font_safe_fallback() {
+        let icons = [
+            "≡", "†", "◌", "◈", "⚑", "◉", "⌕", "◇", "▶", "♙", "✦",
+            "⌁", "✎", "↺", "⚙", "×", "←", "→", "▸", "⌂", "▣", "⚔",
+            "↗", "♥",
+        ];
+        for icon in icons {
+            assert!(
+                safe_icon_text(icon).is_ascii(),
+                "{icon} did not receive an ASCII fallback"
+            );
+        }
     }
 }
