@@ -411,7 +411,7 @@ fn spatial_input(
         let Ok(action) = action_buttons.get(button) else {
             continue;
         };
-        match action {
+        match *action {
             SpatialAction::Interact => interact_with_poi(&mut state, &mut lifecycle),
             SpatialAction::Exit => exit_spatial(&mut state, &mut navigation),
             SpatialAction::UseExit(target_location_id) => {
