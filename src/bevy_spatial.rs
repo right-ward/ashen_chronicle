@@ -1478,6 +1478,36 @@ mod tests {
     }
 
     #[test]
+    fn passage_interaction_requires_approach_and_range() {
+        let mut map = generate_local_map(4, "location.test", LocalMapConfig::default());
+        configure_map_exits(&mut map, &[99]);
+        let exit = &map.exits[0];
+        let at_passage = Vec2::new(
+            f32::from(exit.position.x) + 0.5,
+            f32::from(exit.position.y) + 0.5,
+        );
+        assert!(exit_interaction_available(&map, at_passage, exit));
+
+        let entry = Vec2::new(
+            f32::from(map.entry.x) + 0.5,
+            f32::from(map.entry.y) + 0.5,
+        );
+        assert!(!exit_interaction_available(&map, entry, exit));
+    }
+
+    #[test]
+    fn passage_targets_are_independent_of_destination_danger() {
+        // Danger belongs to the target world location; LocalMap stores only its
+        // stable world ID, so both dangerous and safe destinations use the
+        // same physical-exit representation.
+        let mut map = generate_local_map(4, "location.test", LocalMapConfig::default());
+        configure_map_exits(&mut map, &[99, 100]);
+        assert_eq!(map.exits.len(), 2);
+        assert_eq!(map.exits[0].target_location_id, 99);
+        assert_eq!(map.exits[1].target_location_id, 100);
+    }
+
+    #[test]
     fn virtual_joystick_dead_zone_suppresses_small_drift() {
         assert_eq!(virtual_joystick_direction(Vec2::new(5.0, 5.0)), Vec2::ZERO);
     }
