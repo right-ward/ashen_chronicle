@@ -1809,7 +1809,6 @@ mod tests {
     }
 }
 
-
 #[cfg(test)]
 mod icon_fallback_tests {
     use super::safe_icon_text;
@@ -1832,9 +1831,8 @@ mod icon_fallback_tests {
     #[test]
     fn every_existing_ui_icon_has_a_font_safe_fallback() {
         let icons = [
-            "≡", "†", "◌", "◈", "⚑", "◉", "⌕", "◇", "▶", "♙", "✦",
-            "⌁", "✎", "↺", "⚙", "×", "←", "→", "▸", "⌂", "▣", "⚔",
-            "↗", "♥",
+            "≡", "†", "◌", "◈", "⚑", "◉", "⌕", "◇", "▶", "♙", "✦", "⌁", "✎", "↺", "⚙", "×", "←",
+            "→", "▸", "⌂", "▣", "⚔", "↗", "♥",
         ];
         for icon in icons {
             assert!(

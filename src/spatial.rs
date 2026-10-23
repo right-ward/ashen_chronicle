@@ -306,10 +306,7 @@ pub fn configure_map_exits(map: &mut LocalMap, target_location_ids: &[u64]) {
             ),
             1 => (0, spaced_edge_coordinate(slot, side_count, map.height)),
             // North and south exits are spaced along the horizontal edge.
-            2 => (
-                spaced_edge_coordinate(slot, side_count, map.width),
-                0,
-            ),
+            2 => (spaced_edge_coordinate(slot, side_count, map.width), 0),
             _ => (
                 spaced_edge_coordinate(slot, side_count, map.width),
                 map.height - 1,
@@ -502,7 +499,10 @@ mod tests {
 
         assert_eq!(map.exits.len(), 4);
         assert_eq!(
-            map.exits.iter().map(|exit| exit.target_location_id).collect::<Vec<_>>(),
+            map.exits
+                .iter()
+                .map(|exit| exit.target_location_id)
+                .collect::<Vec<_>>(),
             vec![11, 22, 33, 44]
         );
         for exit in &map.exits {

@@ -306,11 +306,7 @@ fn setup_spatial_render_assets(
     });
 }
 
-fn load_spatial_image(
-    images: &mut Assets<Image>,
-    bytes: &[u8],
-    asset_name: &str,
-) -> Handle<Image> {
+fn load_spatial_image(images: &mut Assets<Image>, bytes: &[u8], asset_name: &str) -> Handle<Image> {
     let mut image = Image::from_buffer(
         bytes,
         ImageType::Extension("png"),
@@ -730,13 +726,10 @@ fn render_spatial_screen(
                 0.0
             };
             let top_depth = depth + if terrain == Terrain::Wall { 0.02 } else { 0.0 };
-            let mut tile_sprite = Sprite::from_image(
-                assets.tile_images[terrain_image_index(terrain)].clone(),
-            );
-            tile_sprite.custom_size = Some(Vec2::new(
-                TILE_HALF_WIDTH * 2.0,
-                TILE_HALF_HEIGHT * 2.0,
-            ));
+            let mut tile_sprite =
+                Sprite::from_image(assets.tile_images[terrain_image_index(terrain)].clone());
+            tile_sprite.custom_size =
+                Some(Vec2::new(TILE_HALF_WIDTH * 2.0, TILE_HALF_HEIGHT * 2.0));
             tile_sprite.color = terrain_tint(discovered);
             commands.spawn((
                 SpatialWorldEntity,
@@ -1101,10 +1094,7 @@ fn update_spatial_context_prompt(
     navigation: Res<NavigationState>,
     lifecycle: Res<LifecycleState>,
     mut poi_prompts: Query<&mut Node, With<SpatialInteractionPrompt>>,
-    mut exit_prompts: Query<
-        (&SpatialExitPrompt, &mut Node),
-        Without<SpatialInteractionPrompt>,
-    >,
+    mut exit_prompts: Query<(&SpatialExitPrompt, &mut Node), Without<SpatialInteractionPrompt>>,
 ) {
     if lifecycle.phase != LifecyclePhase::Complete
         || navigation.current_screen != Some(ScreenId::SpatialExploration)
@@ -1116,8 +1106,7 @@ fn update_spatial_context_prompt(
         .as_ref()
         .and_then(|session| state.maps.get(&session.location_id));
     let position = session_position(&state);
-    let poi_available = current_map
-        .is_some_and(|map| poi_interaction_available(map, position));
+    let poi_available = current_map.is_some_and(|map| poi_interaction_available(map, position));
     let poi_display = if poi_available {
         Display::Flex
     } else {
@@ -1282,11 +1271,7 @@ fn exit_distance_px(map: &LocalMap, position: Vec2, exit: &MapExit) -> f32 {
     map_to_world(position, Some(map)).distance(map_to_world(target, Some(map)))
 }
 
-fn exit_interaction_available(
-    map: &LocalMap,
-    position: Vec2,
-    exit: &MapExit,
-) -> bool {
+fn exit_interaction_available(map: &LocalMap, position: Vec2, exit: &MapExit) -> bool {
     if !map.contains(exit.position)
         || !map.is_walkable(exit.position)
         || exit_distance_px(map, position, exit) > INTERACTION_RANGE_PX
@@ -1488,10 +1473,7 @@ mod tests {
         );
         assert!(exit_interaction_available(&map, at_passage, exit));
 
-        let entry = Vec2::new(
-            f32::from(map.entry.x) + 0.5,
-            f32::from(map.entry.y) + 0.5,
-        );
+        let entry = Vec2::new(f32::from(map.entry.x) + 0.5, f32::from(map.entry.y) + 0.5);
         assert!(!exit_interaction_available(&map, entry, exit));
     }
 
