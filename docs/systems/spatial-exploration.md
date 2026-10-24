@@ -11,8 +11,8 @@
 - Grid coordinates are continuous during movement. A tile's center is represented by `(x + 0.5, y + 0.5)`.
 - Grid/world coordinates are authoritative for movement, collision, discovery, and persistence. Projected screen-space coordinates are presentation-only.
 - The fixed three-quarter projection maps the two grid axes onto opposing diagonal screen directions. Input directions are converted through the inverse projection so keyboard and touch share the same movement rules.
-- Sprite transforms are positioned from the ground-contact point plus a visual vertical offset. Actors and occluding wall geometry use ground-based depth ordering, not sprite upper bounds.
-- Floor, ash, and rubble diamonds are placed on a dedicated background depth layer so ground surfaces cannot draw over actors. Wall tops and wall faces remain depth-sorted against actors, allowing a wall to occlude a character behind it while letting a character in front render over the wall.
+- Sprite transforms are positioned from the ground-contact point plus a visual vertical offset. Actor depth follows the continuous ground position instead of snapping to a whole tile.
+- Floor, ash, and rubble diamonds are placed on a dedicated background depth layer so ground surfaces cannot draw over actors. Wall tops are sorted from their ground-contact line; wall faces are sorted from their front/base edge. This lets the wall occlude a character behind it while a character moving beyond the wall's base renders in front.
 - Wall tops extend upward beyond the floor diamond. Camera bounds account for that asymmetric vertical extent rather than expanding both vertical edges equally.
 
 ## Movement and interactions
