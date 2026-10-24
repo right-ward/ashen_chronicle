@@ -1201,7 +1201,8 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
         }
     }
     let back_index = view.destinations.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)

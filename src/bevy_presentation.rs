@@ -1030,7 +1030,14 @@ pub fn spawn_menu_button(
             },
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
-            children![(Node { width: px(26), height: px(26), ..default() }, UiIconName(icon.into()))],
+            children![(
+                Node {
+                    width: px(26),
+                    height: px(26),
+                    ..default()
+                },
+                UiIconName(icon.into())
+            )],
         ))
         .id();
     commands.entity(parent).add_child(button);
@@ -1130,7 +1137,14 @@ pub fn spawn_condition_indicator(
             },
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
-            children![(Node { width: px(22), height: px(22), ..default() }, UiIconName(icon.into()))],
+            children![(
+                Node {
+                    width: px(22),
+                    height: px(22),
+                    ..default()
+                },
+                UiIconName(icon.into())
+            )],
         ))
         .id();
     commands.entity(parent).add_child(indicator);

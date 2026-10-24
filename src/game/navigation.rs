@@ -17,9 +17,7 @@ pub(crate) fn build_view(state: &GameState) -> NavigationView {
         .filter_map(|id| state.world.location_by_id(*id))
         .map(|location| location_view(state, location, &campaign))
         .collect();
-    let art = campaign
-        .location_art_for(&current.name)
-        .map(str::to_string);
+    let art = campaign.location_art_for(&current.name).map(str::to_string);
 
     NavigationView {
         current_location: Some(current),

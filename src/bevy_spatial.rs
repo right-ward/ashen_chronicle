@@ -604,12 +604,19 @@ fn render_spatial_screen(
                         SpatialWallSide { tile: position },
                         Sprite {
                             image,
-                            custom_size: Some(Vec2::new(TILE_HALF_WIDTH, WALL_HEIGHT + TILE_HALF_HEIGHT)),
+                            custom_size: Some(Vec2::new(
+                                TILE_HALF_WIDTH,
+                                WALL_HEIGHT + TILE_HALF_HEIGHT,
+                            )),
                             ..default()
                         },
                         Transform::from_xyz(
                             world_position.x
-                                + if right_face { TILE_HALF_WIDTH * 0.5 } else { -TILE_HALF_WIDTH * 0.5 },
+                                + if right_face {
+                                    TILE_HALF_WIDTH * 0.5
+                                } else {
+                                    -TILE_HALF_WIDTH * 0.5
+                                },
                             world_position.y + TILE_HALF_HEIGHT * 0.5,
                             depth + PLAYER_DEPTH_OFFSET + 0.002,
                         ),
@@ -632,11 +639,7 @@ fn render_spatial_screen(
                     SpatialWorldEntity,
                     SpatialTile(position),
                     tile_sprite,
-                    Transform::from_xyz(
-                        world_position.x,
-                        world_position.y + top_offset,
-                        top_depth,
-                    ),
+                    Transform::from_xyz(world_position.x, world_position.y + top_offset, top_depth),
                 ));
             }
         }
@@ -1352,8 +1355,14 @@ mod tests {
                 bevy::asset::RenderAssetUsages::default(),
             )
             .unwrap_or_else(|error| panic!("asset {} should decode: {error}", path.display()));
-            assert_eq!(image.texture_descriptor.size.width, width, "{reference} width");
-            assert_eq!(image.texture_descriptor.size.height, height, "{reference} height");
+            assert_eq!(
+                image.texture_descriptor.size.width, width,
+                "{reference} width"
+            );
+            assert_eq!(
+                image.texture_descriptor.size.height, height,
+                "{reference} height"
+            );
         }
     }
 

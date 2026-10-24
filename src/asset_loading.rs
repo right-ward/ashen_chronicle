@@ -19,7 +19,10 @@ fn validate_relative_path(path: &Path) -> Result<(), String> {
             .components()
             .all(|component| matches!(component, Component::Normal(_)))
     {
-        return Err(format!("asset reference must be a safe relative path: {}", path.display()));
+        return Err(format!(
+            "asset reference must be a safe relative path: {}",
+            path.display()
+        ));
     }
     Ok(())
 }
@@ -37,11 +40,13 @@ fn resolve_roots(reference: &str) -> Result<(PathBuf, PathBuf), String> {
             return Err("mod asset reference must include a mod folder".to_string());
         };
         let folder = Path::new(folder);
-        let remaining = relative_path
-            .strip_prefix(folder)
-            .map_err(|_| "mod asset reference must include a file path after the mod folder".to_string())?;
+        let remaining = relative_path.strip_prefix(folder).map_err(|_| {
+            "mod asset reference must include a file path after the mod folder".to_string()
+        })?;
         if remaining.as_os_str().is_empty() {
-            return Err("mod asset reference must include a file path after the mod folder".to_string());
+            return Err(
+                "mod asset reference must include a file path after the mod folder".to_string(),
+            );
         }
         validate_relative_path(remaining)?;
         let root = data_dir.join("mods").join(folder).join("assets");
@@ -66,7 +71,10 @@ pub(crate) fn load_image_from_data(
     let canonical_path = fs::canonicalize(&path)
         .map_err(|error| format!("asset {} could not be found: {error}", path.display()))?;
     if !canonical_path.starts_with(&canonical_root) || !canonical_path.is_file() {
-        return Err(format!("asset path escapes its asset root: {}", path.display()));
+        return Err(format!(
+            "asset path escapes its asset root: {}",
+            path.display()
+        ));
     }
 
     let bytes = fs::read(&canonical_path)
@@ -79,7 +87,12 @@ pub(crate) fn load_image_from_data(
         ImageSampler::nearest(),
         RenderAssetUsages::default(),
     )
-    .map_err(|error| format!("could not decode PNG asset {}: {error}", canonical_path.display()))?;
+    .map_err(|error| {
+        format!(
+            "could not decode PNG asset {}: {error}",
+            canonical_path.display()
+        )
+    })?;
     image.sampler = ImageSampler::nearest();
     Ok(images.add(image))
 }

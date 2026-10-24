@@ -385,7 +385,8 @@ fn render_talk(commands: &mut Commands, view: &TalkView, selected: usize) {
         }
     }
     let back_index = view.npcs.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)
@@ -435,7 +436,8 @@ fn render_conversation(
         for line in message.lines() {
             bevy_presentation::spawn_muted_label(commands, panel, line);
         }
-        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "continue", "Continue");
+        let button =
+            bevy_presentation::spawn_action_button(commands, panel, 0, "continue", "Continue");
         commands
             .entity(button)
             .insert(bevy_presentation::UiSelected);
@@ -499,7 +501,8 @@ fn render_remains(
         }
     }
     let back_index = view.remains.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)

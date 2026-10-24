@@ -447,8 +447,13 @@ fn render_game_data_tab(commands: &mut Commands, panel: Entity, options: &Option
         bevy_presentation::spawn_context_message(commands, panel, message);
     }
 
-    let change =
-        bevy_presentation::spawn_action_button(commands, panel, 0, "folder", "Change game data folder");
+    let change = bevy_presentation::spawn_action_button(
+        commands,
+        panel,
+        0,
+        "folder",
+        "Change game data folder",
+    );
     if options.selected == 0 {
         commands.entity(change).insert(UiSelected);
     }
