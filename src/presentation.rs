@@ -66,6 +66,7 @@ pub(crate) struct LocationView {
     pub description: String,
     pub region_name: String,
     pub dangerous: bool,
+    pub scene_image: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -445,6 +446,7 @@ mod tests {
             description: "A broken road marker.".to_string(),
             region_name: "North".to_string(),
             dangerous: true,
+            scene_image: None,
         };
         let history_entry = HistoryEntryView {
             day: 4,
