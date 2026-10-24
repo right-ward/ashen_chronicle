@@ -1059,18 +1059,6 @@ fn update_spatial_control_feedback(
     }
 }
 
-fn terrain_color(terrain: Terrain, discovered: bool) -> Color {
-    if !discovered {
-        return Color::srgb(0.055, 0.045, 0.07);
-    }
-    match terrain {
-        Terrain::Floor => Color::srgb(0.30, 0.23, 0.16),
-        Terrain::Ash => Color::srgb(0.27, 0.25, 0.29),
-        Terrain::Rubble => Color::srgb(0.22, 0.19, 0.17),
-        Terrain::Wall => Color::srgb(0.13, 0.10, 0.095),
-    }
-}
-
 fn terrain_image_index(terrain: Terrain) -> usize {
     match terrain {
         Terrain::Floor => 0,
