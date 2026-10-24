@@ -596,7 +596,6 @@ fn render_spatial_screen(
             let discovered = map.is_tile_discovered(position);
             let tile_center = Vec2::new(f32::from(x) + 0.5, f32::from(y) + 0.5);
             let world_position = map_to_world(tile_center, Some(map));
-            let depth = depth_for(tile_center);
 
             if terrain == Terrain::Wall {
                 for (face_index, right_face) in [(0, false), (1, true)] {
