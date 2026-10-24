@@ -46,7 +46,8 @@ const CAMERA_LERP_SPEED: f32 = 8.0;
 const CAMERA_DEAD_ZONE_FRACTION: f32 = 0.15;
 const DEPTH_STEP: f32 = 0.08;
 const GROUND_TERRAIN_DEPTH: f32 = -1.0;
-const WALL_TOP_DEPTH_OFFSET: f32 = 0.02;
+const WALL_TOP_DEPTH_BIAS: f32 = 0.002;
+const WALL_FACE_DEPTH_BIAS: f32 = -0.002;
 const PLAYER_DEPTH_OFFSET: f32 = 0.04;
 
 #[derive(Component)]
@@ -621,7 +622,7 @@ fn render_spatial_screen(
                                     -TILE_HALF_WIDTH * 0.5
                                 },
                             world_position.y + TILE_HALF_HEIGHT * 0.5,
-                            depth + PLAYER_DEPTH_OFFSET + 0.002,
+                            wall_face_depth(tile_center),
                         ),
                     ));
                 }
@@ -1098,15 +1099,23 @@ fn depth_for(position: Vec2) -> f32 {
 fn terrain_depth(terrain: Terrain, tile_center: Vec2) -> f32 {
     match terrain {
         Terrain::Floor | Terrain::Ash | Terrain::Rubble => GROUND_TERRAIN_DEPTH,
-        Terrain::Wall => depth_for(tile_center) + WALL_TOP_DEPTH_OFFSET,
+        // A wall top's ground-contact line is the tile center. Favor the wall
+        // by a small tie-breaker when an actor's feet are on that same line.
+        Terrain::Wall => depth_for(tile_center) + PLAYER_DEPTH_OFFSET + WALL_TOP_DEPTH_BIAS,
     }
 }
 
-/// Moving actors remain on the layer belonging to their occupied tile.
-/// Continuous coordinates made the player slip behind the tile while crossing it.
+fn wall_face_depth(tile_center: Vec2) -> f32 {
+    // Both wall faces meet the ground at the tile's front edge, one depth step
+    // closer than the tile center. This keeps occlusion aligned with their base.
+    depth_for(tile_center + Vec2::splat(0.5)) + PLAYER_DEPTH_OFFSET + WALL_FACE_DEPTH_BIAS
+}
+
+/// Moving actors sort by their continuous ground-contact position. Ground
+/// terrain uses its own background layer, so smooth depth changes cannot put
+/// the player behind a floor diamond while crossing a tile.
 fn depth_for_position(position: Vec2) -> f32 {
-    let cell_center = Vec2::new(position.x.floor() + 0.5, position.y.floor() + 0.5);
-    depth_for(cell_center)
+    depth_for(position)
 }
 
 fn screen_direction_to_world(screen_direction: Vec2) -> Vec2 {
@@ -1312,12 +1321,12 @@ mod tests {
     use super::*;
 
     #[test]
-    fn moving_sprite_depth_stays_stable_within_a_tile() {
+    fn moving_sprite_depth_tracks_continuous_ground_position() {
         let center = Vec2::new(7.5, 8.5);
-        let left = Vec2::new(7.1, 8.2);
-        let right = Vec2::new(7.9, 8.8);
-        assert_eq!(depth_for_position(center), depth_for_position(left));
-        assert_eq!(depth_for_position(center), depth_for_position(right));
+        let behind = Vec2::new(7.1, 8.2);
+        let ahead = Vec2::new(7.9, 8.8);
+        assert!(depth_for_position(behind) < depth_for_position(center));
+        assert!(depth_for_position(center) < depth_for_position(ahead));
         assert!(depth_for_position(center) + PLAYER_DEPTH_OFFSET > depth_for(center));
     }
 
@@ -1343,14 +1352,16 @@ mod tests {
     fn wall_tops_and_faces_keep_depth_based_occlusion() {
         let wall_center = Vec2::new(6.5, 7.5);
         let top_depth = terrain_depth(Terrain::Wall, wall_center);
-        let face_depth = depth_for(wall_center) + PLAYER_DEPTH_OFFSET + 0.002;
-        let actor_behind = Vec2::new(5.5, 6.5);
-        let actor_in_front = Vec2::new(7.5, 8.5);
+        let face_depth = wall_face_depth(wall_center);
+        let actor_behind_top = wall_center - Vec2::splat(0.1);
+        let actor_in_front_of_top = wall_center + Vec2::splat(0.1);
+        let actor_behind_face = wall_center + Vec2::splat(0.4);
+        let actor_in_front_of_face = wall_center + Vec2::splat(0.6);
 
-        assert!(depth_for_position(actor_behind) + PLAYER_DEPTH_OFFSET < top_depth);
-        assert!(depth_for_position(actor_in_front) + PLAYER_DEPTH_OFFSET > top_depth);
-        assert!(depth_for_position(actor_behind) + PLAYER_DEPTH_OFFSET < face_depth);
-        assert!(depth_for_position(actor_in_front) + PLAYER_DEPTH_OFFSET > face_depth);
+        assert!(depth_for_position(actor_behind_top) + PLAYER_DEPTH_OFFSET < top_depth);
+        assert!(depth_for_position(actor_in_front_of_top) + PLAYER_DEPTH_OFFSET > top_depth);
+        assert!(depth_for_position(actor_behind_face) + PLAYER_DEPTH_OFFSET < face_depth);
+        assert!(depth_for_position(actor_in_front_of_face) + PLAYER_DEPTH_OFFSET > face_depth);
     }
 
     #[test]
