@@ -752,7 +752,7 @@ fn render_spatial_screen(
     spawn_label(
         &mut commands,
         header,
-        format!("{location_name} — ASHEN GROUND"),
+        format!("{location_name} - ASHEN GROUND"),
     );
     spawn_control(
         &mut commands,
