@@ -240,6 +240,7 @@ fn load_spatial_image(images: &mut Assets<Image>, reference: &str) -> Option<Han
     }
 }
 
+#[allow(clippy::too_many_arguments)]
 fn spatial_input(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
