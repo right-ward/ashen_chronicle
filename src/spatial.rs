@@ -54,6 +54,17 @@ pub struct TerrainChange {
     pub terrain: Terrain,
 }
 
+/// A physical passage at the edge of a local map. The destination uses the
+/// persistent world location ID so it can later connect directly to the world
+/// graph without relying on display names.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct MapExit {
+    /// Stable within this local map and independent of destination display text.
+    pub id: String,
+    pub position: GridPosition,
+    pub target_location_id: u64,
+}
+
 /// Persistent local-map state. Once generated, the stored terrain is the source
 /// of truth; loading a map must not regenerate it with a newer generator.
 #[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
@@ -68,6 +79,10 @@ pub struct LocalMap {
     pub terrain: Vec<Terrain>,
     pub entry: GridPosition,
     pub points_of_interest: Vec<PointOfInterest>,
+    /// Connected world locations reachable through physical map-edge passages.
+    /// Defaults empty so maps in older saves remain loadable.
+    #[serde(default)]
+    pub exits: Vec<MapExit>,
     #[serde(default)]
     pub discovered_tiles: Vec<bool>,
     #[serde(default)]
@@ -259,8 +274,108 @@ pub fn generate_local_map(
             discovered: false,
             interacted: false,
         }],
+        exits: Vec::new(),
         discovered_tiles,
         terrain_changes: Vec::new(),
+    }
+}
+
+/// Place a physical map-edge passage for each connected world location.
+///
+/// Passages are assigned deterministically to east, west, north, and south
+/// edges. Each gets a clear walkable corridor to the entry area. Exit targets
+/// are world IDs, so destination danger state does not affect passage identity.
+pub fn configure_map_exits(map: &mut LocalMap, target_location_ids: &[u64]) {
+    let mut targets = Vec::with_capacity(target_location_ids.len());
+    for target in target_location_ids {
+        if !targets.contains(target) {
+            targets.push(*target);
+        }
+    }
+
+    map.exits.clear();
+    for (index, target_location_id) in targets.iter().copied().enumerate() {
+        let side = index % 4;
+        let slot = index / 4;
+        let side_count = targets.iter().skip(side).step_by(4).count();
+        let (x, y) = match side {
+            // East and west exits are spaced along the vertical edge.
+            0 => (
+                map.width - 1,
+                spaced_edge_coordinate(slot, side_count, map.height),
+            ),
+            1 => (0, spaced_edge_coordinate(slot, side_count, map.height)),
+            // North and south exits are spaced along the horizontal edge.
+            2 => (spaced_edge_coordinate(slot, side_count, map.width), 0),
+            _ => (
+                spaced_edge_coordinate(slot, side_count, map.width),
+                map.height - 1,
+            ),
+        };
+        let position = GridPosition { x, y };
+        carve_exit_corridor(map, position, side);
+        map.exits.push(MapExit {
+            id: format!("{}.exit.{}", map.location_id, target_location_id),
+            position,
+            target_location_id,
+        });
+    }
+}
+
+fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
+    let usable = usize::from(dimension.saturating_sub(2));
+    (1 + (slot + 1) * usable / (count + 1)) as u16
+}
+
+fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
+    let mut position = exit;
+    carve_generated_floor(map, position);
+    match side {
+        // Reach the entry column before joining the central entry corridor.
+        0 | 1 => {
+            while position.x != map.entry.x {
+                position.x = if position.x > map.entry.x {
+                    position.x - 1
+                } else {
+                    position.x + 1
+                };
+                carve_generated_floor(map, position);
+            }
+            while position.y != map.entry.y {
+                position.y = if position.y > map.entry.y {
+                    position.y - 1
+                } else {
+                    position.y + 1
+                };
+                carve_generated_floor(map, position);
+            }
+        }
+        // North/south passages first move inward, then join the entry corridor.
+        _ => {
+            while position.y != map.entry.y {
+                position.y = if position.y > map.entry.y {
+                    position.y - 1
+                } else {
+                    position.y + 1
+                };
+                carve_generated_floor(map, position);
+            }
+            while position.x != map.entry.x {
+                position.x = if position.x > map.entry.x {
+                    position.x - 1
+                } else {
+                    position.x + 1
+                };
+                carve_generated_floor(map, position);
+            }
+        }
+    }
+}
+
+fn carve_generated_floor(map: &mut LocalMap, position: GridPosition) {
+    let index = usize::from(position.y) * usize::from(map.width) + usize::from(position.x);
+    if let Some(terrain) = map.terrain.get_mut(index) {
+        *terrain = Terrain::Floor;
     }
 }
 
@@ -375,6 +490,87 @@ mod tests {
             map.terrain.len(),
             usize::from(map.width) * usize::from(map.height)
         );
+    }
+
+    #[test]
+    fn connected_world_locations_get_reachable_edge_passages() {
+        let mut map = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
+        configure_map_exits(&mut map, &[11, 22, 33, 44, 22]);
+
+        assert_eq!(map.exits.len(), 4);
+        assert_eq!(
+            map.exits
+                .iter()
+                .map(|exit| exit.target_location_id)
+                .collect::<Vec<_>>(),
+            vec![11, 22, 33, 44]
+        );
+        for exit in &map.exits {
+            assert!(
+                exit.position.x == 0
+                    || exit.position.x == map.width - 1
+                    || exit.position.y == 0
+                    || exit.position.y == map.height - 1,
+                "passage must be on a map edge"
+            );
+            assert!(map.is_walkable(exit.position));
+            assert!(has_walkable_path(&map, map.entry, exit.position));
+        }
+
+        let repeated = {
+            let mut repeated =
+                generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
+            configure_map_exits(&mut repeated, &[11, 22, 33, 44, 22]);
+            repeated
+        };
+        assert_eq!(map.exits, repeated.exits);
+        assert_eq!(map.terrain, repeated.terrain);
+    }
+
+    #[test]
+    fn generated_passages_remain_reachable_and_persistent_across_seeds() {
+        for seed in 0..32 {
+            for target_count in [1, 2, 3, 4, 6] {
+                let targets = (0..target_count)
+                    .map(|index| 100 + index as u64)
+                    .collect::<Vec<_>>();
+                let mut map = generate_local_map(
+                    seed,
+                    "location.spatial_exit_test",
+                    LocalMapConfig::default(),
+                );
+                configure_map_exits(&mut map, &targets);
+
+                assert_eq!(map.exits.len(), target_count);
+                assert!(has_walkable_path(
+                    &map,
+                    map.entry,
+                    map.points_of_interest[0].position
+                ));
+                for exit in &map.exits {
+                    assert!(has_walkable_path(&map, map.entry, exit.position));
+                }
+
+                let json = serde_json::to_string(&map).expect("map with passages should serialize");
+                let restored: LocalMap =
+                    serde_json::from_str(&json).expect("map with passages should deserialize");
+                assert_eq!(restored.exits, map.exits);
+                assert_eq!(restored.terrain, map.terrain);
+            }
+        }
+    }
+
+    #[test]
+    fn older_local_map_data_defaults_to_no_passages() {
+        let map = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
+        let mut value = serde_json::to_value(&map).expect("map should serialize");
+        value
+            .as_object_mut()
+            .expect("map should be an object")
+            .remove("exits");
+        let restored: LocalMap =
+            serde_json::from_value(value).expect("old map data should deserialize");
+        assert!(restored.exits.is_empty());
     }
 
     #[test]

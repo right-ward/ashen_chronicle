@@ -1,3 +1,4 @@
+mod asset_loading;
 mod bevy_app;
 mod bevy_combat;
 mod bevy_console;

@@ -24,18 +24,18 @@ pub(crate) fn time_display(points: u32, day: u32) -> String {
         }
     };
     match slot {
-        0 => place(&mut bottom, 20, '☾'),
-        1 => place(&mut bottom, 16, '☾'),
-        2 => place(&mut top, 16, '○'),
-        3 => place(&mut top, 13, '○'),
-        4 => place(&mut top, 10, '○'),
-        5 => place(&mut top, 7, '○'),
-        6 => place(&mut top, 4, '○'),
-        7 => place(&mut bottom, 4, '○'),
-        8 => place(&mut bottom, 7, '☾'),
-        9 => place(&mut bottom, 10, '☾'),
-        10 => place(&mut bottom, 13, '☾'),
-        11 => place(&mut bottom, 16, '☾'),
+        0 => place(&mut bottom, 20, '~'),
+        1 => place(&mut bottom, 16, '~'),
+        2 => place(&mut top, 16, 'o'),
+        3 => place(&mut top, 13, 'o'),
+        4 => place(&mut top, 10, 'o'),
+        5 => place(&mut top, 7, 'o'),
+        6 => place(&mut top, 4, 'o'),
+        7 => place(&mut bottom, 4, 'o'),
+        8 => place(&mut bottom, 7, '~'),
+        9 => place(&mut bottom, 10, '~'),
+        10 => place(&mut bottom, 13, '~'),
+        11 => place(&mut bottom, 16, '~'),
         _ => unreachable!(),
     }
     let top: String = top.into_iter().collect();

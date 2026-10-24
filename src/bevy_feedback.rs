@@ -357,9 +357,9 @@ fn render_level_up(commands: &mut Commands, parent: Entity, level: u32, selected
     );
     bevy_presentation::spawn_muted_label(commands, parent, "Choose a new strength:");
     for (index, (icon, label)) in [
-        ("⚔", "Might (+1 attack)"),
-        ("◈", "Insight (+1 search/recovery)"),
-        ("♥", "Endurance (+1 meditation healing)"),
+        ("attack", "Might (+1 attack)"),
+        ("insight", "Insight (+1 search/recovery)"),
+        ("endurance", "Endurance (+1 meditation healing)"),
     ]
     .into_iter()
     .enumerate()
@@ -374,7 +374,7 @@ fn render_level_up(commands: &mut Commands, parent: Entity, level: u32, selected
     bevy_presentation::spawn_muted_label(
         commands,
         parent,
-        "Choose with arrows and Enter, or press 1–3.",
+        "Choose with arrows and Enter, or press 1-3.",
     );
 }
 

@@ -347,6 +347,7 @@ public class MainActivity extends GameActivity {
         File root = resolveGameRoot();
         File data = new File(root, "data");
         File mods = new File(data, "mods");
+        File assets = new File(data, "assets");
         File saves = new File(root, "saves");
 
         if (!data.mkdirs() && !data.isDirectory()) {
@@ -361,6 +362,7 @@ public class MainActivity extends GameActivity {
 
         try {
             copyAssetDirectory("mods", mods);
+            copyAssetDirectory("assets", assets);
             copyAssetFile("base_content.json", new File(data, "base_content.json"));
             File baseContent = new File(data, "base_content.json");
             if (baseContent.isFile()) {
@@ -380,7 +382,7 @@ public class MainActivity extends GameActivity {
 
         new AlertDialog.Builder(this)
                 .setTitle("Choose game folder")
-                .setMessage("Choose or create a folder for The Ashen Chronicle. The game will use it for saves and editable mods so they remain accessible outside the app. You can continue with private app storage for now.")
+                .setMessage("Choose or create a folder for The Ashen Chronicle. The game will use it for saves, mods, and editable assets so they remain accessible outside the app. You can continue with private app storage for now.")
                 .setPositiveButton("Choose folder", (dialog, which) -> requestStorageTree())
                 .setNegativeButton("Continue", null)
                 .show();
@@ -467,6 +469,12 @@ public class MainActivity extends GameActivity {
                 DocumentFile sharedMods = findDirectory(sharedData, "mods");
                 if (sharedMods != null) {
                     copyDocumentDirectoryToLocal(sharedMods, mods);
+                }
+                DocumentFile sharedAssets = findDirectory(sharedData, "assets");
+                if (sharedAssets != null) {
+                    copyDocumentDirectoryToLocal(
+                            sharedAssets,
+                            new File(data, "assets"));
                 }
             }
 

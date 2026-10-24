@@ -110,6 +110,7 @@ mod tests {
                     dangerous: true,
                     exits: vec![],
                     scene_art: None,
+                    scene_image: None,
                 }],
             },
             factions: vec![],

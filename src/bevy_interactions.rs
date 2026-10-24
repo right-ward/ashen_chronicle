@@ -374,7 +374,7 @@ fn render_talk(commands: &mut Commands, view: &TalkView, selected: usize) {
                 commands,
                 panel,
                 index,
-                "♙",
+                "character",
                 npc.display_name(),
             );
             if index == selected {
@@ -385,7 +385,8 @@ fn render_talk(commands: &mut Commands, view: &TalkView, selected: usize) {
         }
     }
     let back_index = view.npcs.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)
@@ -407,7 +408,7 @@ fn render_conversation(
             panel,
             "That person can no longer be found.",
         );
-        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "back", "Back");
         commands
             .entity(button)
             .insert(bevy_presentation::UiSelected);
@@ -435,14 +436,15 @@ fn render_conversation(
         for line in message.lines() {
             bevy_presentation::spawn_muted_label(commands, panel, line);
         }
-        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
+        let button =
+            bevy_presentation::spawn_action_button(commands, panel, 0, "continue", "Continue");
         commands
             .entity(button)
             .insert(bevy_presentation::UiSelected);
     } else {
         for (index, option) in view.options.iter().enumerate() {
             let button =
-                bevy_presentation::spawn_action_button(commands, panel, index, "▸", option);
+                bevy_presentation::spawn_action_button(commands, panel, index, "choice", option);
             if index == selected {
                 commands
                     .entity(button)
@@ -451,7 +453,7 @@ fn render_conversation(
         }
         let back_index = view.options.len();
         let button =
-            bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+            bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
         if selected == back_index {
             commands
                 .entity(button)
@@ -488,7 +490,7 @@ fn render_remains(
                 commands,
                 panel,
                 index,
-                "†",
+                "remains",
                 remains.label.clone(),
             );
             if index == selected {
@@ -499,7 +501,8 @@ fn render_remains(
         }
     }
     let back_index = view.remains.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    let button =
+        bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)
@@ -512,7 +515,7 @@ fn render_remains_result(commands: &mut Commands, result: Option<&RemainsResultV
     let panel = bevy_presentation::spawn_panel(commands, root);
     let Some(result) = result else {
         bevy_presentation::spawn_muted_label(commands, panel, "Nothing was recovered.");
-        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        let button = bevy_presentation::spawn_action_button(commands, panel, 0, "back", "Back");
         commands
             .entity(button)
             .insert(bevy_presentation::UiSelected);
@@ -539,7 +542,7 @@ fn render_remains_result(commands: &mut Commands, result: Option<&RemainsResultV
     for note in &result.notes {
         bevy_presentation::spawn_muted_label(commands, panel, note.clone());
     }
-    let button = bevy_presentation::spawn_action_button(commands, panel, 0, "→", "Continue");
+    let button = bevy_presentation::spawn_action_button(commands, panel, 0, "continue", "Continue");
     commands
         .entity(button)
         .insert(bevy_presentation::UiSelected);

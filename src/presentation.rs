@@ -66,6 +66,7 @@ pub(crate) struct LocationView {
     pub description: String,
     pub region_name: String,
     pub dangerous: bool,
+    pub scene_image: Option<String>,
 }
 
 #[derive(Debug, Clone, Default, PartialEq, Eq)]
@@ -445,6 +446,7 @@ mod tests {
             description: "A broken road marker.".to_string(),
             region_name: "North".to_string(),
             dangerous: true,
+            scene_image: None,
         };
         let history_entry = HistoryEntryView {
             day: 4,
@@ -553,13 +555,13 @@ mod tests {
         };
         let _meditation = MeditationView {
             character: character.clone(),
-            current_time: "Day 1 · Dawn".to_string(),
+            current_time: "Day 1 - Dawn".to_string(),
             safe_to_meditate: true,
             unavailable_message: None,
             targets: vec![],
         };
         let _meditation_result = MeditationResultView {
-            ending_time: "Day 1 · Morning".to_string(),
+            ending_time: "Day 1 - Morning".to_string(),
             portions: 1,
             hp_recovered: 3,
             exhausted_removed: true,
@@ -567,7 +569,7 @@ mod tests {
         };
         let _history = HistoryView {
             world_name: "Test World".to_string(),
-            time: "Day 1 · Dawn".to_string(),
+            time: "Day 1 - Dawn".to_string(),
             character,
             entries: vec![history_entry],
         };

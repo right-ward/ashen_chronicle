@@ -16,7 +16,8 @@
           "location.hollow_market",
           "location.charred_watchtower"
         ],
-        "scene_art": "   |||||||\n  /|_____|\\\\\n  ||     ||\n  ||  _  ||\n  ||_| |_||\n    /   \\\n"
+        "scene_art": "   |||||||\n  /|_____|\\\\\n  ||     ||\n  ||  _  ||\n  ||_| |_||\n    /   \\\n",
+        "scene_image": "locations/ashen_gate.png"
       },
       {
         "id": "location.hollow_market",

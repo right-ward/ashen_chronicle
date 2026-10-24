@@ -447,13 +447,18 @@ fn render_game_data_tab(commands: &mut Commands, panel: Entity, options: &Option
         bevy_presentation::spawn_context_message(commands, panel, message);
     }
 
-    let change =
-        bevy_presentation::spawn_action_button(commands, panel, 0, "⌂", "Change game data folder");
+    let change = bevy_presentation::spawn_action_button(
+        commands,
+        panel,
+        0,
+        "folder",
+        "Change game data folder",
+    );
     if options.selected == 0 {
         commands.entity(change).insert(UiSelected);
     }
 
-    let back = bevy_presentation::spawn_action_button(commands, panel, 1, "←", "Back");
+    let back = bevy_presentation::spawn_action_button(commands, panel, 1, "back", "Back");
     if options.selected == 1 {
         commands.entity(back).insert(UiSelected);
     }
@@ -474,11 +479,11 @@ fn render_display_tab(commands: &mut Commands, panel: Entity, options: &OptionsS
             (desktop_display::DisplayMode::Fullscreen, "Fullscreen"),
             (
                 desktop_display::DisplayMode::Windowed1920x1080,
-                "Windowed — 1920 × 1080",
+                "Windowed - 1920 x 1080",
             ),
             (
                 desktop_display::DisplayMode::Windowed1280x720,
-                "Windowed — 1280 × 720",
+                "Windowed - 1280 x 720",
             ),
         ];
 
@@ -487,7 +492,7 @@ fn render_display_tab(commands: &mut Commands, panel: Entity, options: &OptionsS
                 commands,
                 panel,
                 index,
-                "▣",
+                "display",
                 if options.display_mode == mode {
                     format!("{label} (current)")
                 } else {
@@ -499,7 +504,7 @@ fn render_display_tab(commands: &mut Commands, panel: Entity, options: &OptionsS
             }
         }
 
-        let back = bevy_presentation::spawn_action_button(commands, panel, 3, "←", "Back");
+        let back = bevy_presentation::spawn_action_button(commands, panel, 3, "back", "Back");
         if options.selected == 3 {
             commands.entity(back).insert(UiSelected);
         }
@@ -512,7 +517,7 @@ fn render_display_tab(commands: &mut Commands, panel: Entity, options: &OptionsS
             panel,
             "Display configuration is not available on Android yet.",
         );
-        let back = bevy_presentation::spawn_action_button(commands, panel, 0, "←", "Back");
+        let back = bevy_presentation::spawn_action_button(commands, panel, 0, "back", "Back");
         if options.selected == 0 {
             commands.entity(back).insert(UiSelected);
         }

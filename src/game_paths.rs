@@ -85,6 +85,7 @@ fn prepare_root(root: &Path, bundled_data_dir: Option<&Path>) -> io::Result<Game
     let saves_dir = root.join(SAVES_DIRECTORY_NAME);
     ensure_directory(&data_dir)?;
     ensure_directory(&mods_dir)?;
+    ensure_directory(&data_dir.join("assets"))?;
     ensure_directory(&saves_dir)?;
 
     let paths = GamePaths {
@@ -113,6 +114,11 @@ impl GamePaths {
             }
             fs::copy(&bundled_base, &target)?;
             set_read_only(&target)?;
+        }
+
+        let bundled_assets = bundled_data_dir.join("assets");
+        if bundled_assets.is_dir() {
+            sync_directory_without_overwriting(&bundled_assets, &self.data_dir.join("assets"))?;
         }
 
         let bundled_mods = bundled_data_dir.join(MODS_DIRECTORY_NAME);

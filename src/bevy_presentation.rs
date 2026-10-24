@@ -17,6 +17,7 @@ use bevy::text::{EditableText, Justify, LineBreak, TextCursorStyle, TextLayout};
 use bevy::ui::Pressed;
 use bevy::ui_widgets::{Activate, Button};
 use bevy::window::PrimaryWindow;
+use std::collections::{HashMap, HashSet};
 #[cfg(target_os = "android")]
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -408,6 +409,7 @@ pub fn install(app: &mut App) {
         .init_resource::<NavigationState>()
         .init_resource::<ConsoleTextInputFocus>()
         .init_resource::<TouchScrollState>()
+        .init_resource::<UiIconAssets>()
         .add_systems(
             PreUpdate,
             process_ime_events
@@ -422,6 +424,7 @@ pub fn install(app: &mut App) {
         .add_systems(PostUpdate, sync_ui_health_gauges)
         .add_systems(PostUpdate, sync_ui_button_visuals)
         .add_systems(Update, touch_scroll)
+        .add_systems(PostUpdate, resolve_ui_icons)
         .add_systems(PostUpdate, organize_action_button_groups)
         .add_systems(PostUpdate, sync_ime_window)
         .add_systems(PostUpdate, sync_lifecycle_field_visuals);
@@ -792,6 +795,81 @@ fn action_button_node() -> Node {
     }
 }
 
+#[derive(Component)]
+struct UiIconName(String);
+
+#[derive(Resource, Default)]
+struct UiIconAssets(HashMap<String, Handle<Image>>);
+
+fn icon_asset_reference(icon: &str) -> String {
+    if icon.starts_with("mod:") || icon.contains('/') {
+        icon.to_string()
+    } else {
+        format!("icons/ui/{icon}.png")
+    }
+}
+
+/// Resolve semantic icon names into actual PNG sprites from the selected game
+/// data folder. Missing images are logged and omitted, never replaced by text.
+fn resolve_ui_icons(
+    mut commands: Commands,
+    mut images: ResMut<Assets<Image>>,
+    mut cache: ResMut<UiIconAssets>,
+    mut logged_missing: Local<HashSet<String>>,
+    icons: Query<(Entity, &UiIconName)>,
+) {
+    for (entity, icon) in &icons {
+        let reference = icon_asset_reference(&icon.0);
+        if let Some(image) = cache.0.get(&reference) {
+            commands
+                .entity(entity)
+                .insert(ImageNode::new(image.clone()))
+                .remove::<UiIconName>();
+            continue;
+        }
+
+        match crate::asset_loading::load_image_from_data(&mut images, &reference) {
+            Ok(image) => {
+                cache.0.insert(reference.clone(), image.clone());
+                commands
+                    .entity(entity)
+                    .insert(ImageNode::new(image))
+                    .remove::<UiIconName>();
+            }
+            Err(error) => {
+                if logged_missing.insert(reference.clone()) {
+                    warn!("Could not load UI icon {reference}: {error}");
+                }
+                commands.entity(entity).remove::<UiIconName>();
+            }
+        }
+    }
+}
+
+/// Spawn a centered image node that resolves on the next presentation update.
+pub(crate) fn spawn_icon_image(
+    commands: &mut Commands,
+    parent: Entity,
+    icon: impl Into<String>,
+    size: f32,
+) -> Entity {
+    let entity = commands
+        .spawn((
+            Node {
+                width: px(size),
+                height: px(size),
+                min_width: px(size),
+                min_height: px(size),
+                flex_shrink: 0.0,
+                ..default()
+            },
+            UiIconName(icon.into()),
+        ))
+        .id();
+    commands.entity(parent).add_child(entity);
+    entity
+}
+
 pub fn spawn_action_button(
     commands: &mut Commands,
     parent: Entity,
@@ -822,14 +900,15 @@ pub fn spawn_action_button(
                 },
                 children![
                     (
-                        Text::new(icon.into()),
                         Node {
+                            width: px(22),
+                            height: px(22),
+                            min_width: px(22),
+                            min_height: px(22),
                             flex_shrink: 0.0,
                             ..default()
                         },
-                        TextContent,
-                        TextFont::from_font_size(muted_font_size()),
-                        TextColor(THEME_MUTED),
+                        UiIconName(icon.into()),
                     ),
                     (
                         Text::new(label.into()),
@@ -896,14 +975,15 @@ pub fn spawn_primary_action_button(
                 },
                 children![
                     (
-                        Text::new(icon.into()),
                         Node {
+                            width: px(22),
+                            height: px(22),
+                            min_width: px(22),
+                            min_height: px(22),
                             flex_shrink: 0.0,
                             ..default()
                         },
-                        TextContent,
-                        TextFont::from_font_size(muted_font_size()),
-                        TextColor(THEME_MUTED),
+                        UiIconName(icon.into()),
                     ),
                     (
                         Text::new(label.into()),
@@ -951,10 +1031,12 @@ pub fn spawn_menu_button(
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
-                Text::new(icon.into()),
-                TextContent,
-                TextFont::from_font_size(label_font_size()),
-                TextColor(THEME_TEXT),
+                Node {
+                    width: px(26),
+                    height: px(26),
+                    ..default()
+                },
+                UiIconName(icon.into())
             )],
         ))
         .id();
@@ -1056,10 +1138,12 @@ pub fn spawn_condition_indicator(
             BorderColor::all(THEME_BORDER),
             BackgroundColor(THEME_SURFACE),
             children![(
-                Text::new(icon.into()),
-                TextContent,
-                TextFont::from_font_size(muted_font_size()),
-                TextColor(THEME_TEXT),
+                Node {
+                    width: px(22),
+                    height: px(22),
+                    ..default()
+                },
+                UiIconName(icon.into())
             )],
         ))
         .id();

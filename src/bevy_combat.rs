@@ -240,7 +240,7 @@ fn render_if_active(
         &mut commands,
         actors,
         format!(
-            "{} · Turn {} · {}",
+            "{} | Turn {} | {}",
             view.character.display_name(),
             view.turn,
             view.location_name
@@ -288,9 +288,9 @@ fn render_if_active(
     let actions = bevy_presentation::spawn_panel(&mut commands, root);
     for (index, action) in view.actions.iter().enumerate() {
         let icon = match index {
-            0 => "⚔",
-            1 => "◈",
-            _ => "↗",
+            0 => "attack",
+            1 => "insight",
+            _ => "evade",
         };
         let button = bevy_presentation::spawn_action_button(
             &mut commands,
@@ -323,7 +323,7 @@ fn render_if_active(
         bevy_presentation::spawn_muted_label(
             &mut commands,
             actions,
-            "Select an action with arrows or 1–3, then press Enter.",
+            "Select an action with arrows or 1-3, then press Enter.",
         );
     }
 

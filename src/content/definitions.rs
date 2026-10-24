@@ -44,6 +44,9 @@ pub struct LocationContent {
     pub exits: Vec<String>,
     #[serde(default)]
     pub scene_art: Option<String>,
+    /// Runtime-loaded image reference, resolved from data/assets or a mod asset directory.
+    #[serde(default)]
+    pub scene_image: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
@@ -412,6 +415,14 @@ impl CampaignContent {
             .iter()
             .find(|entry| entry.name == location_name)
             .and_then(|entry| entry.scene_art.as_deref())
+    }
+
+    pub fn location_scene_image_for(&self, location_name: &str) -> Option<&str> {
+        self.world
+            .locations
+            .iter()
+            .find(|entry| entry.name == location_name)
+            .and_then(|entry| entry.scene_image.as_deref())
     }
 
     pub fn portrait_for(&self, npc_name: &str) -> Option<&str> {
