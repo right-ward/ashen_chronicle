@@ -45,6 +45,8 @@ const JOYSTICK_THUMB_TRAVEL_PX: f32 = 36.0;
 const CAMERA_LERP_SPEED: f32 = 8.0;
 const CAMERA_DEAD_ZONE_FRACTION: f32 = 0.15;
 const DEPTH_STEP: f32 = 0.08;
+const GROUND_TERRAIN_DEPTH: f32 = -1.0;
+const WALL_TOP_DEPTH_OFFSET: f32 = 0.02;
 const PLAYER_DEPTH_OFFSET: f32 = 0.04;
 
 #[derive(Component)]
@@ -630,7 +632,7 @@ fn render_spatial_screen(
             } else {
                 0.0
             };
-            let top_depth = depth + if terrain == Terrain::Wall { 0.02 } else { 0.0 };
+            let top_depth = terrain_depth(terrain, tile_center);
             if let Some(image) = assets.tile_images[terrain_image_index(terrain)].clone() {
                 let mut tile_sprite = Sprite::from_image(image);
                 tile_sprite.custom_size =
@@ -1091,6 +1093,15 @@ fn depth_for(position: Vec2) -> f32 {
     (position.x + position.y) * DEPTH_STEP
 }
 
+/// Ground terrain is a background surface, not an occluder. Only wall tops
+/// participate in the painter's order with actors and other world objects.
+fn terrain_depth(terrain: Terrain, tile_center: Vec2) -> f32 {
+    match terrain {
+        Terrain::Floor | Terrain::Ash | Terrain::Rubble => GROUND_TERRAIN_DEPTH,
+        Terrain::Wall => depth_for(tile_center) + WALL_TOP_DEPTH_OFFSET,
+    }
+}
+
 /// Moving actors remain on the layer belonging to their occupied tile.
 /// Continuous coordinates made the player slip behind the tile while crossing it.
 fn depth_for_position(position: Vec2) -> f32 {
@@ -1311,11 +1322,33 @@ mod tests {
     }
 
     #[test]
-    fn front_wall_faces_occlude_actors_behind_them_not_in_front() {
+    fn ground_terrain_never_occludes_actors_at_different_map_depths() {
+        for terrain in [Terrain::Floor, Terrain::Ash, Terrain::Rubble] {
+            for actor_position in [
+                Vec2::new(0.5, 0.5),
+                Vec2::new(6.5, 7.5),
+                Vec2::new(22.5, 14.5),
+            ] {
+                let terrain_center = actor_position + Vec2::new(0.5, 0.5);
+                assert!(
+                    terrain_depth(terrain, terrain_center)
+                        < depth_for_position(actor_position) + PLAYER_DEPTH_OFFSET,
+                    "{terrain:?} terrain must render behind actor at {actor_position:?}"
+                );
+            }
+        }
+    }
+
+    #[test]
+    fn wall_tops_and_faces_keep_depth_based_occlusion() {
         let wall_center = Vec2::new(6.5, 7.5);
+        let top_depth = terrain_depth(Terrain::Wall, wall_center);
         let face_depth = depth_for(wall_center) + PLAYER_DEPTH_OFFSET + 0.002;
         let actor_behind = Vec2::new(5.5, 6.5);
         let actor_in_front = Vec2::new(7.5, 8.5);
+
+        assert!(depth_for_position(actor_behind) + PLAYER_DEPTH_OFFSET < top_depth);
+        assert!(depth_for_position(actor_in_front) + PLAYER_DEPTH_OFFSET > top_depth);
         assert!(depth_for_position(actor_behind) + PLAYER_DEPTH_OFFSET < face_depth);
         assert!(depth_for_position(actor_in_front) + PLAYER_DEPTH_OFFSET > face_depth);
     }
