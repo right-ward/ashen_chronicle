@@ -5,18 +5,19 @@ pub(crate) fn build_view(state: &GameState) -> NavigationView {
     let Some(current_location) = state.world.location_by_id(state.character.location_id) else {
         return NavigationView::default();
     };
+    let campaign = state
+        .campaign_content
+        .clone()
+        .unwrap_or_else(crate::content::load_campaign_content);
 
-    let current = location_view(state, current_location);
+    let current = location_view(state, current_location, &campaign);
     let destinations = current_location
         .exits
         .iter()
         .filter_map(|id| state.world.location_by_id(*id))
-        .map(|location| location_view(state, location))
+        .map(|location| location_view(state, location, &campaign))
         .collect();
-    let art = state
-        .campaign_content
-        .clone()
-        .unwrap_or_else(crate::content::load_campaign_content)
+    let art = campaign
         .location_art_for(&current.name)
         .map(str::to_string);
 
@@ -27,7 +28,11 @@ pub(crate) fn build_view(state: &GameState) -> NavigationView {
     }
 }
 
-fn location_view(state: &GameState, location: &crate::model::Location) -> LocationView {
+fn location_view(
+    state: &GameState,
+    location: &crate::model::Location,
+    campaign: &crate::content::CampaignContent,
+) -> LocationView {
     let region_name = state
         .world
         .regions
@@ -42,5 +47,8 @@ fn location_view(state: &GameState, location: &crate::model::Location) -> Locati
         description: location.description.clone(),
         region_name,
         dangerous: location.dangerous,
+        scene_image: campaign
+            .location_scene_image_for(&location.name)
+            .map(str::to_string),
     }
 }

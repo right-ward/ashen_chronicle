@@ -553,13 +553,13 @@ mod tests {
         };
         let _meditation = MeditationView {
             character: character.clone(),
-            current_time: "Day 1 · Dawn".to_string(),
+            current_time: "Day 1 - Dawn".to_string(),
             safe_to_meditate: true,
             unavailable_message: None,
             targets: vec![],
         };
         let _meditation_result = MeditationResultView {
-            ending_time: "Day 1 · Morning".to_string(),
+            ending_time: "Day 1 - Morning".to_string(),
             portions: 1,
             hp_recovered: 3,
             exhausted_removed: true,
@@ -567,7 +567,7 @@ mod tests {
         };
         let _history = HistoryView {
             world_name: "Test World".to_string(),
-            time: "Day 1 · Dawn".to_string(),
+            time: "Day 1 - Dawn".to_string(),
             character,
             entries: vec![history_entry],
         };

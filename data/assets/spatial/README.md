@@ -1,14 +1,15 @@
-# Spatial exploration pixel art
+# Spatial exploration art
 
-These small transparent PNGs are first-pass, original pixel-art assets created specifically for Ashen Chronicle. No third-party art, fonts, or icon packs are used.
+These are first-pass original pixel-art assets for the spatial exploration prototype. PNG files are read from the selected game's `data/assets/spatial/` directory at runtime; they are not compiled into the executable.
 
-- `terrain_floor.png`: worn wooden floor tiles, suitable for the Old Shrine prototype.
+- `terrain_floor.png`: worn wooden floor.
 - `terrain_ash.png`: ash-covered ground.
 - `terrain_rubble.png`: broken stone ground.
-- `terrain_wall_top.png`: weathered masonry wall tops.
+- `terrain_wall_top.png`: weathered masonry tops.
+- `wall_face_left.png` and `wall_face_right.png`: textured isometric wall faces.
 - `player_ash_warden.png`: placeholder player character sprite.
-- `passage.png`: visible edge passage marker.
+- `passage.png`: physical edge-passage marker.
 
-The art is intentionally limited and may be revised as the visual direction develops. It uses nearest-neighbor sampling and is designed around the current 48×24 isometric tile and 16×24 character sizes.
+The current art uses nearest-neighbor sampling. Its dimensions are matched to the prototype's 48×24 floor diamonds, 16×24 character sprite, and 24×36 wall faces. These are a starting point, not final art direction.
 
 Copyright (c) 2026 right-ward. Licensed under CC BY-NC-ND 4.0, as documented in `LICENSE-CONTENT`.

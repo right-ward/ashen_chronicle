@@ -4,6 +4,7 @@
 //! into Bevy UI. It does not reimplement gameplay simulation.
 
 use bevy::prelude::*;
+use std::collections::HashMap;
 
 use crate::bevy_combat::CombatState;
 use crate::bevy_lifecycle::{LifecyclePhase, LifecycleState};
@@ -75,7 +76,7 @@ pub(crate) struct GameplayRuntimeState {
 
 #[derive(Resource, Debug, Default)]
 struct LocationArtAssets {
-    ashen_gate: Option<Handle<Image>>,
+    images: HashMap<String, Handle<Image>>,
 }
 
 impl GameplayRuntimeState {
@@ -127,59 +128,31 @@ pub(crate) fn install(app: &mut App) {
 }
 
 fn load_location_art(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
-    let ashen_gate =
-        match decode_base64(include_str!("../data/assets/locations/ashen_gate.png.b64")) {
-            Ok(bytes) => match Image::from_buffer(
-                &bytes,
-                bevy::image::ImageType::Format(bevy::image::ImageFormat::Png),
-                bevy::image::CompressedImageFormats::NONE,
-                true,
-                bevy::image::ImageSampler::nearest(),
-                bevy::asset::RenderAssetUsages::default(),
-            ) {
-                Ok(image) => Some(images.add(image)),
-                Err(error) => {
-                    warn!("Could not decode Ashen Gate banner; using ASCII art fallback: {error}");
-                    None
-                }
-            },
-            Err(error) => {
-                warn!("Could not read Ashen Gate banner; using ASCII art fallback: {error}");
-                None
-            }
+    let campaign = crate::content::load_campaign_content();
+    let mut loaded = HashMap::new();
+
+    for location in &campaign.world.locations {
+        let Some(reference) = location.scene_image.as_deref() else {
+            continue;
         };
-
-    commands.insert_resource(LocationArtAssets { ashen_gate });
-}
-
-fn decode_base64(input: &str) -> Result<Vec<u8>, &'static str> {
-    const ALPHABET: &[u8] = b"ABCDEFGHIJKLMNOPQRSTUVWXYZabcdefghijklmnopqrstuvwxyz0123456789+/";
-
-    let mut output = Vec::with_capacity(input.len().saturating_mul(3) / 4);
-    let mut accumulator = 0u32;
-    let mut bits = 0u8;
-
-    for byte in input.bytes().filter(|byte| !byte.is_ascii_whitespace()) {
-        if byte == b'=' {
-            break;
+        if loaded.contains_key(reference) {
+            continue;
         }
-        let value = ALPHABET
-            .iter()
-            .position(|candidate| *candidate == byte)
-            .ok_or("encoded banner contains invalid base64")? as u32;
-        accumulator = (accumulator << 6) | value;
-        bits += 6;
-        if bits >= 8 {
-            bits -= 8;
-            output.push((accumulator >> bits) as u8);
+
+        match crate::asset_loading::load_image_from_data(&mut images, reference) {
+            Ok(image) => {
+                loaded.insert(reference.to_string(), image);
+            }
+            Err(error) => {
+                warn!(
+                    "Could not load location image {} for {}: {}",
+                    reference, location.name, error
+                );
+            }
         }
     }
 
-    if output.is_empty() {
-        Err("encoded banner is empty")
-    } else {
-        Ok(output)
-    }
+    commands.insert_resource(LocationArtAssets { images: loaded });
 }
 
 fn gameplay_input(
@@ -741,26 +714,20 @@ fn spawn_world_ground(commands: &mut Commands, parent: Entity) {
 }
 
 fn spawn_celestial(commands: &mut Commands, parent: Entity, sky: SkyVisual) {
-    commands.entity(parent).with_children(|world| {
-        world.spawn((
-            Node {
-                width: px(46),
-                height: px(46),
-                position_type: PositionType::Absolute,
-                left: percent(sky.celestial_x),
-                top: percent(sky.celestial_y),
-                justify_content: JustifyContent::Center,
-                align_items: AlignItems::Center,
-                ..default()
-            },
-            children![(
-                Text::new(sky.celestial),
-                bevy_presentation::TextContent,
-                TextFont::from_font_size(FontSize::VMin(4.8)),
-                TextColor(bevy_presentation::THEME_TEXT),
-            )],
-        ));
-    });
+    let celestial = commands
+        .spawn(Node {
+            width: px(46),
+            height: px(46),
+            position_type: PositionType::Absolute,
+            left: percent(sky.celestial_x),
+            top: percent(sky.celestial_y),
+            justify_content: JustifyContent::Center,
+            align_items: AlignItems::Center,
+            ..default()
+        })
+        .id();
+    commands.entity(parent).add_child(celestial);
+    bevy_presentation::spawn_icon_image(commands, celestial, sky.celestial, 38.0);
 }
 
 fn render_location(
@@ -802,13 +769,12 @@ fn render_location(
         bevy_presentation::spawn_muted_label(
             commands,
             card,
-            format!("{} · {}", view.world_name, location.region_name),
+            format!("{} | {}", view.world_name, location.region_name),
         );
-        let banner = if location.name == "Ashen Gate" {
-            location_art.ashen_gate.as_ref()
-        } else {
-            None
-        };
+        let banner = location
+            .scene_image
+            .as_deref()
+            .and_then(|reference| location_art.images.get(reference));
         if let Some(image) = banner {
             let art_entity = commands
                 .spawn((
@@ -923,7 +889,7 @@ fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) 
         .id();
     commands.entity(parent).add_child(controls);
 
-    bevy_presentation::spawn_menu_button(commands, controls, "≡");
+    bevy_presentation::spawn_menu_button(commands, controls, "menu");
 
     let hud = commands
         .spawn((
@@ -967,9 +933,9 @@ fn render_player_hud(commands: &mut Commands, parent: Entity, view: &WorldView) 
 
 fn spawn_condition_icon(commands: &mut Commands, parent: Entity, condition: &ConditionView) {
     let icon = match condition.name.as_str() {
-        "Wounded" => "†",
-        "Exhausted" => "◌",
-        _ => "◈",
+        "Wounded" => "condition-wounded",
+        "Exhausted" => "condition-exhausted",
+        _ => "condition-rested",
     };
     bevy_presentation::spawn_condition_indicator(commands, parent, icon);
 }
@@ -1009,12 +975,12 @@ fn render_action_area(
 
 fn gameplay_action_visuals(action: GameplayAction) -> (&'static str, &'static str) {
     match action {
-        GameplayAction::Travel => ("⚑", "Travel"),
-        GameplayAction::Meditate => ("◌", "Meditate"),
-        GameplayAction::Talk => ("◉", "Talk"),
-        GameplayAction::Explore => ("⌕", "Explore"),
-        GameplayAction::Investigate => ("†", "Investigate"),
-        GameplayAction::SearchRemains => ("◇", "Search remains"),
+        GameplayAction::Travel => ("travel", "Travel"),
+        GameplayAction::Meditate => ("meditate", "Meditate"),
+        GameplayAction::Talk => ("talk", "Talk"),
+        GameplayAction::Explore => ("explore", "Explore"),
+        GameplayAction::Investigate => ("investigate", "Investigate"),
+        GameplayAction::SearchRemains => ("remains", "Search remains"),
     }
 }
 
@@ -1040,84 +1006,84 @@ fn sky_visual(time_points: u32) -> SkyVisual {
     match time_points % 12 {
         0 => SkyVisual {
             background: bevy_presentation::THEME_SKY_NIGHT,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 78.0,
             celestial_y: 9.0,
             warm_horizon: false,
         },
         1 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAWN,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 67.0,
             celestial_y: 11.0,
             warm_horizon: true,
         },
         2 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAWN,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 58.0,
             celestial_y: 11.0,
             warm_horizon: true,
         },
         3 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAY,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 50.0,
             celestial_y: 7.0,
             warm_horizon: false,
         },
         4 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAY,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 42.0,
             celestial_y: 9.0,
             warm_horizon: false,
         },
         5 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAY,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 34.0,
             celestial_y: 11.0,
             warm_horizon: false,
         },
         6 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DAY,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 25.0,
             celestial_y: 14.0,
             warm_horizon: false,
         },
         7 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DUSK,
-            celestial: "☼",
+            celestial: "sun",
             celestial_x: 17.0,
             celestial_y: 18.0,
             warm_horizon: true,
         },
         8 => SkyVisual {
             background: bevy_presentation::THEME_SKY_DUSK,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 10.0,
             celestial_y: 13.0,
             warm_horizon: true,
         },
         9 => SkyVisual {
             background: bevy_presentation::THEME_SKY_NIGHT,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 21.0,
             celestial_y: 10.0,
             warm_horizon: false,
         },
         10 => SkyVisual {
             background: bevy_presentation::THEME_SKY_NIGHT,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 37.0,
             celestial_y: 8.0,
             warm_horizon: false,
         },
         11 => SkyVisual {
             background: bevy_presentation::THEME_SKY_NIGHT,
-            celestial: "☾",
+            celestial: "moon",
             celestial_x: 55.0,
             celestial_y: 8.0,
             warm_horizon: false,
@@ -1175,16 +1141,16 @@ fn render_pause(commands: &mut Commands, parent: Entity, actions: &[PauseAction]
 
 fn pause_action_visuals(action: PauseAction) -> (&'static str, &'static str) {
     match action {
-        PauseAction::Resume => ("▶", "Resume"),
-        PauseAction::Character => ("♙", "Character"),
-        PauseAction::Inventory => ("◇", "Inventory"),
-        PauseAction::Quests => ("✦", "Quests"),
-        PauseAction::History => ("⌁", "History"),
-        PauseAction::Journal => ("✎", "Journal"),
-        PauseAction::NewGame => ("✦", "New Game"),
-        PauseAction::LoadGame => ("↺", "Load Game"),
-        PauseAction::Options => ("⚙", "Options"),
-        PauseAction::Quit => ("×", "Quit"),
+        PauseAction::Resume => ("resume", "Resume"),
+        PauseAction::Character => ("character", "Character"),
+        PauseAction::Inventory => ("inventory", "Inventory"),
+        PauseAction::Quests => ("quests", "Quests"),
+        PauseAction::History => ("history", "History"),
+        PauseAction::Journal => ("journal", "Journal"),
+        PauseAction::NewGame => ("new-game", "New Game"),
+        PauseAction::LoadGame => ("load-game", "Load Game"),
+        PauseAction::Options => ("options", "Options"),
+        PauseAction::Quit => ("quit", "Quit"),
     }
 }
 
@@ -1224,7 +1190,7 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
                 commands,
                 panel,
                 index,
-                "⚑",
+                "travel",
                 destination.name.clone(),
             );
             if index == selected {
@@ -1235,7 +1201,7 @@ fn render_navigation(commands: &mut Commands, view: &NavigationView, selected: u
         }
     }
     let back_index = view.destinations.len();
-    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "←", "Back");
+    let button = bevy_presentation::spawn_action_button(commands, panel, back_index, "back", "Back");
     if selected == back_index {
         commands
             .entity(button)

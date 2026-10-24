@@ -5,6 +5,11 @@ use crate::presentation::{
 };
 
 pub(crate) fn build_view(state: &GameState) -> WorldView {
+    let campaign = state
+        .campaign_content
+        .clone()
+        .unwrap_or_else(crate::content::load_campaign_content);
+
     let location = state
         .world
         .location_by_id(state.character.location_id)
@@ -22,13 +27,11 @@ pub(crate) fn build_view(state: &GameState) -> WorldView {
                 description: location.description.clone(),
                 region_name,
                 dangerous: location.dangerous,
+                scene_image: campaign
+                    .location_scene_image_for(&location.name)
+                    .map(str::to_string),
             }
         });
-
-    let campaign = state
-        .campaign_content
-        .clone()
-        .unwrap_or_else(crate::content::load_campaign_content);
 
     let art = location
         .as_ref()

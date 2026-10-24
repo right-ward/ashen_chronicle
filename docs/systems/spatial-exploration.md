@@ -32,9 +32,9 @@ Older saved local maps without an `exits` field remain deserializable. On entry,
 
 ## Visual assets
 
-The first spatial pixel-art set lives under `data/assets/spatial/` and includes separate wood-floor, ash, rubble, and wall-top tiles, a character sprite, and a passage marker. The images are embedded at build time and decoded with nearest-neighbor sampling so desktop and Android share the same assets without relying on runtime asset-directory discovery. The wood floor is a first-pass visual treatment for the Old Shrine prototype, not a claim that every location should use wood.
+The first spatial pixel-art set lives under the selected game's `data/assets/spatial/` directory and includes wood-floor, ash, rubble, and wall-top tiles, separate left/right wall-face sprites, a character sprite, and a passage marker. These PNGs are loaded from disk at runtime through the same validated asset loader used for UI icons and mod art; they are not compiled into the executable. Android seeds the selected game folder from bundled defaults and synchronizes its `data/assets/` directory with the chosen shared folder. The wood floor is a first-pass treatment for the Old Shrine prototype, not a claim that every location should use wood.
 
-UI icon labels pass through a centralized ASCII fallback before reaching Bevy text rendering. This avoids missing-glyph rectangles when the bundled default font cannot render decorative Unicode symbols. The fallback is intentionally functional; it does not replace a future dedicated icon-sprite system or a broader font/art-direction decision.
+The interface uses named PNG icons from `data/assets/icons/ui/` for actions, menu controls, conditions, records, combat choices, and the sun/moon treatment. Text separators and ordinary labels use simple ASCII punctuation instead of decorative glyphs that may be missing from the default font. Mods may provide their own images under `data/mods/<folder>/assets/` and reference them with `mod:<folder>/<relative-path>.png`.
 
 ## Camera behavior
 

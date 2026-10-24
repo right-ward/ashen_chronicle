@@ -6,9 +6,6 @@
 
 use std::collections::HashMap;
 
-use bevy::asset::RenderAssetUsages;
-use bevy::image::{CompressedImageFormats, ImageSampler, ImageType};
-use bevy::mesh::PrimitiveTopology;
 use bevy::picking::hover::Hovered;
 use bevy::prelude::*;
 use bevy::ui::Pressed;
@@ -62,7 +59,6 @@ struct SpatialTile(GridPosition);
 #[derive(Component, Clone, Copy)]
 struct SpatialWallSide {
     tile: GridPosition,
-    right_face: bool,
 }
 
 #[derive(Component)]
@@ -87,14 +83,13 @@ struct SpatialExitPrompt {
     target_location_id: EntityId,
 }
 
-#[derive(Resource)]
+#[derive(Resource, Default)]
 struct SpatialRenderAssets {
-    wall_left_mesh: Handle<Mesh>,
-    wall_right_mesh: Handle<Mesh>,
-    tile_images: [Handle<Image>; 4],
-    player_image: Handle<Image>,
-    passage_image: Handle<Image>,
-    wall_face_materials: [Handle<ColorMaterial>; 3],
+    tile_images: [Option<Handle<Image>>; 4],
+    wall_face_images: [Option<Handle<Image>>; 2],
+    player_image: Option<Handle<Image>>,
+    passage_image: Option<Handle<Image>>,
+    poi_image: Option<Handle<Image>>,
 }
 
 #[derive(Component, Clone, Copy)]
@@ -211,126 +206,40 @@ pub(crate) fn enter(
     navigation.selected = 0;
 }
 
-fn setup_spatial_render_assets(
-    mut commands: Commands,
-    mut meshes: ResMut<Assets<Mesh>>,
-    mut materials: ResMut<Assets<ColorMaterial>>,
-    mut images: ResMut<Assets<Image>>,
-) {
-    let wall_left_mesh = meshes.add(mesh_from_triangles(
-        [
-            [-TILE_HALF_WIDTH, WALL_HEIGHT, 0.0],
-            [-TILE_HALF_WIDTH, 0.0, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-            [-TILE_HALF_WIDTH, WALL_HEIGHT, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-            [0.0, WALL_HEIGHT - TILE_HALF_HEIGHT, 0.0],
-        ],
-        [
-            [0.0, 1.0],
-            [0.0, 0.0],
-            [1.0, 0.0],
-            [0.0, 1.0],
-            [1.0, 0.0],
-            [1.0, 1.0],
-        ],
-    ));
-    let wall_right_mesh = meshes.add(mesh_from_triangles(
-        [
-            [TILE_HALF_WIDTH, WALL_HEIGHT, 0.0],
-            [0.0, WALL_HEIGHT - TILE_HALF_HEIGHT, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-            [TILE_HALF_WIDTH, WALL_HEIGHT, 0.0],
-            [0.0, -TILE_HALF_HEIGHT, 0.0],
-            [TILE_HALF_WIDTH, 0.0, 0.0],
-        ],
-        [
-            [1.0, 1.0],
-            [0.0, 1.0],
-            [0.0, 0.0],
-            [1.0, 1.0],
-            [0.0, 0.0],
-            [1.0, 0.0],
-        ],
-    ));
-
-    let unseen = terrain_color(Terrain::Floor, false);
-    let wall_face_materials = [
-        materials.add(ColorMaterial::from(unseen)),
-        materials.add(ColorMaterial::from(Color::srgb(0.16, 0.115, 0.10))),
-        materials.add(ColorMaterial::from(Color::srgb(0.105, 0.075, 0.075))),
-    ];
-
-    // Decode the small art assets from the binary so desktop and Android use
-    // the same bundled files without depending on a writable asset directory.
+fn setup_spatial_render_assets(mut commands: Commands, mut images: ResMut<Assets<Image>>) {
     let tile_images = [
-        load_spatial_image(
-            &mut images,
-            include_bytes!("../data/assets/spatial/terrain_floor.png"),
-            "wood floor",
-        ),
-        load_spatial_image(
-            &mut images,
-            include_bytes!("../data/assets/spatial/terrain_ash.png"),
-            "ash ground",
-        ),
-        load_spatial_image(
-            &mut images,
-            include_bytes!("../data/assets/spatial/terrain_rubble.png"),
-            "rubble ground",
-        ),
-        load_spatial_image(
-            &mut images,
-            include_bytes!("../data/assets/spatial/terrain_wall_top.png"),
-            "wall top",
-        ),
+        load_spatial_image(&mut images, "spatial/terrain_floor.png"),
+        load_spatial_image(&mut images, "spatial/terrain_ash.png"),
+        load_spatial_image(&mut images, "spatial/terrain_rubble.png"),
+        load_spatial_image(&mut images, "spatial/terrain_wall_top.png"),
     ];
-    let player_image = load_spatial_image(
-        &mut images,
-        include_bytes!("../data/assets/spatial/player_ash_warden.png"),
-        "player sprite",
-    );
-    let passage_image = load_spatial_image(
-        &mut images,
-        include_bytes!("../data/assets/spatial/passage.png"),
-        "passage marker",
-    );
+    let wall_face_images = [
+        load_spatial_image(&mut images, "spatial/wall_face_left.png"),
+        load_spatial_image(&mut images, "spatial/wall_face_right.png"),
+    ];
+    let player_image = load_spatial_image(&mut images, "spatial/player_ash_warden.png");
+    let passage_image = load_spatial_image(&mut images, "spatial/passage.png");
+    let poi_image = load_spatial_image(&mut images, "icons/ui/investigate.png");
 
     commands.insert_resource(SpatialRenderAssets {
-        wall_left_mesh,
-        wall_right_mesh,
         tile_images,
+        wall_face_images,
         player_image,
         passage_image,
-        wall_face_materials,
+        poi_image,
     });
 }
 
-fn load_spatial_image(images: &mut Assets<Image>, bytes: &[u8], asset_name: &str) -> Handle<Image> {
-    let mut image = Image::from_buffer(
-        bytes,
-        ImageType::Extension("png"),
-        CompressedImageFormats::NONE,
-        true,
-        ImageSampler::nearest(),
-        RenderAssetUsages::default(),
-    )
-    .unwrap_or_else(|error| panic!("failed to decode spatial image {asset_name}: {error}"));
-    image.sampler = ImageSampler::nearest();
-    images.add(image)
+fn load_spatial_image(images: &mut Assets<Image>, reference: &str) -> Option<Handle<Image>> {
+    match crate::asset_loading::load_image_from_data(images, reference) {
+        Ok(image) => Some(image),
+        Err(error) => {
+            warn!("Could not load spatial asset {reference}: {error}");
+            None
+        }
+    }
 }
 
-fn mesh_from_triangles(vertices: [[f32; 3]; 6], uvs: [[f32; 2]; 6]) -> Mesh {
-    let mut mesh = Mesh::new(
-        PrimitiveTopology::TriangleList,
-        RenderAssetUsages::default(),
-    );
-    mesh.insert_attribute(Mesh::ATTRIBUTE_POSITION, vertices.to_vec());
-    mesh.insert_attribute(Mesh::ATTRIBUTE_UV_0, uvs.to_vec());
-    mesh
-}
-
-#[allow(clippy::too_many_arguments)] // Bevy systems require independent resources and queries.
 fn spatial_input(
     time: Res<Time>,
     keyboard: Res<ButtonInput<KeyCode>>,
@@ -596,10 +505,7 @@ fn update_spatial_world(
     mut camera: Query<(&mut Transform, &Camera), (With<Camera2d>, Without<SpatialPlayer>)>,
     mut player: Query<&mut Transform, With<SpatialPlayer>>,
     mut tiles: Query<(&SpatialTile, &mut Sprite), Without<SpatialWallSide>>,
-    mut wall_sides: Query<
-        (&SpatialWallSide, &mut MeshMaterial2d<ColorMaterial>),
-        Without<SpatialTile>,
-    >,
+    mut wall_sides: Query<(&SpatialWallSide, &mut Sprite), Without<SpatialTile>>,
     world_entities: Query<Entity, With<SpatialWorldEntity>>,
 ) {
     if navigation.current_screen != Some(ScreenId::SpatialExploration) {
@@ -618,30 +524,24 @@ fn update_spatial_world(
     let target = map_to_world(position, Some(map));
     for (tile, mut sprite) in &mut tiles {
         let terrain = map.terrain_at(tile.0).unwrap_or(Terrain::Wall);
-        let desired = assets.tile_images[terrain_image_index(terrain)].clone();
-        if sprite.image != desired {
-            sprite.image = desired;
+        if let Some(desired) = assets.tile_images[terrain_image_index(terrain)].clone() {
+            if sprite.image != desired {
+                sprite.image = desired;
+            }
+            sprite.color = terrain_tint(map.is_tile_discovered(tile.0));
         }
-        sprite.color = terrain_tint(map.is_tile_discovered(tile.0));
     }
-    for (side, mut material) in &mut wall_sides {
-        let discovered = map.is_tile_discovered(side.tile);
-        let index = if !discovered {
-            0
-        } else if side.right_face {
-            2
+    for (side, mut sprite) in &mut wall_sides {
+        sprite.color = if map.is_tile_discovered(side.tile) {
+            Color::WHITE
         } else {
-            1
+            terrain_tint(false)
         };
-        let desired = assets.wall_face_materials[index].clone();
-        if material.0 != desired {
-            material.0 = desired;
-        }
     }
     for mut transform in &mut player {
         transform.translation.x = target.x;
         transform.translation.y = target.y + PLAYER_SPRITE_HEIGHT * 0.5;
-        transform.translation.z = depth_for(position) + PLAYER_DEPTH_OFFSET;
+        transform.translation.z = depth_for_position(position) + PLAYER_DEPTH_OFFSET;
     }
     for (mut transform, camera_component) in &mut camera {
         let viewport = camera_component
@@ -695,29 +595,26 @@ fn render_spatial_screen(
             let depth = depth_for(tile_center);
 
             if terrain == Terrain::Wall {
-                let wall_material_index = if discovered { 1 } else { 0 };
-                commands.spawn((
-                    SpatialWorldEntity,
-                    SpatialWallSide {
-                        tile: position,
-                        right_face: false,
-                    },
-                    Mesh2d(assets.wall_left_mesh.clone()),
-                    MeshMaterial2d(assets.wall_face_materials[wall_material_index].clone()),
-                    Transform::from_xyz(world_position.x, world_position.y, depth + 0.01),
-                ));
-                commands.spawn((
-                    SpatialWorldEntity,
-                    SpatialWallSide {
-                        tile: position,
-                        right_face: true,
-                    },
-                    Mesh2d(assets.wall_right_mesh.clone()),
-                    MeshMaterial2d(
-                        assets.wall_face_materials[if discovered { 2 } else { 0 }].clone(),
-                    ),
-                    Transform::from_xyz(world_position.x, world_position.y, depth + 0.01),
-                ));
+                for (face_index, right_face) in [(0, false), (1, true)] {
+                    let Some(image) = assets.wall_face_images[face_index].clone() else {
+                        continue;
+                    };
+                    commands.spawn((
+                        SpatialWorldEntity,
+                        SpatialWallSide { tile: position },
+                        Sprite {
+                            image,
+                            custom_size: Some(Vec2::new(TILE_HALF_WIDTH, WALL_HEIGHT + TILE_HALF_HEIGHT)),
+                            ..default()
+                        },
+                        Transform::from_xyz(
+                            world_position.x
+                                + if right_face { TILE_HALF_WIDTH * 0.5 } else { -TILE_HALF_WIDTH * 0.5 },
+                            world_position.y + TILE_HALF_HEIGHT * 0.5,
+                            depth + PLAYER_DEPTH_OFFSET + 0.002,
+                        ),
+                    ));
+                }
             }
 
             let top_offset = if terrain == Terrain::Wall {
@@ -726,17 +623,22 @@ fn render_spatial_screen(
                 0.0
             };
             let top_depth = depth + if terrain == Terrain::Wall { 0.02 } else { 0.0 };
-            let mut tile_sprite =
-                Sprite::from_image(assets.tile_images[terrain_image_index(terrain)].clone());
-            tile_sprite.custom_size =
-                Some(Vec2::new(TILE_HALF_WIDTH * 2.0, TILE_HALF_HEIGHT * 2.0));
-            tile_sprite.color = terrain_tint(discovered);
-            commands.spawn((
-                SpatialWorldEntity,
-                SpatialTile(position),
-                tile_sprite,
-                Transform::from_xyz(world_position.x, world_position.y + top_offset, top_depth),
-            ));
+            if let Some(image) = assets.tile_images[terrain_image_index(terrain)].clone() {
+                let mut tile_sprite = Sprite::from_image(image);
+                tile_sprite.custom_size =
+                    Some(Vec2::new(TILE_HALF_WIDTH * 2.0, TILE_HALF_HEIGHT * 2.0));
+                tile_sprite.color = terrain_tint(discovered);
+                commands.spawn((
+                    SpatialWorldEntity,
+                    SpatialTile(position),
+                    tile_sprite,
+                    Transform::from_xyz(
+                        world_position.x,
+                        world_position.y + top_offset,
+                        top_depth,
+                    ),
+                ));
+            }
         }
     }
 
@@ -746,19 +648,21 @@ fn render_spatial_screen(
             f32::from(exit.position.y) + 0.5,
         );
         let exit_position = map_to_world(exit_grid, Some(map));
-        commands.spawn((
-            SpatialWorldEntity,
-            Sprite {
-                image: assets.passage_image.clone(),
-                custom_size: Some(Vec2::new(24.0, 32.0)),
-                ..default()
-            },
-            Transform::from_xyz(
-                exit_position.x,
-                exit_position.y + 16.0,
-                depth_for(exit_grid) + PLAYER_DEPTH_OFFSET,
-            ),
-        ));
+        if let Some(image) = assets.passage_image.clone() {
+            commands.spawn((
+                SpatialWorldEntity,
+                Sprite {
+                    image,
+                    custom_size: Some(Vec2::new(24.0, 32.0)),
+                    ..default()
+                },
+                Transform::from_xyz(
+                    exit_position.x,
+                    exit_position.y + 16.0,
+                    depth_for(exit_grid) + PLAYER_DEPTH_OFFSET,
+                ),
+            ));
+        }
     }
 
     if let Some(poi) = map.points_of_interest.first() {
@@ -767,40 +671,42 @@ fn render_spatial_screen(
             f32::from(poi.position.y) + 0.5,
         );
         let poi_position = map_to_world(poi_grid, Some(map));
-        commands.spawn((
-            SpatialWorldEntity,
-            Sprite::from_color(
-                if poi.interacted {
-                    Color::srgb(0.38, 0.27, 0.35)
-                } else {
-                    Color::srgb(0.75, 0.45, 0.68)
-                },
-                Vec2::new(18.0, 24.0),
-            ),
-            Transform::from_xyz(
-                poi_position.x,
-                poi_position.y + PLAYER_SPRITE_HEIGHT * 0.5,
-                depth_for(poi_grid) + PLAYER_DEPTH_OFFSET,
-            ),
-        ));
+        if let Some(image) = assets.poi_image.clone() {
+            let mut sprite = Sprite::from_image(image);
+            sprite.custom_size = Some(Vec2::new(24.0, 24.0));
+            if poi.interacted {
+                sprite.color = Color::srgb(0.62, 0.57, 0.62);
+            }
+            commands.spawn((
+                SpatialWorldEntity,
+                sprite,
+                Transform::from_xyz(
+                    poi_position.x,
+                    poi_position.y + PLAYER_SPRITE_HEIGHT * 0.5,
+                    depth_for(poi_grid) + PLAYER_DEPTH_OFFSET,
+                ),
+            ));
+        }
     }
 
     let player_ground_position = session_position(&state);
     let player_position = map_to_world(player_ground_position, Some(map));
-    commands.spawn((
-        SpatialWorldEntity,
-        SpatialPlayer,
-        Sprite {
-            image: assets.player_image.clone(),
-            custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)),
-            ..default()
-        },
-        Transform::from_xyz(
-            player_position.x,
-            player_position.y + PLAYER_SPRITE_HEIGHT * 0.5,
-            depth_for(player_ground_position) + PLAYER_DEPTH_OFFSET,
-        ),
-    ));
+    if let Some(image) = assets.player_image.clone() {
+        commands.spawn((
+            SpatialWorldEntity,
+            SpatialPlayer,
+            Sprite {
+                image,
+                custom_size: Some(Vec2::new(PLAYER_SPRITE_WIDTH, PLAYER_SPRITE_HEIGHT)),
+                ..default()
+            },
+            Transform::from_xyz(
+                player_position.x,
+                player_position.y + PLAYER_SPRITE_HEIGHT * 0.5,
+                depth_for_position(player_ground_position) + PLAYER_DEPTH_OFFSET,
+            ),
+        ));
+    }
 
     let root = commands
         .spawn((
@@ -1193,6 +1099,13 @@ fn depth_for(position: Vec2) -> f32 {
     (position.x + position.y) * DEPTH_STEP
 }
 
+/// Moving actors remain on the layer belonging to their occupied tile.
+/// Continuous coordinates made the player slip behind the tile while crossing it.
+fn depth_for_position(position: Vec2) -> f32 {
+    let cell_center = Vec2::new(position.x.floor() + 0.5, position.y.floor() + 0.5);
+    depth_for(cell_center)
+}
+
 fn screen_direction_to_world(screen_direction: Vec2) -> Vec2 {
     if screen_direction.length_squared() == 0.0 {
         return Vec2::ZERO;
@@ -1396,61 +1309,51 @@ mod tests {
     use super::*;
 
     #[test]
-    fn bundled_spatial_art_decodes_with_expected_dimensions() {
-        let assets: [(&str, &[u8], u32, u32); 6] = [
-            (
-                "wood floor",
-                include_bytes!("../data/assets/spatial/terrain_floor.png"),
-                48,
-                24,
-            ),
-            (
-                "ash ground",
-                include_bytes!("../data/assets/spatial/terrain_ash.png"),
-                48,
-                24,
-            ),
-            (
-                "rubble ground",
-                include_bytes!("../data/assets/spatial/terrain_rubble.png"),
-                48,
-                24,
-            ),
-            (
-                "wall top",
-                include_bytes!("../data/assets/spatial/terrain_wall_top.png"),
-                48,
-                24,
-            ),
-            (
-                "player sprite",
-                include_bytes!("../data/assets/spatial/player_ash_warden.png"),
-                16,
-                24,
-            ),
-            (
-                "passage marker",
-                include_bytes!("../data/assets/spatial/passage.png"),
-                24,
-                32,
-            ),
-        ];
+    fn moving_sprite_depth_stays_stable_within_a_tile() {
+        let center = Vec2::new(7.5, 8.5);
+        let left = Vec2::new(7.1, 8.2);
+        let right = Vec2::new(7.9, 8.8);
+        assert_eq!(depth_for_position(center), depth_for_position(left));
+        assert_eq!(depth_for_position(center), depth_for_position(right));
+        assert!(depth_for_position(center) + PLAYER_DEPTH_OFFSET > depth_for(center));
+    }
 
-        for (name, bytes, width, height) in assets {
+    #[test]
+    fn front_wall_faces_occlude_actors_behind_them_not_in_front() {
+        let wall_center = Vec2::new(6.5, 7.5);
+        let face_depth = depth_for(wall_center) + PLAYER_DEPTH_OFFSET + 0.002;
+        let actor_behind = Vec2::new(5.5, 6.5);
+        let actor_in_front = Vec2::new(7.5, 8.5);
+        assert!(depth_for_position(actor_behind) + PLAYER_DEPTH_OFFSET < face_depth);
+        assert!(depth_for_position(actor_in_front) + PLAYER_DEPTH_OFFSET > face_depth);
+    }
+
+    #[test]
+    fn selected_folder_spatial_pngs_decode_with_expected_dimensions() {
+        for (reference, width, height) in [
+            ("spatial/terrain_floor.png", 48, 24),
+            ("spatial/terrain_ash.png", 48, 24),
+            ("spatial/terrain_rubble.png", 48, 24),
+            ("spatial/terrain_wall_top.png", 48, 24),
+            ("spatial/player_ash_warden.png", 16, 24),
+            ("spatial/passage.png", 24, 32),
+            ("spatial/wall_face_left.png", 24, 36),
+            ("spatial/wall_face_right.png", 24, 36),
+        ] {
+            let path = std::path::Path::new("data/assets").join(reference);
+            let bytes = std::fs::read(&path)
+                .unwrap_or_else(|error| panic!("asset {} should exist: {error}", path.display()));
             let image = Image::from_buffer(
-                bytes,
-                ImageType::Extension("png"),
-                CompressedImageFormats::NONE,
+                &bytes,
+                bevy::image::ImageType::Extension("png"),
+                bevy::image::CompressedImageFormats::NONE,
                 true,
-                ImageSampler::nearest(),
-                RenderAssetUsages::default(),
+                bevy::image::ImageSampler::nearest(),
+                bevy::asset::RenderAssetUsages::default(),
             )
-            .unwrap_or_else(|error| panic!("embedded {name} image should decode: {error}"));
-            assert_eq!(image.texture_descriptor.size.width, width, "{name} width");
-            assert_eq!(
-                image.texture_descriptor.size.height, height,
-                "{name} height"
-            );
+            .unwrap_or_else(|error| panic!("asset {} should decode: {error}", path.display()));
+            assert_eq!(image.texture_descriptor.size.width, width, "{reference} width");
+            assert_eq!(image.texture_descriptor.size.height, height, "{reference} height");
         }
     }
 
