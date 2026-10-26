@@ -1,6 +1,6 @@
 # UI System
 
-The shipped frontend is Bevy. The UI layer is built around renderer-neutral presentation views and semantic interaction events so gameplay systems do not depend on GUI details.
+The shipped frontend is Bevy. The UI layer is built around renderer-neutral presentation views and semantic interaction events so gameplay systems do not depend on GUI details. The product direction is graphics-first spatial gameplay: spatial views carry movement, exploration, environmental context, and the intended future action-combat experience. Text remains important for dialogue, descriptions, records, history, and contextual feedback, but is not the overriding presentation model. See [the canonical design principles](../design-principles.md).
 
 ## Screen architecture
 
@@ -50,7 +50,7 @@ Meaning-oriented helpers include compact icon+text action buttons, compact menu 
 
 The unified gameplay pause/navigation menu is a centered overlay with a soft dimming layer so the underlying gameplay remains visible. It contains Resume, the dedicated Character/Inventory/Quests/History/Journal screens, New Game, conditional Load Game, Options, and Quit. Opening a child screen from the menu preserves the paused-menu state so normal Back navigation returns to the same menu rather than dropping to the dashboard. Android system Back and desktop Escape both use the semantic Cancel path; from the gameplay dashboard they open this unified menu. The menu surface is scrollable so its full action set remains usable on smaller touch displays. Entering the menu also sets the explicit GameplayRuntimeState pause flag; continuously running gameplay systems must check that state, while UI/input handling continues normally.
 
-Text remains the primary presentation medium, with optional world/location artwork represented by view data where available.
+Text remains a first-class presentation tool for dialogue, description, logs, records, and accessible contextual feedback. Within spatial gameplay, however, the world and player action should be communicated visually and spatially; artwork is not merely optional decoration for an otherwise text-first experience. Text and other fallbacks should keep content usable when assets are missing, without defining the intended overall presentation.
 
 ## v0.51 graphical foundation
 
@@ -58,4 +58,4 @@ Issue #278 establishes the reusable presentation primitives for the redesigned g
 
 ## Design direction
 
-Keep screen responsibilities separate from gameplay mechanics. New UI work should reuse frontend-neutral view models and semantic input events rather than introducing renderer-specific dependencies into gameplay rules. Avoid maintaining parallel terminal and graphical implementations.
+Keep screen responsibilities separate from gameplay mechanics. New UI work should reuse frontend-neutral view models and semantic input events rather than introducing renderer-specific dependencies into gameplay rules. Adapt layouts and controls to desktop and mobile, supporting touch, mouse/keyboard, and controllers where practical. Keep spatial gameplay uncluttered, use contextual actions for nearby interactions, and reserve detailed management/information for hierarchical record screens. Avoid maintaining parallel terminal and graphical implementations or undertaking a wholesale UI redesign without a specific need.
