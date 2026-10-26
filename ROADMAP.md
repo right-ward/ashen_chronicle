@@ -2,7 +2,7 @@
 
 ## Roadmap
 
-The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md).
+The roadmap tracks current and upcoming development. Detailed completed milestone history is kept in [`docs/roadmap-history.md`](docs/roadmap-history.md). The intended product direction is recorded in [`docs/design-principles.md`](docs/design-principles.md); this roadmap distinguishes those long-term goals from what is currently implemented and validated.
 
 ## Current state
 
@@ -25,5 +25,7 @@ Related design issues: [#228 — long-term hybrid exploration](https://github.co
 ## Longer-term direction
 
 Continue modularizing the codebase by responsibility rather than by file size alone. Keep runtime state, content loading, gameplay actions, presentation, persistence, and event processing independently understandable and testable.
+
+The product direction is a character-focused, graphics-first spatial RPG backed by a persistent simulation. Spatial exploration is being delivered incrementally; real-time spatial action combat and audio integration remain future work, not current milestone claims. Keep world systems character-centred rather than turning them into remote grand-strategy management. Desktop and mobile support, hybrid input, scalable visual/simulation quality, offline single-player, player-controlled updates, and robust save/mod compatibility remain guiding constraints. See the [design principles](docs/design-principles.md).
 
 Major gameplay work should remain data-driven where practical, preserve backward compatibility, and include focused tests for behavior affected by the change.
