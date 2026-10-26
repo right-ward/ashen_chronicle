@@ -2,7 +2,7 @@
 
 ## Purpose
 
-This document defines the structural boundaries of the game. It describes where responsibilities live, how systems depend on one another, and the rules that keep the codebase modular.
+This document defines the structural boundaries of the game. It describes where responsibilities live, how systems depend on one another, and the rules that keep the codebase modular. Product-level goals are defined in [the canonical design principles](design-principles.md); this document translates them into technical boundaries and does not claim that every planned system is already implemented.
 
 ## Architectural goals
 
@@ -175,6 +175,17 @@ Legacy mechanics remain independent from lifecycle presentation: `legacy.rs` own
 Interaction mechanics remain independent from frontend presentation: `interactions.rs` owns dialogue, quest interactions, faction/NPC memory, and availability, while `bevy_interactions.rs` owns selection and rendering.
 
 See [`systems/ui.md`](systems/ui.md) for details.
+
+## Product-direction constraints
+
+- The simulation remains authoritative; visual presentation and input adapters do not decide gameplay outcomes.
+- Spatial gameplay is the intended primary mode for exploration and future real-time action combat, while text-based dialogue, records, and contextual feedback remain important.
+- The character’s plausible knowledge and ability to influence events constrain both simulation-facing information and command interfaces.
+- Keep world-persistent state distinct from character-specific state to support death, inheritance, and long-running campaigns.
+- Target desktop and mobile with platform-specific controls/presentation where practical, but do not represent an unvalidated platform as officially supported.
+- Single-player gameplay and local persistence should not depend on network services.
+
+These are design constraints, not a statement that every planned feature has already shipped.
 
 ## Dependency rules
 
