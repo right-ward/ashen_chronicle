@@ -10,7 +10,7 @@ The game is inspired by the atmosphere and themes of dark fantasy: dangerous roa
 - Character creation and inheritance
 - Exploration and travel
 - Threats and encounters
-- Turn-based combat
+- Current turn-based combat implementation (planned direction: real-time spatial action combat)
 - World reset and inheritance options on death
 - Persistent world changes
 - History/event tracking
@@ -55,6 +55,7 @@ ashen_chronicle
 │   │   ├── persistence.md
 │   │   └── ui.md
 │   ├── README.md
+│   ├── design-principles.md
 │   ├── architecture.md
 │   ├── development-plan-history.md
 │   └── roadmap-history.md
@@ -153,7 +154,7 @@ or run the built release directly:
 
 ### Release targets
 
-Official release builds target Android (x86_64, aarch64, armv7), Linux (x86_64, aarch64), macOS (aarch64 / Apple Silicon), and Windows (x86_64, aarch64). Intel macOS (x86_64-apple-darwin) is no longer an official release target.
+Official release builds target Android (x86_64, aarch64, armv7), Linux (x86_64, aarch64), macOS (aarch64 / Apple Silicon), and Windows (x86_64, aarch64). Intel macOS (x86_64-apple-darwin) is no longer an official release target. The longer-term product target includes desktop and mobile, with iOS support pursued where the toolchain and validation make it feasible; this does not imply iOS is an existing official release target. Single-player gameplay and local saves are intended to work fully offline, and updates should remain player-controlled where the distribution platform permits.
 
 Run the test suite with:
 
@@ -176,10 +177,13 @@ Quests, factions, NPCs, locations, combat, inventory, history, and world state s
 As the game grows, adding content should require less modification of the underlying engine.
 
 #### Presentation should enhance the world.
-The Bevy frontend is intended to improve readability and platform reach without replacing the text-first narrative and system design.
+Spatial gameplay is graphics-first: movement, exploration, atmosphere, and intended future action combat are presented spatially. Text remains essential for dialogue, descriptions, history, records, and contextual feedback. Preserve existing non-spatial actions where they fit; do not treat a text-first identity as a constraint on the intended game.
 
 #### Keep the project maintainable.
-Development should proceed incrementally, with the roadmap tracking completed milestones and semantic versioning tracking releases.
+Development should proceed incrementally, with the roadmap tracking delivered status and semantic versioning tracking releases. Current direction and implementation status are distinct; see [the canonical design principles](docs/design-principles.md).
+
+#### Character experience comes first.
+World simulation, economics, organisations, relationships, legacy, and procedural systems should create meaningful character experiences rather than turning the game into a remotely managed grand-strategy or maintenance simulator.
 
 ## Versioning
 
