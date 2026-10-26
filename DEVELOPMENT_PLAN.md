@@ -2,15 +2,18 @@
 
 ## Development Plan
 
-The game is a persistent-world, text-first RPG built around permadeath, world inheritance, data-driven content, and modular architecture.
+Ashen Chronicle is a character-focused dark-fantasy RPG built around exploration, relationships, consequential choices, death and legacy, and a persistent world. The intended direction is graphics-first spatial gameplay, with text retained for dialogue, records, descriptions, history, and contextual feedback. The existing implementation may lag behind this direction; consult the roadmap for current delivery status.
 
 ## Development priorities
 
-1. Preserve the persistent-world model: a character can die without erasing the world.
-2. Keep gameplay systems data-driven so content can expand without engine rewrites.
-3. Keep system boundaries explicit and avoid coupling unrelated responsibilities.
-4. Preserve save compatibility and world-state continuity as systems evolve.
-5. Build and test systems incrementally rather than introducing large coupled features.
+1. Make the character’s life, exploration, relationships, and adventures the primary experience.
+2. Preserve the persistent-world model: a character can die without erasing the world, and legacy can continue where appropriate.
+3. Build graphics-first spatial exploration and, over time, real-time spatial action combat without making every activity spatial or replacing useful existing systems indiscriminately.
+4. Keep gameplay systems data-driven and world simulation independent from presentation.
+5. Preserve save compatibility and world-state continuity as systems evolve.
+6. Keep system boundaries explicit and build/test incrementally instead of introducing large coupled features.
+
+The approved direction is recorded in [the canonical design principles](docs/design-principles.md). They supersede older text-first assumptions where the two conflict.
 
 ## Current architecture direction
 
@@ -35,9 +38,15 @@ Mod support should evolve incrementally:
 
 ## Long-term goals
 
-The project should grow from the current text-first RPG into a deeper persistent-world simulation without turning into a collection of tightly coupled special cases. Procedural generation, quests, events, progression, memory, remnants, presentation, and mod support should continue to build on the same clear ownership and data-driven foundations.
+The project should grow toward a deeper, graphics-first spatial RPG with a persistent simulation beneath the character-centred experience—not a text-first game with graphics merely added as decoration, and not a full grand-strategy or maintenance simulator. Procedural generation, quests, events, progression, memory, relationships, legacy, audiovisual feedback, and mod support should build on clear ownership and data-driven foundations. Real-time spatial combat is a future design direction; the current turn-based implementation remains the compatibility baseline until a deliberate migration.
 
 ## Working rules
+
+- Treat [docs/design-principles.md](docs/design-principles.md) as the product-direction authority when older prose conflicts.
+- Clearly distinguish desired direction from implemented capability and platform validation.
+- Core single-player gameplay and local saves should work offline; network services must remain optional.
+- Player choice should govern update installation wherever the delivery platform permits.
+
 
 - Every entity has a stable unique ID.
 - References use IDs rather than display names.
