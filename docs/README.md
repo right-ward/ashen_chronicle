@@ -4,7 +4,8 @@ This directory contains the project's detailed technical and historical document
 
 ## Structure
 
-- [`architecture.md`](architecture.md) — overall codebase architecture, module boundaries, responsibilities, and design rules.
+- [`design-principles.md`](design-principles.md) — canonical product direction across gameplay, simulation, interface, modding, technical foundations, accessibility, and platforms.
+- [`architecture.md`](architecture.md) — overall codebase architecture, module boundaries, responsibilities, and technical design rules.
 - [`systems/`](systems/) — documentation for individual game systems.
 - [`roadmap-history.md`](roadmap-history.md) — historical record of completed roadmap milestones.
 - [`development-plan-history.md`](development-plan-history.md) — historical record of the original development plan.
@@ -17,7 +18,7 @@ This directory contains the project's detailed technical and historical document
 
 ## Documentation rules
 
-Keep current guidance in the top-level documents and `docs/architecture.md` / `docs/systems/`.
+Keep current product direction in [`design-principles.md`](design-principles.md); implementation strategy in the top-level documents; and technical guidance in `docs/architecture.md` / `docs/systems/`. When old wording conflicts with the design principles, update it rather than treating historical assumptions as binding.
 
 Historical documents are preserved for reference and should generally not be edited retroactively.
 

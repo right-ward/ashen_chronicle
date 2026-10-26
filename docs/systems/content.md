@@ -28,7 +28,7 @@ Content loading validates duplicate IDs, broken references, event definitions, f
 
 ## Optional assets
 
-Content may reference optional ASCII portraits, location scene art, and item illustrations. Missing visual assets must not prevent the text-only game from running.
+Content may reference optional ASCII portraits, location scene art, and item illustrations. Missing optional visual assets must not crash the game or make content inaccessible. Use appropriate fallbacks while preserving the intended graphics-first presentation for spatial gameplay; text-only fallback is a resilience measure, not the product’s overall identity.
 
 ## Compatibility and runtime use
 
