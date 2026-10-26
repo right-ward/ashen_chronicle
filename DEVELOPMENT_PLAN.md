@@ -46,8 +46,6 @@ The project should grow toward a deeper, graphics-first spatial RPG with a persi
 - Clearly distinguish desired direction from implemented capability and platform validation.
 - Core single-player gameplay and local saves should work offline; network services must remain optional.
 - Player choice should govern update installation wherever the delivery platform permits.
-
-
 - Every entity has a stable unique ID.
 - References use IDs rather than display names.
 - Systems own their state and expose explicit mutation paths.
