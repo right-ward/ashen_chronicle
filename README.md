@@ -154,7 +154,7 @@ or run the built release directly:
 
 ### Release targets
 
-Official release builds target Android (x86_64, aarch64, armv7), Linux (x86_64, aarch64), macOS (aarch64 / Apple Silicon), and Windows (x86_64, aarch64). Intel macOS (x86_64-apple-darwin) is no longer an official release target. The longer-term product target includes desktop and mobile, with iOS support pursued where the toolchain and validation make it feasible; this does not imply iOS is an existing official release target. Single-player gameplay and local saves are intended to work fully offline, and updates should remain player-controlled where the distribution platform permits.
+Official release builds target Android (x86_64, aarch64, armv7), Linux (x86_64, aarch64), macOS (aarch64 / Apple Silicon), and Windows (x86_64, aarch64). Intel macOS (x86_64-apple-darwin) is no longer an official release target. The intended platform scope is desktop plus Android; iOS is not a target. Single-player gameplay and local saves are intended to work fully offline, and updates should remain player-controlled where the distribution platform permits.
 
 Run the test suite with:
 
