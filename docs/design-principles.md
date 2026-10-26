@@ -115,7 +115,7 @@ This document is the canonical record of the current product direction. It super
 ## VIII. Platform and release policy
 
 90. **Scalable hardware tiers.** Define realistic minimum and recommended hardware targets. Adapt rendering, effects, simulation frequency, and optional features to hardware capabilities while preserving the core experience across supported systems.
-91. **PC and mobile support.** Target desktop and mobile, including Windows, Linux, Android, and iOS where feasible. Adapt controls, layouts, rendering, and presentation to each platform instead of simply shrinking the desktop interface. Official build targets and validation status remain tracked separately in the roadmap.
+91. **PC and Android support.** Target desktop (Windows, Linux, and macOS where officially supported) and Android. Adapt controls, layouts, rendering, and presentation to each instead of simply shrinking the desktop interface. iOS is not a project target. Official build targets and validation status remain tracked separately in the roadmap.
 92. **Hybrid input support.** Support touch, mouse/keyboard, and controllers where practical, with platform-appropriate layouts and consistent underlying gameplay actions.
 93. **Fully offline-capable single-player.** The complete single-player experience—including core gameplay, simulation, and local saves—works without internet access. Connectivity may enable optional conveniences but must not be required for play.
 94. **Player-controlled updates.** Players decide when to download and install updates. Update delivery should respect that choice, avoid unexpectedly interrupting play, and work alongside save-compatibility safeguards.
@@ -123,7 +123,7 @@ This document is the canonical record of the current product direction. It super
 ## How to apply these principles
 
 - Treat this document as the current product-direction authority when older prose conflicts with it.
-- Distinguish intended direction from implemented status. Do not describe planned real-time spatial combat, complete iOS support, strict campaign mod lock-in, or other future goals as already delivered.
+- Distinguish intended direction from implemented status. Do not describe planned real-time spatial combat, strict campaign mod lock-in, or other future goals as already delivered.
 - Keep bounded implementation milestones small and testable. A milestone may intentionally defer a long-term principle without contradicting it.
 - Preserve useful existing systems when they fit the direction; change or replace them deliberately when they conflict. Avoid maintaining parallel implementations solely to preserve an outdated product description.
 - Use the roadmap for current state and delivery order, the development plan for implementation priorities, the architecture document for technical boundaries, and system documents for implementation detail.
