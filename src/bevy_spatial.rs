@@ -1098,9 +1098,10 @@ fn depth_for(position: Vec2) -> f32 {
 fn terrain_depth(terrain: Terrain, tile_center: Vec2) -> f32 {
     match terrain {
         Terrain::Floor | Terrain::Ash | Terrain::Rubble => GROUND_TERRAIN_DEPTH,
-        // A wall top's ground-contact line is the tile center. Favor the wall
-        // by a small tie-breaker when an actor's feet are on that same line.
-        Terrain::Wall => depth_for(tile_center) + PLAYER_DEPTH_OFFSET + WALL_TOP_DEPTH_BIAS,
+        // A wall top's ground-contact line is the tile center. Adjacent cells
+        // can share the same ground depth in this projection; favor the actor on
+        // that tie so the full top diamond does not hide a laterally adjacent player.
+        Terrain::Wall => depth_for(tile_center) + PLAYER_DEPTH_OFFSET - WALL_TOP_DEPTH_BIAS,
     }
 }
 
@@ -1359,6 +1360,10 @@ mod tests {
 
         assert!(depth_for_position(actor_behind_top) + PLAYER_DEPTH_OFFSET < top_depth);
         assert!(depth_for_position(actor_in_front_of_top) + PLAYER_DEPTH_OFFSET > top_depth);
+        assert!(
+            top_depth < depth_for_position(wall_center) + PLAYER_DEPTH_OFFSET,
+            "an actor and wall top at equal ground depth must render with the actor in front"
+        );
         assert!(depth_for_position(actor_behind_face) + PLAYER_DEPTH_OFFSET < face_depth);
         assert!(depth_for_position(actor_in_front_of_face) + PLAYER_DEPTH_OFFSET > face_depth);
     }
