@@ -12,7 +12,7 @@
 - Grid/world coordinates are authoritative for movement, collision, discovery, and persistence. Projected screen-space coordinates are presentation-only.
 - The fixed three-quarter projection maps the two grid axes onto opposing diagonal screen directions. Input directions are converted through the inverse projection so keyboard and touch share the same movement rules.
 - Sprite transforms are positioned from the ground-contact point plus a visual vertical offset. Actor depth follows the continuous ground position instead of snapping to a whole tile.
-- Floor, ash, and rubble diamonds are placed on a dedicated background depth layer so ground surfaces cannot draw over actors. Wall tops are sorted from their ground-contact line; wall faces are sorted from their front/base edge. This lets the wall occlude a character behind it while a character moving beyond the wall's base renders in front.
+- Floor, ash, and rubble diamonds are placed on a dedicated background depth layer so ground surfaces cannot draw over actors. Wall tops are sorted from their ground-contact line; wall faces are sorted from their front/base edge. This lets the wall occlude a character behind it while a character moving beyond the wall's base renders in front. When an actor and wall top share the same ground depth, the actor wins the tie so a wall's entire top diamond does not hide a character in an adjacent lateral position.
 - Wall tops extend upward beyond the floor diamond. Camera bounds account for that asymmetric vertical extent rather than expanding both vertical edges equally.
 
 ## Movement and interactions
@@ -45,7 +45,7 @@ This is not yet full room-aware camera behavior. Local maps currently have no ex
 
 ## Validation status and next gates
 
-Automated unit tests cover deterministic map generation, map serialization and backward-compatible defaults, reachable physical exits, projection offsets, inverse input mapping, basic continuous movement, blocked-terrain collision, interaction range/approach, dead-zone behavior, map-bound camera constraints, and UI icon fallbacks.
+Automated unit tests cover deterministic map generation, map serialization and backward-compatible defaults, reachable physical exits, projection offsets, inverse input mapping, basic continuous movement, blocked-terrain collision, interaction range/approach, dead-zone behavior, map-bound camera constraints, equal-depth wall-top ordering, and UI icon fallbacks.
 
 These tests are source-level coverage. They do not establish successful end-to-end play on desktop or Android; interactive testing and on-device verification are intentionally left to the repository owner.
 
