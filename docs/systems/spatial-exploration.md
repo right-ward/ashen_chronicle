@@ -2,7 +2,7 @@
 
 ## Responsibility boundaries
 
-`spatial.rs` owns renderer-neutral local-map data, terrain walkability, stable point-of-interest identity, deterministic generation, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
+`spatial.rs` owns renderer-neutral local-map data, terrain walkability and prop footprints, stable point-of-interest identity, deterministic generation, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
 
 `bevy_spatial.rs` adapts that model to the Bevy frontend. It owns angled projection, terrain and wall-face rendering, depth ordering, movement input from keyboard and touch controls, collision checks, camera follow, contextual interaction feedback, and synchronization with the active game state. The saved world remains authoritative for persistent maps; the active character owns the exact continuous position.
 
@@ -29,7 +29,7 @@ A contextual passage action appears only when the character is within interactio
 
 For now, using a physical passage returns to the normal gameplay screen, matching the existing `Leave` action. It does not yet transfer the character to the destination location because spatial maps are not implemented for every connected location. The destination ID is nevertheless retained in persistent map state so passage use can later enter a supported destination, with a suitable fallback for locations that do not yet have spatial maps.
 
-Older saved local maps without an `exits` field remain deserializable. On entry, missing/empty exit data is initialized from the current world location's connections.
+Older saved local maps without `exits` or `props` fields remain deserializable. Missing/empty exit data is initialized from the current world location's connections; prop-less saved maps retain their existing layout rather than being regenerated.
 
 ## Visual assets
 
