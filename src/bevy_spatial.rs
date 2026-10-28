@@ -1563,6 +1563,27 @@ mod tests {
     }
 
     #[test]
+    fn prop_footprints_block_interaction_line_of_sight() {
+        let mut map = generate_local_map(4, "location.prop_los_test", LocalMapConfig::default());
+        map.props.clear();
+        for x in 5..=9 {
+            assert!(map.set_terrain(GridPosition { x, y: 7 }, Terrain::Floor));
+        }
+        map.props.push(crate::spatial::SpatialProp {
+            id: "test.pillar".to_string(),
+            kind: SpatialPropKind::Pillar,
+            position: GridPosition { x: 7, y: 7 },
+        });
+
+        let start = Vec2::new(5.5, 7.5);
+        let target = Vec2::new(9.5, 7.5);
+        assert!(!has_line_of_sight(&map, start, target));
+
+        map.props.clear();
+        assert!(has_line_of_sight(&map, start, target));
+    }
+
+    #[test]
     fn angled_projection_offsets_neighboring_tiles_consistently() {
         let map = generate_local_map(4, "location.test", LocalMapConfig::default());
         let origin = map_to_world(Vec2::new(5.5, 5.5), Some(&map));
