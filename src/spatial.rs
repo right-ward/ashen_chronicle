@@ -505,8 +505,9 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
 fn carve_generated_floor(map: &mut LocalMap, position: GridPosition) {
     // Generated exit corridors are authoritative; remove any obstacle whose
     // footprint would overlap a required corridor cell.
+    let map_width = map.width;
     map.props
-        .retain(|prop| !prop.footprint_contains(position, map.width));
+        .retain(|prop| !prop.footprint_contains(position, map_width));
     let index = usize::from(position.y) * usize::from(map.width) + usize::from(position.x);
     if let Some(terrain) = map.terrain.get_mut(index) {
         *terrain = Terrain::Floor;
@@ -722,6 +723,9 @@ mod tests {
                 ));
                 for exit in &map.exits {
                     assert!(has_walkable_path(&map, map.entry, exit.position));
+                    assert!(!map.props.iter().any(|prop| {
+                        prop.footprint_contains(exit.position, map.width)
+                    }), "an exit corridor must clear blocking prop footprints");
                 }
 
                 let json = serde_json::to_string(&map).expect("map with passages should serialize");
