@@ -386,7 +386,7 @@ fn prop_candidates(map: &LocalMap, kind: SpatialPropKind) -> Vec<GridPosition> {
                 .all(|cell| map.terrain_at(*cell).is_some_and(Terrain::is_walkable));
 
             if terrain_walkable && !conflicts_with_route && !overlaps_prop {
-                candidates.push(position);
+                candidates.push(GridPosition { x, y });
             }
         }
     }
