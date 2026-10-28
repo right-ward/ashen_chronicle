@@ -149,7 +149,10 @@ impl LocalMap {
         self.terrain_at(position)
             .map(Terrain::is_walkable)
             .unwrap_or(false)
-            && !self.props.iter().any(|prop| prop.footprint_contains(position, self.width))
+            && !self
+                .props
+                .iter()
+                .any(|prop| prop.footprint_contains(position, self.width))
     }
 
     pub fn set_terrain(&mut self, position: GridPosition, terrain: Terrain) -> bool {
@@ -330,8 +333,7 @@ pub fn generate_local_map(
 /// entry-to-discovery route. Props are persisted and are not regenerated for
 /// an already established local map.
 fn populate_generated_props(map: &mut LocalMap, rng: &mut DeterministicRng) {
-    let target_count =
-        (usize::from(map.width) * usize::from(map.height) / 96).clamp(1, 5);
+    let target_count = (usize::from(map.width) * usize::from(map.height) / 96).clamp(1, 5);
 
     for index in 0..target_count {
         let mut kind = if index % 2 == 0 {
@@ -379,9 +381,9 @@ fn prop_candidates(map: &LocalMap, kind: SpatialPropKind) -> Vec<GridPosition> {
                     .iter()
                     .any(|prop| prop.footprint_contains(*cell, map.width))
             });
-            let terrain_walkable = footprint.iter().all(|cell| {
-                map.terrain_at(*cell).is_some_and(Terrain::is_walkable)
-            });
+            let terrain_walkable = footprint
+                .iter()
+                .all(|cell| map.terrain_at(*cell).is_some_and(Terrain::is_walkable));
 
             if terrain_walkable && !conflicts_with_route && !overlaps_prop {
                 candidates.push(position);
@@ -399,8 +401,7 @@ fn reserved_discovery_corridor(
     let Some(poi) = poi else {
         return false;
     };
-    let horizontal =
-        position.y == entry.y && position.x >= entry.x && position.x <= poi.x;
+    let horizontal = position.y == entry.y && position.x >= entry.x && position.x <= poi.x;
     let (first_y, last_y) = if entry.y <= poi.y {
         (entry.y, poi.y)
     } else {
@@ -598,8 +599,14 @@ mod tests {
         let b = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
         assert_eq!(a.props, b.props);
         assert!(!a.props.is_empty());
-        assert!(a.props.iter().any(|prop| prop.kind == SpatialPropKind::Pillar));
-        assert!(a.props.iter().any(|prop| prop.kind == SpatialPropKind::Table));
+        assert!(a
+            .props
+            .iter()
+            .any(|prop| prop.kind == SpatialPropKind::Pillar));
+        assert!(a
+            .props
+            .iter()
+            .any(|prop| prop.kind == SpatialPropKind::Table));
 
         for prop in &a.props {
             for offset_x in 0..prop.kind.footprint_width() {
@@ -607,10 +614,17 @@ mod tests {
                     x: prop.position.x + offset_x,
                     y: prop.position.y,
                 };
-                assert!(!a.is_walkable(occupied), "prop footprint must block {occupied:?}");
+                assert!(
+                    !a.is_walkable(occupied),
+                    "prop footprint must block {occupied:?}"
+                );
             }
         }
-        assert!(has_walkable_path(&a, a.entry, a.points_of_interest[0].position));
+        assert!(has_walkable_path(
+            &a,
+            a.entry,
+            a.points_of_interest[0].position
+        ));
     }
 
     #[test]
@@ -723,9 +737,12 @@ mod tests {
                 ));
                 for exit in &map.exits {
                     assert!(has_walkable_path(&map, map.entry, exit.position));
-                    assert!(!map.props.iter().any(|prop| {
-                        prop.footprint_contains(exit.position, map.width)
-                    }), "an exit corridor must clear blocking prop footprints");
+                    assert!(
+                        !map.props
+                            .iter()
+                            .any(|prop| { prop.footprint_contains(exit.position, map.width) }),
+                        "an exit corridor must clear blocking prop footprints"
+                    );
                 }
 
                 let json = serde_json::to_string(&map).expect("map with passages should serialize");
