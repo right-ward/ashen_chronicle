@@ -37,6 +37,12 @@ The first spatial pixel-art set lives under the selected game's `data/assets/spa
 
 The interface uses named PNG icons from `data/assets/icons/ui/` for actions, menu controls, conditions, records, combat choices, and the sun/moon treatment. Text separators and ordinary labels use simple ASCII punctuation instead of decorative glyphs that may be missing from the default font. Mods may provide their own images under `data/mods/<folder>/assets/` and reference them with `mod:<folder>/<relative-path>.png`.
 
+## Spatial HUD
+
+The local exploration screen keeps a compact character-status panel in the header. It reads the active character's name, level, current/maximum health, and current conditions directly from authoritative game state. The shared health-gauge primitive supplies both the blood-fill indicator and numeric values. The conditions line names active conditions and explicitly says when none are present. The location title and contextual feedback remain separate from this panel, and the Leave/action controls and Android-only virtual joystick retain their existing roles.
+
+This is the first HUD layer, not the complete reference layout. Combat telegraphs, enemy vitality, ability controls, a minimap/compass, and local ally orders are not implemented by this change.
+
 ## Camera behavior
 
 The camera uses a viewport-scaled dead zone: ordinary small player movements do not move the camera, while crossing the dead-zone edge shifts the target by only the excess distance. A smoothed follow approaches that target, and map bounds keep the viewport inside the projected map where possible. Maps smaller than the viewport are centered.

@@ -18,7 +18,7 @@ use crate::bevy_presentation::{
     self, BevyScreenRoot, GameplayInputQueue, NavigationState, ScreenId, UiButtonActivation,
 };
 use crate::input::InputEvent;
-use crate::model::{EntityId, ExplorationPosition, GameState};
+use crate::model::{Condition, EntityId, ExplorationPosition, GameState};
 use crate::spatial::{
     configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,
     LocalMapConfig, MapExit, Terrain,
@@ -757,6 +757,57 @@ fn render_spatial_screen(
         header,
         format!("{location_name} - ASHEN GROUND"),
     );
+
+    // Keep essential character status anchored to the spatial view. All values
+    // come from the authoritative character, not a parallel HUD state.
+    let character = lifecycle
+        .session
+        .as_ref()
+        .map(|session| &session.state.character);
+    let (character_name, character_level, current_hp, maximum_hp, condition_summary) = character
+        .map(|character| {
+            (
+                character.name.clone(),
+                character.level,
+                character.hp,
+                character.max_hp,
+                format_condition_summary(&character.conditions),
+            )
+        })
+        .unwrap_or_else(|| {
+            (
+                "Character".to_string(),
+                1,
+                0,
+                0,
+                "Conditions: unavailable".to_string(),
+            )
+        });
+    let vitals = commands
+        .spawn((
+            Node {
+                width: px(250),
+                max_width: percent(36),
+                min_width: px(176),
+                flex_direction: FlexDirection::Column,
+                row_gap: px(4),
+                padding: UiRect::all(px(8)),
+                border: UiRect::all(px(1)),
+                ..default()
+            },
+            BorderColor::all(bevy_presentation::THEME_BORDER),
+            BackgroundColor(bevy_presentation::THEME_SURFACE),
+        ))
+        .id();
+    commands.entity(header).add_child(vitals);
+    spawn_label(
+        &mut commands,
+        vitals,
+        format!("{character_name} / LVL {character_level}"),
+    );
+    bevy_presentation::spawn_health_gauge(&mut commands, vitals, current_hp, maximum_hp);
+    spawn_compact_label(&mut commands, vitals, condition_summary);
+
     spawn_control(
         &mut commands,
         header,
@@ -999,6 +1050,34 @@ fn spawn_label(commands: &mut Commands, parent: Entity, label: impl Into<String>
         ))
         .id();
     commands.entity(parent).add_child(label);
+}
+
+fn spawn_compact_label(commands: &mut Commands, parent: Entity, label: impl Into<String>) {
+    let label = commands
+        .spawn((
+            Text::new(label.into()),
+            TextFont::from_font_size(FontSize::VMin(1.8)),
+            TextColor(bevy_presentation::THEME_MUTED),
+            Node {
+                width: percent(100),
+                ..default()
+            },
+        ))
+        .id();
+    commands.entity(parent).add_child(label);
+}
+
+fn format_condition_summary(conditions: &[Condition]) -> String {
+    if conditions.is_empty() {
+        "Conditions: none".to_string()
+    } else {
+        let names = conditions
+            .iter()
+            .map(|condition| condition.name.as_str())
+            .collect::<Vec<_>>()
+            .join(", ");
+        format!("Conditions: {names}")
+    }
 }
 
 fn update_spatial_context_prompt(
@@ -1319,6 +1398,19 @@ fn is_position_walkable(map: &LocalMap, position: Vec2) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn spatial_hud_condition_summary_has_a_clear_empty_state() {
+        assert_eq!(format_condition_summary(&[]), "Conditions: none");
+        let conditions = vec![
+            Condition::new("Wounded", 3, 1),
+            Condition::new("Exhausted", 1, 1),
+        ];
+        assert_eq!(
+            format_condition_summary(&conditions),
+            "Conditions: Wounded, Exhausted"
+        );
+    }
 
     #[test]
     fn moving_sprite_depth_tracks_continuous_ground_position() {
