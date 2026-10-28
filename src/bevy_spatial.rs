@@ -760,27 +760,29 @@ fn render_spatial_screen(
 
     // Keep essential character status anchored to the spatial view. All values
     // come from the authoritative character, not a parallel HUD state.
-    let character = lifecycle.session.as_ref().map(|session| &session.state.character);
-    let (character_name, character_level, current_hp, maximum_hp, condition_summary) =
-        character
-            .map(|character| {
-                (
-                    character.name.clone(),
-                    character.level,
-                    character.hp,
-                    character.max_hp,
-                    format_condition_summary(&character.conditions),
-                )
-            })
-            .unwrap_or_else(|| {
-                (
-                    "Character".to_string(),
-                    1,
-                    0,
-                    0,
-                    "Conditions: unavailable".to_string(),
-                )
-            });
+    let character = lifecycle
+        .session
+        .as_ref()
+        .map(|session| &session.state.character);
+    let (character_name, character_level, current_hp, maximum_hp, condition_summary) = character
+        .map(|character| {
+            (
+                character.name.clone(),
+                character.level,
+                character.hp,
+                character.max_hp,
+                format_condition_summary(&character.conditions),
+            )
+        })
+        .unwrap_or_else(|| {
+            (
+                "Character".to_string(),
+                1,
+                0,
+                0,
+                "Conditions: unavailable".to_string(),
+            )
+        });
     let vitals = commands
         .spawn((
             Node {
@@ -803,12 +805,7 @@ fn render_spatial_screen(
         vitals,
         format!("{character_name} / LVL {character_level}"),
     );
-    bevy_presentation::spawn_health_gauge(
-        &mut commands,
-        vitals,
-        current_hp,
-        maximum_hp,
-    );
+    bevy_presentation::spawn_health_gauge(&mut commands, vitals, current_hp, maximum_hp);
     spawn_compact_label(&mut commands, vitals, condition_summary);
 
     spawn_control(
