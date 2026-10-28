@@ -51,7 +51,7 @@ This is not yet full room-aware camera behavior. Local maps currently have no ex
 
 ## Validation status and next gates
 
-Automated unit tests cover deterministic map generation, map serialization and backward-compatible defaults, reachable physical exits, projection offsets, inverse input mapping, basic continuous movement, blocked-terrain collision, interaction range/approach, dead-zone behavior, map-bound camera constraints, equal-depth wall-top ordering, and UI icon fallbacks.
+Automated unit tests cover deterministic map/prop generation, map serialization and backward-compatible defaults, reachable physical exits with prop-free corridors, projection offsets, inverse input mapping, basic continuous movement, terrain/prop-footprint collision, interaction range and prop-blocked line of sight, dead-zone behavior, map-bound camera constraints, wall-top/prop depth ordering, selected-folder PNG dimensions, and UI icon fallbacks.
 
 These tests are source-level coverage. They do not establish successful end-to-end play on desktop or Android; interactive testing and on-device verification are intentionally left to the repository owner.
 
