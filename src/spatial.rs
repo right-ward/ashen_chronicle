@@ -363,7 +363,6 @@ fn prop_candidates(map: &LocalMap, kind: SpatialPropKind) -> Vec<GridPosition> {
 
     for y in 1..map.height.saturating_sub(1) {
         for x in 1..map.width.saturating_sub(1) {
-            let position = GridPosition { x, y };
             let last_x = x.saturating_add(kind.footprint_width().saturating_sub(1));
             if last_x >= map.width.saturating_sub(1) {
                 continue;
