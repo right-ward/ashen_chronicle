@@ -111,6 +111,10 @@ pub struct LocalMap {
     /// Stable campaign/content location ID, not its display name.
     pub location_id: String,
     pub generator_version: u32,
+    /// Built-in layout used when the persistent map was first generated.
+    /// Missing in older saves; the saved geometry itself remains authoritative.
+    #[serde(default)]
+    pub layout_id: Option<String>,
     pub seed: u64,
     pub width: u16,
     pub height: u16,
@@ -264,6 +268,14 @@ pub fn generate_local_map_with_layout(
     let mut rng = DeterministicRng::new(seed);
     let width = config.width;
     let height = config.height;
+    let layout_id = if layout == Some("shrine_chamber")
+        && width >= DEFAULT_MAP_WIDTH
+        && height >= 12
+    {
+        Some("shrine_chamber".to_string())
+    } else {
+        None
+    };
     let entry = GridPosition {
         x: 1,
         y: height / 2,
@@ -318,6 +330,7 @@ pub fn generate_local_map_with_layout(
     let mut map = LocalMap {
         location_id: location_id.clone(),
         generator_version: LOCAL_MAP_GENERATOR_VERSION,
+        layout_id,
         seed,
         width,
         height,
@@ -337,7 +350,7 @@ pub fn generate_local_map_with_layout(
         props: Vec::new(),
     };
     populate_generated_props(&mut map, &mut rng);
-    if layout == Some("shrine_chamber") {
+    if map.layout_id.as_deref() == Some("shrine_chamber") {
         apply_shrine_chamber(&mut map);
     }
     map
@@ -525,7 +538,112 @@ fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
     (1 + (slot + 1) * usable / (count + 1)) as u16
 }
 
+fn carve_shrine_chamber_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) -> bool {
+/// Route passages around the authored chamber so extra graph connections do
+/// not punch arbitrary holes through its walls or remove its furniture.
+fn carve_shrine_chamber_exit_corridor(
+    map: &mut LocalMap,
+    exit: GridPosition,
+    side: usize,
+) -> bool {
+    let (left, right, top, bottom) = (2_u16, 7_u16, 2_u16, 7_u16);
+    let bypass_x = right + 1;
+    let entry = map.entry;
+    let mut position = exit;
+    carve_generated_floor(map, position);
+
+    match side {
+        // East passages aligned with the chamber detour around its east wall.
+        0 if (top..=bottom).contains(&exit.y) => {
+            let row = position.y;
+            carve_toward(map, &mut position, GridPosition { x: bypass_x, y: row });
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        // North/south passages aligned with the room bypass its right side.
+        2 if (left..=right).contains(&exit.x) => {
+            let column = position.x;
+            carve_toward(map, &mut position, GridPosition { x: column, y: 1 });
+            carve_toward(map, &mut position, GridPosition { x: bypass_x, y: 1 });
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        3 if (left..=right).contains(&exit.x) => {
+            let column = position.x;
+            let bypass_y = map.height - 2;
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: column,
+                    y: bypass_y,
+                },
+            );
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: bypass_y,
+                },
+            );
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn carve_toward(map: &mut LocalMap, position: &mut GridPosition, target: GridPosition) {
+    while position.x != target.x {
+        position.x = if position.x > target.x {
+            position.x - 1
+        } else {
+            position.x + 1
+        };
+        carve_generated_floor(map, *position);
+    }
+    while position.y != target.y {
+        position.y = if position.y > target.y {
+            position.y - 1
+        } else {
+            position.y + 1
+        };
+        carve_generated_floor(map, *position);
+    }
+}
+
 fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
+    if map.layout_id.as_deref() == Some("shrine_chamber")
+        && carve_shrine_chamber_exit_corridor(map, exit, side)
+    {
+        return;
+    }
+
     let mut position = exit;
     carve_generated_floor(map, position);
     match side {
@@ -785,6 +903,10 @@ mod tests {
             let targets = (0..target_count).map(|index| 100 + index as u64).collect::<Vec<_>>();
             configure_map_exits(&mut map, &targets);
             assert!(has_walkable_path(&map, map.entry, map.points_of_interest[0].position));
+            assert_eq!(map.terrain_at(GridPosition { x: 2, y: 5 }), Some(Terrain::Wall));
+            assert_eq!(map.terrain_at(GridPosition { x: 7, y: 5 }), Some(Terrain::Wall));
+            assert!(map.props.iter().any(|prop| prop.id.ends_with(".room.pillar")));
+            assert!(map.props.iter().any(|prop| prop.id.ends_with(".room.table")));
             for exit in &map.exits {
                 assert!(has_walkable_path(&map, map.entry, exit.position));
             }
