@@ -20,8 +20,8 @@ use crate::bevy_presentation::{
 use crate::input::InputEvent;
 use crate::model::{Condition, EntityId, ExplorationPosition, GameState};
 use crate::spatial::{
-    configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,
-    LocalMapConfig, MapExit, SpatialPropKind, Terrain,
+    configure_map_exits, generate_local_map_with_layout, ExplorationSession, GridPosition,
+    LocalMap, LocalMapConfig, MapExit, SpatialPropKind, Terrain,
 };
 
 const TILE_HALF_WIDTH: f32 = 24.0;
@@ -153,7 +153,12 @@ pub(crate) fn enter(
         .find(|map| map.location_id == location_id)
         .cloned()
         .unwrap_or_else(|| {
-            generate_local_map(world_seed, location_id.clone(), LocalMapConfig::default())
+            generate_local_map_with_layout(
+                world_seed,
+                location_id.clone(),
+                LocalMapConfig::default(),
+                location.spatial_layout.as_deref(),
+            )
         });
     // Migrate older saved maps without exits and configure new maps from the
     // actual world graph. Passage targets are stored as stable world IDs.
