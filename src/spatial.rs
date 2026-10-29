@@ -555,7 +555,14 @@ fn carve_shrine_chamber_exit_corridor(
         // East passages aligned with the chamber detour around its east wall.
         0 if (top..=bottom).contains(&exit.y) => {
             let row = position.y;
-            carve_toward(map, &mut position, GridPosition { x: bypass_x, y: row });
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: row,
+                },
+            );
             carve_toward(
                 map,
                 &mut position,
@@ -823,10 +830,12 @@ mod tests {
         let object = old_value.as_object_mut().expect("map should be an object");
         object.remove("props");
         object.remove("exits");
+        object.remove("layout_id");
         let restored_old: LocalMap =
             serde_json::from_value(old_value).expect("pre-prop map should remain loadable");
         assert!(restored_old.props.is_empty());
         assert!(restored_old.exits.is_empty());
+        assert!(restored_old.layout_id.is_none());
     }
 
     #[test]
@@ -864,14 +873,37 @@ mod tests {
         assert_eq!(map, repeated);
 
         // The room has an enclosing wall ring with one explicit opening.
-        assert_eq!(map.terrain_at(GridPosition { x: 2, y: 2 }), Some(Terrain::Wall));
-        assert_eq!(map.terrain_at(GridPosition { x: 3, y: 2 }), Some(Terrain::Wall));
-        assert_eq!(map.terrain_at(GridPosition { x: 3, y: 4 }), Some(Terrain::Floor));
-        assert_eq!(map.terrain_at(GridPosition { x: 5, y: 7 }), Some(Terrain::Floor));
-        assert_eq!(map.terrain_at(GridPosition { x: 4, y: 7 }), Some(Terrain::Wall));
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 2, y: 2 }),
+            Some(Terrain::Wall)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 3, y: 2 }),
+            Some(Terrain::Wall)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 3, y: 4 }),
+            Some(Terrain::Floor)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 5, y: 7 }),
+            Some(Terrain::Floor)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 4, y: 7 }),
+            Some(Terrain::Wall)
+        );
 
-        let pillar = map.props.iter().find(|prop| prop.id.ends_with(".room.pillar")).unwrap();
-        let table = map.props.iter().find(|prop| prop.id.ends_with(".room.table")).unwrap();
+        let pillar = map
+            .props
+            .iter()
+            .find(|prop| prop.id.ends_with(".room.pillar"))
+            .unwrap();
+        let table = map
+            .props
+            .iter()
+            .find(|prop| prop.id.ends_with(".room.table"))
+            .unwrap();
         assert_eq!(pillar.position, GridPosition { x: 3, y: 5 });
         assert_eq!(table.position, GridPosition { x: 5, y: 5 });
         assert!(!map.is_walkable(pillar.position));
@@ -902,10 +934,22 @@ mod tests {
             let targets = (0..target_count).map(|index| 100 + index as u64).collect::<Vec<_>>();
             configure_map_exits(&mut map, &targets);
             assert!(has_walkable_path(&map, map.entry, map.points_of_interest[0].position));
-            assert_eq!(map.terrain_at(GridPosition { x: 2, y: 5 }), Some(Terrain::Wall));
-            assert_eq!(map.terrain_at(GridPosition { x: 7, y: 5 }), Some(Terrain::Wall));
-            assert!(map.props.iter().any(|prop| prop.id.ends_with(".room.pillar")));
-            assert!(map.props.iter().any(|prop| prop.id.ends_with(".room.table")));
+            assert_eq!(
+                map.terrain_at(GridPosition { x: 2, y: 5 }),
+                Some(Terrain::Wall)
+            );
+            assert_eq!(
+                map.terrain_at(GridPosition { x: 7, y: 5 }),
+                Some(Terrain::Wall)
+            );
+            assert!(map
+                .props
+                .iter()
+                .any(|prop| prop.id.ends_with(".room.pillar")));
+            assert!(map
+                .props
+                .iter()
+                .any(|prop| prop.id.ends_with(".room.table")));
             for exit in &map.exits {
                 assert!(has_walkable_path(&map, map.entry, exit.position));
             }
