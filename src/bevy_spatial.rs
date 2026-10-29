@@ -1456,6 +1456,7 @@ fn is_position_walkable(map: &LocalMap, position: Vec2) -> bool {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::spatial::generate_local_map;
 
     #[test]
     fn spatial_hud_condition_summary_has_a_clear_empty_state() {
