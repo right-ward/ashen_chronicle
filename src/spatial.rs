@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 
 use crate::rng::DeterministicRng;
 
-pub const LOCAL_MAP_GENERATOR_VERSION: u32 = 1;
+pub const LOCAL_MAP_GENERATOR_VERSION: u32 = 2;
 pub const DEFAULT_MAP_WIDTH: u16 = 24;
 pub const DEFAULT_MAP_HEIGHT: u16 = 16;
 const MIN_MAP_DIMENSION: u16 = 8;
@@ -54,6 +54,45 @@ pub struct TerrainChange {
     pub terrain: Terrain,
 }
 
+/// Static environmental props supported by the first spatial-rendering slice.
+#[derive(Debug, Clone, Copy, PartialEq, Eq, Serialize, Deserialize)]
+#[serde(rename_all = "snake_case")]
+pub enum SpatialPropKind {
+    Pillar,
+    Table,
+}
+
+impl SpatialPropKind {
+    /// Footprint width measured in local-map cells; props occupy one grid row.
+    pub fn footprint_width(self) -> u16 {
+        match self {
+            Self::Pillar => 1,
+            Self::Table => 2,
+        }
+    }
+}
+
+/// Persistent prop anchor. A table's position is the left-most cell of its
+/// two-cell footprint; a pillar occupies its single anchor cell.
+#[derive(Debug, Clone, PartialEq, Eq, Serialize, Deserialize)]
+pub struct SpatialProp {
+    pub id: String,
+    pub kind: SpatialPropKind,
+    pub position: GridPosition,
+}
+
+impl SpatialProp {
+    pub fn occupies(&self, position: GridPosition) -> bool {
+        position.y == self.position.y
+            && position.x >= self.position.x
+            && position.x < self.position.x.saturating_add(self.kind.footprint_width())
+    }
+
+    pub fn footprint_contains(&self, position: GridPosition, map_width: u16) -> bool {
+        self.occupies(position) && position.x < map_width
+    }
+}
+
 /// A physical passage at the edge of a local map. The destination uses the
 /// persistent world location ID so it can later connect directly to the world
 /// graph without relying on display names.
@@ -87,6 +126,9 @@ pub struct LocalMap {
     pub discovered_tiles: Vec<bool>,
     #[serde(default)]
     pub terrain_changes: Vec<TerrainChange>,
+    /// Persistent static props and their collision footprints. Missing in older saves.
+    #[serde(default)]
+    pub props: Vec<SpatialProp>,
 }
 
 impl LocalMap {
@@ -107,6 +149,10 @@ impl LocalMap {
         self.terrain_at(position)
             .map(Terrain::is_walkable)
             .unwrap_or(false)
+            && !self
+                .props
+                .iter()
+                .any(|prop| prop.footprint_contains(position, self.width))
     }
 
     pub fn set_terrain(&mut self, position: GridPosition, terrain: Terrain) -> bool {
@@ -258,7 +304,7 @@ pub fn generate_local_map(
     }
 
     let discovered_tiles = vec![false; terrain.len()];
-    LocalMap {
+    let mut map = LocalMap {
         location_id: location_id.clone(),
         generator_version: LOCAL_MAP_GENERATOR_VERSION,
         seed,
@@ -277,7 +323,92 @@ pub fn generate_local_map(
         exits: Vec::new(),
         discovered_tiles,
         terrain_changes: Vec::new(),
+        props: Vec::new(),
+    };
+    populate_generated_props(&mut map, &mut rng);
+    map
+}
+
+/// Add a sparse deterministic set of props outside the guaranteed
+/// entry-to-discovery route. Props are persisted and are not regenerated for
+/// an already established local map.
+fn populate_generated_props(map: &mut LocalMap, rng: &mut DeterministicRng) {
+    let target_count = (usize::from(map.width) * usize::from(map.height) / 96).clamp(1, 5);
+
+    for index in 0..target_count {
+        let mut kind = if index % 2 == 0 {
+            SpatialPropKind::Pillar
+        } else {
+            SpatialPropKind::Table
+        };
+        let mut candidates = prop_candidates(map, kind);
+        if candidates.is_empty() && kind == SpatialPropKind::Table {
+            kind = SpatialPropKind::Pillar;
+            candidates = prop_candidates(map, kind);
+        }
+        if candidates.is_empty() {
+            break;
+        }
+
+        let position = candidates[rng.gen_range(0..candidates.len())];
+        map.props.push(SpatialProp {
+            id: format!("{}.prop.{index}", map.location_id),
+            kind,
+            position,
+        });
     }
+}
+
+fn prop_candidates(map: &LocalMap, kind: SpatialPropKind) -> Vec<GridPosition> {
+    let poi = map.points_of_interest.first().map(|poi| poi.position);
+    let mut candidates = Vec::new();
+
+    for y in 1..map.height.saturating_sub(1) {
+        for x in 1..map.width.saturating_sub(1) {
+            let last_x = x.saturating_add(kind.footprint_width().saturating_sub(1));
+            if last_x >= map.width.saturating_sub(1) {
+                continue;
+            }
+
+            let footprint = (x..=last_x)
+                .map(|cell_x| GridPosition { x: cell_x, y })
+                .collect::<Vec<_>>();
+            let conflicts_with_route = footprint
+                .iter()
+                .any(|cell| reserved_discovery_corridor(map.entry, poi, *cell));
+            let overlaps_prop = footprint.iter().any(|cell| {
+                map.props
+                    .iter()
+                    .any(|prop| prop.footprint_contains(*cell, map.width))
+            });
+            let terrain_walkable = footprint
+                .iter()
+                .all(|cell| map.terrain_at(*cell).is_some_and(Terrain::is_walkable));
+
+            if terrain_walkable && !conflicts_with_route && !overlaps_prop {
+                candidates.push(GridPosition { x, y });
+            }
+        }
+    }
+    candidates
+}
+
+fn reserved_discovery_corridor(
+    entry: GridPosition,
+    poi: Option<GridPosition>,
+    position: GridPosition,
+) -> bool {
+    let Some(poi) = poi else {
+        return false;
+    };
+    let horizontal = position.y == entry.y && position.x >= entry.x && position.x <= poi.x;
+    let (first_y, last_y) = if entry.y <= poi.y {
+        (entry.y, poi.y)
+    } else {
+        (poi.y, entry.y)
+    };
+    let vertical = position.x == poi.x && position.y >= first_y && position.y <= last_y;
+    horizontal || vertical
 }
 
 /// Place a physical map-edge passage for each connected world location.
@@ -373,6 +504,11 @@ fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
 }
 
 fn carve_generated_floor(map: &mut LocalMap, position: GridPosition) {
+    // Generated exit corridors are authoritative; remove any obstacle whose
+    // footprint would overlap a required corridor cell.
+    let map_width = map.width;
+    map.props
+        .retain(|prop| !prop.footprint_contains(position, map_width));
     let index = usize::from(position.y) * usize::from(map.width) + usize::from(position.x);
     if let Some(terrain) = map.terrain.get_mut(index) {
         *terrain = Terrain::Floor;
@@ -455,6 +591,58 @@ mod tests {
         let b = generate_local_map(42, "location.ashen_gate", LocalMapConfig::default());
         assert_ne!(a.seed, b.seed);
         assert_ne!(a, b);
+    }
+
+    #[test]
+    fn generated_props_are_deterministic_and_block_their_footprints() {
+        let a = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
+        let b = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
+        assert_eq!(a.props, b.props);
+        assert!(!a.props.is_empty());
+        assert!(a
+            .props
+            .iter()
+            .any(|prop| prop.kind == SpatialPropKind::Pillar));
+        assert!(a
+            .props
+            .iter()
+            .any(|prop| prop.kind == SpatialPropKind::Table));
+
+        for prop in &a.props {
+            for offset_x in 0..prop.kind.footprint_width() {
+                let occupied = GridPosition {
+                    x: prop.position.x + offset_x,
+                    y: prop.position.y,
+                };
+                assert!(
+                    !a.is_walkable(occupied),
+                    "prop footprint must block {occupied:?}"
+                );
+            }
+        }
+        assert!(has_walkable_path(
+            &a,
+            a.entry,
+            a.points_of_interest[0].position
+        ));
+    }
+
+    #[test]
+    fn props_round_trip_and_older_saves_default_to_no_props() {
+        let map = generate_local_map(12, "location.old_shrine", LocalMapConfig::default());
+        let json = serde_json::to_string(&map).expect("map with props should serialize");
+        let restored: LocalMap =
+            serde_json::from_str(&json).expect("map with props should deserialize");
+        assert_eq!(restored.props, map.props);
+
+        let mut old_value = serde_json::to_value(&map).expect("map should serialize");
+        let object = old_value.as_object_mut().expect("map should be an object");
+        object.remove("props");
+        object.remove("exits");
+        let restored_old: LocalMap =
+            serde_json::from_value(old_value).expect("pre-prop map should remain loadable");
+        assert!(restored_old.props.is_empty());
+        assert!(restored_old.exits.is_empty());
     }
 
     #[test]
@@ -549,6 +737,12 @@ mod tests {
                 ));
                 for exit in &map.exits {
                     assert!(has_walkable_path(&map, map.entry, exit.position));
+                    assert!(
+                        !map.props
+                            .iter()
+                            .any(|prop| { prop.footprint_contains(exit.position, map.width) }),
+                        "an exit corridor must clear blocking prop footprints"
+                    );
                 }
 
                 let json = serde_json::to_string(&map).expect("map with passages should serialize");
@@ -558,19 +752,6 @@ mod tests {
                 assert_eq!(restored.terrain, map.terrain);
             }
         }
-    }
-
-    #[test]
-    fn older_local_map_data_defaults_to_no_passages() {
-        let map = generate_local_map(42, "location.old_shrine", LocalMapConfig::default());
-        let mut value = serde_json::to_value(&map).expect("map should serialize");
-        value
-            .as_object_mut()
-            .expect("map should be an object")
-            .remove("exits");
-        let restored: LocalMap =
-            serde_json::from_value(value).expect("old map data should deserialize");
-        assert!(restored.exits.is_empty());
     }
 
     #[test]

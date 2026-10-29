@@ -21,7 +21,7 @@ use crate::input::InputEvent;
 use crate::model::{Condition, EntityId, ExplorationPosition, GameState};
 use crate::spatial::{
     configure_map_exits, generate_local_map, ExplorationSession, GridPosition, LocalMap,
-    LocalMapConfig, MapExit, Terrain,
+    LocalMapConfig, MapExit, SpatialPropKind, Terrain,
 };
 
 const TILE_HALF_WIDTH: f32 = 24.0;
@@ -93,6 +93,7 @@ struct SpatialRenderAssets {
     player_image: Option<Handle<Image>>,
     passage_image: Option<Handle<Image>>,
     poi_image: Option<Handle<Image>>,
+    prop_images: [Option<Handle<Image>>; 2],
 }
 
 #[derive(Component, Clone, Copy)]
@@ -223,6 +224,10 @@ fn setup_spatial_render_assets(mut commands: Commands, mut images: ResMut<Assets
     let player_image = load_spatial_image(&mut images, "spatial/player_ash_warden.png");
     let passage_image = load_spatial_image(&mut images, "spatial/passage.png");
     let poi_image = load_spatial_image(&mut images, "icons/ui/investigate.png");
+    let prop_images = [
+        load_spatial_image(&mut images, "spatial/prop_pillar.png"),
+        load_spatial_image(&mut images, "spatial/prop_table.png"),
+    ];
 
     commands.insert_resource(SpatialRenderAssets {
         tile_images,
@@ -230,6 +235,7 @@ fn setup_spatial_render_assets(mut commands: Commands, mut images: ResMut<Assets
         player_image,
         passage_image,
         poi_image,
+        prop_images,
     });
 }
 
@@ -646,6 +652,47 @@ fn render_spatial_screen(
                 ));
             }
         }
+    }
+
+    for prop in &map.props {
+        let (image_index, ground_position, sprite_size) = match prop.kind {
+            SpatialPropKind::Pillar => (
+                0,
+                Vec2::new(
+                    f32::from(prop.position.x) + 0.5,
+                    f32::from(prop.position.y) + 0.5,
+                ),
+                Vec2::new(32.0, 40.0),
+            ),
+            SpatialPropKind::Table => (
+                1,
+                Vec2::new(
+                    f32::from(prop.position.x) + 1.0,
+                    f32::from(prop.position.y) + 0.5,
+                ),
+                Vec2::new(72.0, 48.0),
+            ),
+        };
+        let Some(image) = assets.prop_images[image_index].clone() else {
+            continue;
+        };
+        let projected = map_to_world(ground_position, Some(map));
+        let mut sprite = Sprite::from_image(image);
+        sprite.custom_size = Some(sprite_size);
+        sprite.color = if map.is_tile_discovered(prop.position) {
+            Color::WHITE
+        } else {
+            terrain_tint(false)
+        };
+        commands.spawn((
+            SpatialWorldEntity,
+            sprite,
+            Transform::from_xyz(
+                projected.x,
+                projected.y + sprite_size.y * 0.5,
+                prop_depth(ground_position),
+            ),
+        ));
     }
 
     for exit in &map.exits {
@@ -1190,6 +1237,12 @@ fn wall_face_depth(tile_center: Vec2) -> f32 {
     depth_for(tile_center + Vec2::splat(0.5)) + PLAYER_DEPTH_OFFSET + WALL_FACE_DEPTH_BIAS
 }
 
+/// Props sort by their ground-contact line, like moving actors. The small
+/// negative bias gives the player priority on an exact depth tie.
+fn prop_depth(ground_position: Vec2) -> f32 {
+    depth_for(ground_position) + PLAYER_DEPTH_OFFSET - WALL_TOP_DEPTH_BIAS
+}
+
 /// Moving actors sort by their continuous ground-contact position. Ground
 /// terrain uses its own background layer, so smooth depth changes cannot put
 /// the player behind a floor diamond while crossing a tile.
@@ -1471,6 +1524,8 @@ mod tests {
             ("spatial/passage.png", 24, 32),
             ("spatial/wall_face_left.png", 24, 36),
             ("spatial/wall_face_right.png", 24, 36),
+            ("spatial/prop_pillar.png", 32, 40),
+            ("spatial/prop_table.png", 72, 48),
         ] {
             let path = std::path::Path::new("data/assets").join(reference);
             let bytes = std::fs::read(&path)
@@ -1493,6 +1548,39 @@ mod tests {
                 "{reference} height"
             );
         }
+    }
+
+    #[test]
+    fn prop_depth_occludes_actors_behind_but_not_ahead_or_at_equal_depth() {
+        let prop_position = Vec2::new(8.5, 8.5);
+        let prop_z = prop_depth(prop_position);
+        let behind = prop_position - Vec2::splat(0.2);
+        let ahead = prop_position + Vec2::splat(0.2);
+
+        assert!(depth_for_position(behind) + PLAYER_DEPTH_OFFSET < prop_z);
+        assert!(depth_for_position(ahead) + PLAYER_DEPTH_OFFSET > prop_z);
+        assert!(depth_for_position(prop_position) + PLAYER_DEPTH_OFFSET > prop_z);
+    }
+
+    #[test]
+    fn prop_footprints_block_interaction_line_of_sight() {
+        let mut map = generate_local_map(4, "location.prop_los_test", LocalMapConfig::default());
+        map.props.clear();
+        for x in 5..=9 {
+            assert!(map.set_terrain(GridPosition { x, y: 7 }, Terrain::Floor));
+        }
+        map.props.push(crate::spatial::SpatialProp {
+            id: "test.pillar".to_string(),
+            kind: SpatialPropKind::Pillar,
+            position: GridPosition { x: 7, y: 7 },
+        });
+
+        let start = Vec2::new(5.5, 7.5);
+        let target = Vec2::new(9.5, 7.5);
+        assert!(!has_line_of_sight(&map, start, target));
+
+        map.props.clear();
+        assert!(has_line_of_sight(&map, start, target));
     }
 
     #[test]

@@ -2,7 +2,7 @@
 
 ## Responsibility boundaries
 
-`spatial.rs` owns renderer-neutral local-map data, terrain walkability, stable point-of-interest identity, deterministic generation, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
+`spatial.rs` owns renderer-neutral local-map data, terrain walkability and prop footprints, stable point-of-interest identity, deterministic generation, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
 
 `bevy_spatial.rs` adapts that model to the Bevy frontend. It owns angled projection, terrain and wall-face rendering, depth ordering, movement input from keyboard and touch controls, collision checks, camera follow, contextual interaction feedback, and synchronization with the active game state. The saved world remains authoritative for persistent maps; the active character owns the exact continuous position.
 
@@ -17,7 +17,7 @@
 
 ## Movement and interactions
 
-Movement uses a small ground-space collision footprint and resolves the two grid axes separately, allowing movement to slide along a blocked edge. Walls block movement; floor, ash, and rubble remain walkable. This terrain-only collision model is a prototype and does not yet define authored collision footprints for decorative props.
+Movement uses a small ground-space collision footprint and resolves the two grid axes separately, allowing movement to slide along a blocked edge. Walls and static prop footprints block movement; floor, ash, and rubble remain walkable. Pillars occupy one cell and tables occupy two adjacent cells in one grid row. Prop footprints are stored with the persistent local map, and the same walkability query is used for interaction line-of-sight checks.
 
 Point-of-interest interaction requires both a projected-distance range check and a clear path through walkable terrain. Interaction range and line of sight are distinct checks; future combat should not treat either as a substitute for attack collision or target eligibility.
 
@@ -29,11 +29,11 @@ A contextual passage action appears only when the character is within interactio
 
 For now, using a physical passage returns to the normal gameplay screen, matching the existing `Leave` action. It does not yet transfer the character to the destination location because spatial maps are not implemented for every connected location. The destination ID is nevertheless retained in persistent map state so passage use can later enter a supported destination, with a suitable fallback for locations that do not yet have spatial maps.
 
-Older saved local maps without an `exits` field remain deserializable. On entry, missing/empty exit data is initialized from the current world location's connections.
+Older saved local maps without `exits` or `props` fields remain deserializable. Missing/empty exit data is initialized from the current world location's connections; prop-less saved maps retain their existing layout rather than being regenerated.
 
 ## Visual assets
 
-The first spatial pixel-art set lives under the selected game's `data/assets/spatial/` directory and includes wood-floor, ash, rubble, and wall-top tiles, separate left/right wall-face sprites, a character sprite, and a passage marker. These PNGs are loaded from disk at runtime through the same validated asset loader used for UI icons and mod art; they are not compiled into the executable. Android seeds the selected game folder from bundled defaults and synchronizes its `data/assets/` directory with the chosen shared folder. The wood floor is a first-pass treatment for the Old Shrine prototype, not a claim that every location should use wood.
+The first spatial pixel-art set lives under the selected game's `data/assets/spatial/` directory and includes wood-floor, ash, rubble, and wall-top tiles, separate left/right wall-face sprites, a character sprite, a passage marker, and dedicated pillar/table props. These PNGs are loaded from disk at runtime through the same validated asset loader used for UI icons and mod art; they are not compiled into the executable. Android seeds the selected game folder from bundled defaults and synchronizes its `data/assets/` directory with the chosen shared folder. The wood floor is a first-pass treatment for the Old Shrine prototype, not a claim that every location should use wood.
 
 The interface uses named PNG icons from `data/assets/icons/ui/` for actions, menu controls, conditions, records, combat choices, and the sun/moon treatment. Text separators and ordinary labels use simple ASCII punctuation instead of decorative glyphs that may be missing from the default font. Mods may provide their own images under `data/mods/<folder>/assets/` and reference them with `mod:<folder>/<relative-path>.png`.
 
@@ -51,8 +51,8 @@ This is not yet full room-aware camera behavior. Local maps currently have no ex
 
 ## Validation status and next gates
 
-Automated unit tests cover deterministic map generation, map serialization and backward-compatible defaults, reachable physical exits, projection offsets, inverse input mapping, basic continuous movement, blocked-terrain collision, interaction range/approach, dead-zone behavior, map-bound camera constraints, equal-depth wall-top ordering, and UI icon fallbacks.
+Automated unit tests cover deterministic map/prop generation, map serialization and backward-compatible defaults, reachable physical exits with prop-free corridors, projection offsets, inverse input mapping, basic continuous movement, terrain/prop-footprint collision, interaction range and prop-blocked line of sight, dead-zone behavior, map-bound camera constraints, wall-top/prop depth ordering, selected-folder PNG dimensions, and UI icon fallbacks.
 
 These tests are source-level coverage. They do not establish successful end-to-end play on desktop or Android; interactive testing and on-device verification are intentionally left to the repository owner.
 
-Before broad art production, validate a representative room containing intersecting walls, a doorway, a pillar, a table, and a player moving in front of and behind those objects. That test should prove projection alignment, ground-based depth sorting, deliberate collision footprints, reachable interactions, and stable camera framing. The current terrain-only prototype does not yet satisfy that broader room/prop validation gate.
+The current prototype covers a limited generated pillar/table prop set plus wall tiles and physical edge passages. Before broad art production, validate a representative authored room containing intersecting walls, a doorway, a pillar, a table, and a player moving in front of and behind those objects. That next gate should prove projection alignment, ground-based depth sorting, deliberate collision footprints, reachable interactions, and stable camera framing. Full room/door topology and authoring tools remain future work.
