@@ -40,6 +40,7 @@ impl CampaignContent {
                     dangerous: location.dangerous,
                     corpse_ids: Vec::new(),
                     exits: Vec::new(),
+                    spatial_layout: location.spatial_layout.clone(),
                 });
                 added += 1;
             }
@@ -65,6 +66,7 @@ impl CampaignContent {
                 world_location.description = location.description.clone();
                 world_location.dangerous = location.dangerous;
                 world_location.exits = exits;
+                world_location.spatial_layout = location.spatial_layout.clone();
             }
         }
 
@@ -111,6 +113,7 @@ mod tests {
                     exits: vec![],
                     scene_art: None,
                     scene_image: None,
+                    spatial_layout: None,
                 }],
             },
             factions: vec![],
