@@ -129,7 +129,10 @@ mod tests {
         assert_eq!(world.locations.len(), 1);
         assert_eq!(world.locations[0].name, "Test Location");
         assert!(world.locations[0].dangerous);
-        assert_eq!(world.locations[0].spatial_layout.as_deref(), Some("shrine_chamber"));
+        assert_eq!(
+            world.locations[0].spatial_layout.as_deref(),
+            Some("shrine_chamber")
+        );
         assert_eq!(world.regions[0].name, "Test Region");
     }
 }

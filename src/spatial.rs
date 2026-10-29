@@ -268,14 +268,12 @@ pub fn generate_local_map_with_layout(
     let mut rng = DeterministicRng::new(seed);
     let width = config.width;
     let height = config.height;
-    let layout_id = if layout == Some("shrine_chamber")
-        && width >= DEFAULT_MAP_WIDTH
-        && height >= 12
-    {
-        Some("shrine_chamber".to_string())
-    } else {
-        None
-    };
+    let layout_id =
+        if layout == Some("shrine_chamber") && width >= DEFAULT_MAP_WIDTH && height >= 12 {
+            Some("shrine_chamber".to_string())
+        } else {
+            None
+        };
     let entry = GridPosition {
         x: 1,
         y: height / 2,
@@ -540,11 +538,7 @@ fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
 
 /// Route passages around the authored chamber so extra graph connections do
 /// not punch arbitrary holes through its walls or remove its furniture.
-fn carve_shrine_chamber_exit_corridor(
-    map: &mut LocalMap,
-    exit: GridPosition,
-    side: usize,
-) -> bool {
+fn carve_shrine_chamber_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) -> bool {
     let (left, right, top, bottom) = (2_u16, 7_u16, 2_u16, 7_u16);
     let bypass_x = right + 1;
     let entry = map.entry;
@@ -855,7 +849,6 @@ mod tests {
         }
     }
 
-
     #[test]
     fn authored_shrine_chamber_has_a_clear_doorway_and_deterministic_props() {
         let map = generate_local_map_with_layout(
@@ -931,9 +924,15 @@ mod tests {
                 LocalMapConfig::default(),
                 Some("shrine_chamber"),
             );
-            let targets = (0..target_count).map(|index| 100 + index as u64).collect::<Vec<_>>();
+            let targets = (0..target_count)
+                .map(|index| 100 + index as u64)
+                .collect::<Vec<_>>();
             configure_map_exits(&mut map, &targets);
-            assert!(has_walkable_path(&map, map.entry, map.points_of_interest[0].position));
+            assert!(has_walkable_path(
+                &map,
+                map.entry,
+                map.points_of_interest[0].position
+            ));
             assert_eq!(
                 map.terrain_at(GridPosition { x: 2, y: 5 }),
                 Some(Terrain::Wall)

@@ -409,7 +409,10 @@ mod tests {
             let runtime = a
                 .location_by_id(runtime_id)
                 .expect("authored location exists");
-            assert_eq!(runtime.spatial_layout.as_deref(), authored.spatial_layout.as_deref());
+            assert_eq!(
+                runtime.spatial_layout.as_deref(),
+                authored.spatial_layout.as_deref()
+            );
             for authored_exit in &authored.exits {
                 let target_runtime_id = content
                     .world
