@@ -538,7 +538,6 @@ fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
     (1 + (slot + 1) * usable / (count + 1)) as u16
 }
 
-fn carve_shrine_chamber_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) -> bool {
 /// Route passages around the authored chamber so extra graph connections do
 /// not punch arbitrary holes through its walls or remove its furniture.
 fn carve_shrine_chamber_exit_corridor(
