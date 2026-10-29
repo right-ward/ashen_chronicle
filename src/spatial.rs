@@ -370,7 +370,7 @@ fn apply_shrine_chamber(map: &mut LocalMap) {
     for y in top..=bottom {
         for x in left..=right {
             let position = GridPosition { x, y };
-            let doorway = position == GridPosition { x: doorway_x, y: bottom };
+            let doorway = position.x == doorway_x && position.y == bottom;
             let boundary = x == left || x == right || y == top || y == bottom;
             let terrain = if doorway {
                 Terrain::Floor
