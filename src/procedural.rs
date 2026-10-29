@@ -172,6 +172,7 @@ fn add_generated_location(world: &mut World) {
         dangerous: false,
         corpse_ids: Vec::new(),
         exits: Vec::new(),
+        spatial_layout: None,
     });
     if index > 1 {
         add_bidirectional_exit(world, index - 2, index - 1);
