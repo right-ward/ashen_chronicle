@@ -96,6 +96,10 @@ pub struct Location {
     #[serde(default)]
     pub corpse_ids: Vec<EntityId>,
     pub exits: Vec<EntityId>,
+    /// Content-selected spatial layout for newly generated local maps.
+    /// Existing maps remain authoritative after creation.
+    #[serde(default)]
+    pub spatial_layout: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
