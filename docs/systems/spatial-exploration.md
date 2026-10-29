@@ -2,7 +2,7 @@
 
 ## Responsibility boundaries
 
-`spatial.rs` owns renderer-neutral local-map data, terrain walkability and prop footprints, stable point-of-interest identity, deterministic generation, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
+`spatial.rs` owns renderer-neutral local-map data, terrain walkability and prop footprints, stable point-of-interest identity, deterministic generation, content-selected built-in room layouts, map exits, discovery state, and the character's logical exploration session. It must not depend on Bevy rendering or UI types.
 
 `bevy_spatial.rs` adapts that model to the Bevy frontend. It owns angled projection, terrain and wall-face rendering, depth ordering, movement input from keyboard and touch controls, collision checks, camera follow, contextual interaction feedback, and synchronization with the active game state. The saved world remains authoritative for persistent maps; the active character owns the exact continuous position.
 
@@ -20,6 +20,12 @@
 Movement uses a small ground-space collision footprint and resolves the two grid axes separately, allowing movement to slide along a blocked edge. Walls and static prop footprints block movement; floor, ash, and rubble remain walkable. Pillars occupy one cell and tables occupy two adjacent cells in one grid row. Prop footprints are stored with the persistent local map, and the same walkability query is used for interaction line-of-sight checks.
 
 Point-of-interest interaction requires both a projected-distance range check and a clear path through walkable terrain. Interaction range and line of sight are distinct checks; future combat should not treat either as a substitute for attack collision or target eligibility.
+
+## Authored room layouts
+
+Campaign location content may specify the optional `spatial_layout` identifier. The first built-in template, `shrine_chamber`, is assigned to Old Shrine and creates a compact rectangular chamber with intersecting masonry walls, one open doorway, a pillar, and a table. The room is renderer-neutral: terrain cells and prop footprints feed the same movement, collision, and line-of-sight rules as procedural geometry.
+
+Layout selection affects newly generated maps only. Once saved, a local map's terrain and prop state remain authoritative; existing saved maps are not silently regenerated to apply a new layout. Older content without `spatial_layout` remains valid, and unrecognized layout identifiers fall back to the normal procedural map. This is a first authored template, not arbitrary mod-defined room geometry or a complete room/door graph.
 
 ## Physical map exits
 
@@ -51,8 +57,8 @@ This is not yet full room-aware camera behavior. Local maps currently have no ex
 
 ## Validation status and next gates
 
-Automated unit tests cover deterministic map/prop generation, map serialization and backward-compatible defaults, reachable physical exits with prop-free corridors, projection offsets, inverse input mapping, basic continuous movement, terrain/prop-footprint collision, interaction range and prop-blocked line of sight, dead-zone behavior, map-bound camera constraints, wall-top/prop depth ordering, selected-folder PNG dimensions, and UI icon fallbacks.
+Automated unit tests cover deterministic map/prop generation, authored chamber geometry and doorway access, room/exit reachability, map serialization and backward-compatible defaults, reachable physical exits with prop-free corridors, projection offsets, inverse input mapping, basic continuous movement, terrain/prop-footprint collision, interaction range and prop-blocked line of sight, dead-zone behavior, map-bound camera constraints, wall-top/prop depth ordering, selected-folder PNG dimensions, and UI icon fallbacks.
 
 These tests are source-level coverage. They do not establish successful end-to-end play on desktop or Android; interactive testing and on-device verification are intentionally left to the repository owner.
 
-The current prototype covers a limited generated pillar/table prop set plus wall tiles and physical edge passages. Before broad art production, validate a representative authored room containing intersecting walls, a doorway, a pillar, a table, and a player moving in front of and behind those objects. That next gate should prove projection alignment, ground-based depth sorting, deliberate collision footprints, reachable interactions, and stable camera framing. Full room/door topology and authoring tools remain future work.
+The first representative authored room now exists as the Old Shrine chamber template. The remaining validation gate is interactive desktop and Android landscape playtesting: move around both sides of the pillar and table, cross the doorway, and inspect wall-top/face ordering and camera framing. Automated tests establish model reachability and depth calculations but do not replace visual playtesting. Full room/door topology, arbitrary authoring tools, and additional layouts remain future work.
