@@ -155,7 +155,9 @@ fn platform_roots() -> io::Result<(PathBuf, Option<PathBuf>)> {
                 let string = jni::objects::JString::cast_local(env, object)?;
                 Ok(Some(string.try_to_string(env)?))
             })
-            .map_err(|error| io::Error::other(format!("could not resolve Android game root: {error}")))?
+            .map_err(|error| {
+                io::Error::other(format!("could not resolve Android game root: {error}"))
+            })?
             .ok_or_else(|| io::Error::other("Android Activity returned an empty game root path"))?;
 
         Ok((PathBuf::from(root), None))
