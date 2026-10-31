@@ -5,8 +5,8 @@ use std::path::{Path, PathBuf};
 #[cfg(not(target_os = "android"))]
 use crate::desktop_storage;
 
-#[cfg(target_os = "android")]
-pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle"; // It's only used by android code
+[allow(dead_code)] // It's used yet lint says it's not
+pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle";
 pub const DATA_DIRECTORY_NAME: &str = "data";
 pub const MODS_DIRECTORY_NAME: &str = "mods";
 pub const SAVES_DIRECTORY_NAME: &str = "saves";
