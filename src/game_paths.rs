@@ -28,7 +28,7 @@ pub struct GamePaths {
 impl GamePaths {
     pub fn initialize() -> io::Result<Self> {
         let bundled_data_dir = discover_bundled_data_dir();
-        let (default_root, fallback_root) = platform_roots();
+        let (default_root, fallback_root) = platform_roots()?;
 
         #[cfg(not(target_os = "android"))]
         let configured_root = configured_game_root();
@@ -129,20 +129,36 @@ impl GamePaths {
     }
 }
 
-fn platform_roots() -> (PathBuf, Option<PathBuf>) {
+fn platform_roots() -> io::Result<(PathBuf, Option<PathBuf>)> {
     #[cfg(target_os = "android")]
     {
-        let external_root = std::env::var_os("EXTERNAL_STORAGE")
-            .map(PathBuf::from)
-            .unwrap_or_else(|| PathBuf::from("/storage/emulated/0"));
-        let root = external_root
-            .join("Android")
-            .join("data")
-            .join("com.rightward.ashenchronicle")
-            .join("files")
-            .join("Documents")
-            .join(GAME_DIRECTORY_NAME);
-        (root, None)
+        let app = bevy::android::ANDROID_APP
+            .get()
+            .ok_or_else(|| io::Error::other("Android Activity is unavailable"))?;
+        let vm = unsafe { jni::JavaVM::from_raw(app.vm_as_ptr().cast()) };
+        let root = vm
+            .attach_current_thread(|env| -> jni::errors::Result<Option<String>> {
+                let raw_activity = app.activity_as_ptr() as jni::sys::jobject;
+                let activity = unsafe {
+                    env.as_cast_raw::<jni::refs::Global<jni::objects::JObject>>(&raw_activity)?
+                };
+                let value = env.call_method(
+                    activity.as_ref(),
+                    jni::jni_str!("getNativeGameRootPath"),
+                    jni::jni_sig!("()Ljava/lang/String;"),
+                    &[],
+                )?;
+                let object = value.l()?;
+                if object.as_raw().is_null() {
+                    return Ok(None);
+                }
+                let string = jni::objects::JString::cast_local(env, object)?;
+                Ok(Some(string.try_to_string(env)?))
+            })
+            .map_err(|error| io::Error::other(format!("could not resolve Android game root: {error}")))?
+            .ok_or_else(|| io::Error::other("Android Activity returned an empty game root path"))?;
+
+        Ok((PathBuf::from(root), None))
     }
 
     #[cfg(not(target_os = "android"))]
@@ -151,7 +167,7 @@ fn platform_roots() -> (PathBuf, Option<PathBuf>) {
             .or_else(dirs::data_local_dir)
             .or_else(|| std::env::current_dir().ok())
             .unwrap_or_else(|| PathBuf::from("."));
-        (base.join(GAME_DIRECTORY_NAME), None)
+        Ok((base.join(GAME_DIRECTORY_NAME), None))
     }
 }
 
