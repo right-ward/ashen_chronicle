@@ -5,7 +5,8 @@ use std::path::{Path, PathBuf};
 #[cfg(not(target_os = "android"))]
 use crate::desktop_storage;
 
-pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle";
+#[cfg(target_os = "android")]
+pub const GAME_DIRECTORY_NAME: &str = "The Ashen Chronicle"; // It's only used by android code
 pub const DATA_DIRECTORY_NAME: &str = "data";
 pub const MODS_DIRECTORY_NAME: &str = "mods";
 pub const SAVES_DIRECTORY_NAME: &str = "saves";
