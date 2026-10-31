@@ -6,7 +6,7 @@ The roadmap tracks current and upcoming development. Detailed completed mileston
 
 ## Current state
 
-**v0.51.23 — release complete.** Android text-input and graphical gameplay stabilization are complete. The developer console has explicit input ownership and a Close control.
+**v0.51.24 — Android SAF storage reliability fix implemented; device validation pending.** Native Rust now obtains its working-root path from the same Activity API used by SAF synchronization. Folder selection validates the persisted read/write grant, stale config mirrors cannot override a newer selection, empty directory scaffolding is not mistaken for saved game data, and SAF copies protect local files from failed reads. The shared folder mirrors editable `data/mods/`, `data/assets/`, and `saves/`; the protected base content stays local.
 
 **v0.52.x — location banner prototype complete.** Ashen Gate uses a full-width pixel-art PNG banner with nearest-neighbor sampling; other locations and banner-load failures retain the ASCII fallback.
 
