@@ -123,29 +123,9 @@ public class MainActivity extends GameActivity {
             if (selectedTree == null || !selectedTree.canRead() || !selectedTree.canWrite()) {
                 throw new SecurityException("The selected folder does not support read and write access");
             }
-
-            getPreferences(MODE_PRIVATE)
-                    .edit()
-                    .putString(SHARED_STORAGE_URI_PREFERENCE, treeUri.toString())
-                    .apply();
-
-            if (hasSharedStorageContent(treeUri)) {
-                syncSharedStorageToLocal();
-            } else {
-                syncLocalStorageToShared();
-            }
         } catch (SecurityException exception) {
             Log.w(TAG, "Could not persist shared storage permission", exception);
             if (!treeUri.toString().equals(previousSelection)) {
-                android.content.SharedPreferences.Editor preferences =
-                        getPreferences(MODE_PRIVATE).edit();
-                if (previousSelection == null) {
-                    preferences.remove(SHARED_STORAGE_URI_PREFERENCE);
-                } else {
-                    preferences.putString(SHARED_STORAGE_URI_PREFERENCE, previousSelection);
-                }
-                preferences.apply();
-
                 try {
                     getContentResolver().releasePersistableUriPermission(treeUri, takeFlags);
                 } catch (SecurityException releaseException) {
@@ -153,6 +133,23 @@ public class MainActivity extends GameActivity {
                 }
             }
             showStorageError("The selected folder could not be granted persistent read and write access.");
+            return;
+        }
+
+        getPreferences(MODE_PRIVATE)
+                .edit()
+                .putString(SHARED_STORAGE_URI_PREFERENCE, treeUri.toString())
+                .apply();
+
+        try {
+            if (hasSharedStorageContent(treeUri)) {
+                syncSharedStorageToLocal();
+            } else {
+                syncLocalStorageToShared();
+            }
+        } catch (IllegalArgumentException | SecurityException exception) {
+            Log.w(TAG, "Could not synchronize the selected shared storage folder", exception);
+            showStorageError("The folder was selected, but its contents could not be synchronized. The game will retry when storage is available.");
         }
     }
 
@@ -510,22 +507,21 @@ public class MainActivity extends GameActivity {
     }
 
     private boolean hasSharedStorageContent(Uri treeUri) {
-        DocumentFile tree;
         try {
-            tree = DocumentFile.fromTreeUri(this, treeUri);
+            DocumentFile tree = DocumentFile.fromTreeUri(this, treeUri);
+            if (tree == null || !tree.canRead()) {
+                return false;
+            }
+
+            DocumentFile data = findDirectory(tree, "data");
+            DocumentFile saves = findDirectory(tree, "saves");
+            return hasFiles(findDirectory(data, "mods"))
+                    || hasFiles(findDirectory(data, "assets"))
+                    || hasFiles(saves);
         } catch (IllegalArgumentException | SecurityException exception) {
             Log.w(TAG, "Could not inspect selected shared storage contents", exception);
             return false;
         }
-        if (tree == null || !tree.canRead()) {
-            return false;
-        }
-
-        DocumentFile data = findDirectory(tree, "data");
-        DocumentFile saves = findDirectory(tree, "saves");
-        return hasFiles(findDirectory(data, "mods"))
-                || hasFiles(findDirectory(data, "assets"))
-                || hasFiles(saves);
     }
 
     private boolean hasFiles(DocumentFile directory) {
@@ -546,7 +542,7 @@ public class MainActivity extends GameActivity {
 
     private void syncSharedStorageToLocal() {
         DocumentFile tree = getSharedStorageTree();
-        if (tree == null || !tree.canRead()) {
+        if (tree == null) {
             return;
         }
 
@@ -556,6 +552,11 @@ public class MainActivity extends GameActivity {
         File saves = new File(root, "saves");
 
         try {
+            if (!tree.canRead()) {
+                Log.w(TAG, "Selected shared storage folder is not readable");
+                return;
+            }
+
             if (!importSharedConfig(tree)) {
                 writePrivateConfig(tree.getUri());
                 copyPrivateConfigToShared(tree);
@@ -590,11 +591,6 @@ public class MainActivity extends GameActivity {
             return;
         }
 
-        if (!tree.canWrite()) {
-            Log.w(TAG, "Selected shared storage folder is not writable");
-            return;
-        }
-
         File root = resolveGameRoot();
         File data = new File(root, "data");
         File mods = new File(data, "mods");
@@ -602,6 +598,11 @@ public class MainActivity extends GameActivity {
         File saves = new File(root, "saves");
 
         try {
+            if (!tree.canWrite()) {
+                Log.w(TAG, "Selected shared storage folder is not writable");
+                return;
+            }
+
             writePrivateConfig(tree.getUri());
             copyPrivateConfigToShared(tree);
 
