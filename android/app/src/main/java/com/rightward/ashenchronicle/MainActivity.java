@@ -806,7 +806,7 @@ public class MainActivity extends GameActivity {
                 } else if (child.isFile()) {
                     copyDocumentFileToLocal(child, target);
                 }
-            } catch (IOException exception) {
+            } catch (IOException | SecurityException exception) {
                 Log.w(TAG, "Could not import shared entry " + child.getName(), exception);
             }
         }
@@ -884,7 +884,7 @@ public class MainActivity extends GameActivity {
                 } else if (child.isFile()) {
                     copyLocalFileToDocument(child, destination);
                 }
-            } catch (IOException exception) {
+            } catch (IOException | SecurityException exception) {
                 Log.w(TAG, "Could not sync local file " + child, exception);
             }
         }
