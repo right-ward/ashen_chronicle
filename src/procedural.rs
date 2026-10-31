@@ -68,6 +68,7 @@ pub fn generate_world(
             dangerous: rng.next_bool(),
             corpse_ids: Vec::new(),
             exits: Vec::new(),
+            spatial_layout: None,
         });
     }
 
@@ -147,6 +148,7 @@ pub fn place_authored_content(world: &mut World, content: &CampaignContent) -> u
         world.locations[index].dangerous = authored.dangerous;
         world.locations[index].region_id = anchor_region_id;
         world.locations[index].exits = exits;
+        world.locations[index].spatial_layout = authored.spatial_layout.clone();
     }
 
     rebuild_region_location_ids(world);
@@ -170,6 +172,7 @@ fn add_generated_location(world: &mut World) {
         dangerous: false,
         corpse_ids: Vec::new(),
         exits: Vec::new(),
+        spatial_layout: None,
     });
     if index > 1 {
         add_bidirectional_exit(world, index - 2, index - 1);
@@ -406,6 +409,10 @@ mod tests {
             let runtime = a
                 .location_by_id(runtime_id)
                 .expect("authored location exists");
+            assert_eq!(
+                runtime.spatial_layout.as_deref(),
+                authored.spatial_layout.as_deref()
+            );
             for authored_exit in &authored.exits {
                 let target_runtime_id = content
                     .world

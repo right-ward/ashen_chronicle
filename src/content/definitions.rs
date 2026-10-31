@@ -47,6 +47,9 @@ pub struct LocationContent {
     /// Runtime-loaded image reference, resolved from data/assets or a mod asset directory.
     #[serde(default)]
     pub scene_image: Option<String>,
+    /// Optional built-in local-map layout identifier (for example, `shrine_chamber`).
+    #[serde(default)]
+    pub spatial_layout: Option<String>,
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize)]

@@ -36,6 +36,7 @@
         "name": "Old Shrine",
         "description": "A roofless shrine with a black altar and fresh soot on the floor.",
         "dangerous": true,
+        "spatial_layout": "shrine_chamber",
         "exits": [
           "location.hollow_market",
           "location.mourning_fields"

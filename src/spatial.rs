@@ -8,7 +8,7 @@ use std::collections::VecDeque;
 
 use crate::rng::DeterministicRng;
 
-pub const LOCAL_MAP_GENERATOR_VERSION: u32 = 2;
+pub const LOCAL_MAP_GENERATOR_VERSION: u32 = 3;
 pub const DEFAULT_MAP_WIDTH: u16 = 24;
 pub const DEFAULT_MAP_HEIGHT: u16 = 16;
 const MIN_MAP_DIMENSION: u16 = 8;
@@ -111,6 +111,10 @@ pub struct LocalMap {
     /// Stable campaign/content location ID, not its display name.
     pub location_id: String,
     pub generator_version: u32,
+    /// Built-in layout used when the persistent map was first generated.
+    /// Missing in older saves; the saved geometry itself remains authoritative.
+    #[serde(default)]
+    pub layout_id: Option<String>,
     pub seed: u64,
     pub width: u16,
     pub height: u16,
@@ -247,12 +251,29 @@ pub fn generate_local_map(
     location_id: impl Into<String>,
     config: LocalMapConfig,
 ) -> LocalMap {
+    generate_local_map_with_layout(world_seed, location_id, config, None)
+}
+
+/// Generate a local map using an optional content-selected built-in layout.
+/// Unknown layout identifiers safely fall back to procedural terrain and props.
+pub fn generate_local_map_with_layout(
+    world_seed: u64,
+    location_id: impl Into<String>,
+    config: LocalMapConfig,
+    layout: Option<&str>,
+) -> LocalMap {
     let location_id = location_id.into();
     let config = config.normalized();
     let seed = local_map_seed(world_seed, &location_id);
     let mut rng = DeterministicRng::new(seed);
     let width = config.width;
     let height = config.height;
+    let layout_id =
+        if layout == Some("shrine_chamber") && width >= DEFAULT_MAP_WIDTH && height >= 12 {
+            Some("shrine_chamber".to_string())
+        } else {
+            None
+        };
     let entry = GridPosition {
         x: 1,
         y: height / 2,
@@ -307,6 +328,7 @@ pub fn generate_local_map(
     let mut map = LocalMap {
         location_id: location_id.clone(),
         generator_version: LOCAL_MAP_GENERATOR_VERSION,
+        layout_id,
         seed,
         width,
         height,
@@ -326,7 +348,63 @@ pub fn generate_local_map(
         props: Vec::new(),
     };
     populate_generated_props(&mut map, &mut rng);
+    if map.layout_id.as_deref() == Some("shrine_chamber") {
+        apply_shrine_chamber(&mut map);
+    }
     map
+}
+
+/// Overlay the first authored room template. The chamber is intentionally
+/// compact and sits above the guaranteed east-west corridor, so entry-to-POI
+/// and edge-passage routes remain clear. Layout geometry is renderer-neutral.
+fn apply_shrine_chamber(map: &mut LocalMap) {
+    // The initial template is designed for the standard 24x16 prototype map.
+    if map.width < DEFAULT_MAP_WIDTH || map.height < 12 {
+        return;
+    }
+
+    let left = 2_u16;
+    let right = 7_u16;
+    let top = 2_u16;
+    let bottom = 7_u16;
+    let doorway_x = 5_u16;
+
+    // Remove random props that overlap any part of the authored room.
+    map.props.retain(|prop| {
+        let prop_right_exclusive = prop.position.x.saturating_add(prop.kind.footprint_width());
+        !(prop.position.y >= top
+            && prop.position.y <= bottom
+            && prop.position.x <= right
+            && prop_right_exclusive > left)
+    });
+
+    for y in top..=bottom {
+        for x in left..=right {
+            let position = GridPosition { x, y };
+            let doorway = position.x == doorway_x && position.y == bottom;
+            let boundary = x == left || x == right || y == top || y == bottom;
+            let terrain = if doorway {
+                Terrain::Floor
+            } else if boundary {
+                Terrain::Wall
+            } else {
+                Terrain::Floor
+            };
+            let index = usize::from(y) * usize::from(map.width) + usize::from(x);
+            map.terrain[index] = terrain;
+        }
+    }
+
+    map.props.push(SpatialProp {
+        id: format!("{}.room.pillar", map.location_id),
+        kind: SpatialPropKind::Pillar,
+        position: GridPosition { x: 3, y: 5 },
+    });
+    map.props.push(SpatialProp {
+        id: format!("{}.room.table", map.location_id),
+        kind: SpatialPropKind::Table,
+        position: GridPosition { x: 5, y: 5 },
+    });
 }
 
 /// Add a sparse deterministic set of props outside the guaranteed
@@ -458,7 +536,114 @@ fn spaced_edge_coordinate(slot: usize, count: usize, dimension: u16) -> u16 {
     (1 + (slot + 1) * usable / (count + 1)) as u16
 }
 
+/// Route passages around the authored chamber so extra graph connections do
+/// not punch arbitrary holes through its walls or remove its furniture.
+fn carve_shrine_chamber_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) -> bool {
+    let (left, right, top, bottom) = (2_u16, 7_u16, 2_u16, 7_u16);
+    let bypass_x = right + 1;
+    let entry = map.entry;
+    let mut position = exit;
+    carve_generated_floor(map, position);
+
+    match side {
+        // East passages aligned with the chamber detour around its east wall.
+        0 if (top..=bottom).contains(&exit.y) => {
+            let row = position.y;
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: row,
+                },
+            );
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        // North/south passages aligned with the room bypass its right side.
+        2 if (left..=right).contains(&exit.x) => {
+            let column = position.x;
+            carve_toward(map, &mut position, GridPosition { x: column, y: 1 });
+            carve_toward(map, &mut position, GridPosition { x: bypass_x, y: 1 });
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        3 if (left..=right).contains(&exit.x) => {
+            let column = position.x;
+            let bypass_y = map.height - 2;
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: column,
+                    y: bypass_y,
+                },
+            );
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: bypass_y,
+                },
+            );
+            carve_toward(
+                map,
+                &mut position,
+                GridPosition {
+                    x: bypass_x,
+                    y: entry.y,
+                },
+            );
+            carve_toward(map, &mut position, entry);
+            true
+        }
+        _ => false,
+    }
+}
+
+fn carve_toward(map: &mut LocalMap, position: &mut GridPosition, target: GridPosition) {
+    while position.x != target.x {
+        position.x = if position.x > target.x {
+            position.x - 1
+        } else {
+            position.x + 1
+        };
+        carve_generated_floor(map, *position);
+    }
+    while position.y != target.y {
+        position.y = if position.y > target.y {
+            position.y - 1
+        } else {
+            position.y + 1
+        };
+        carve_generated_floor(map, *position);
+    }
+}
+
 fn carve_exit_corridor(map: &mut LocalMap, exit: GridPosition, side: usize) {
+    if map.layout_id.as_deref() == Some("shrine_chamber")
+        && carve_shrine_chamber_exit_corridor(map, exit, side)
+    {
+        return;
+    }
+
     let mut position = exit;
     carve_generated_floor(map, position);
     match side {
@@ -639,10 +824,12 @@ mod tests {
         let object = old_value.as_object_mut().expect("map should be an object");
         object.remove("props");
         object.remove("exits");
+        object.remove("layout_id");
         let restored_old: LocalMap =
             serde_json::from_value(old_value).expect("pre-prop map should remain loadable");
         assert!(restored_old.props.is_empty());
         assert!(restored_old.exits.is_empty());
+        assert!(restored_old.layout_id.is_none());
     }
 
     #[test]
@@ -660,6 +847,124 @@ mod tests {
             assert!(map.is_walkable(poi.position));
             assert!(has_walkable_path(&map, map.entry, poi.position));
         }
+    }
+
+    #[test]
+    fn authored_shrine_chamber_has_a_clear_doorway_and_deterministic_props() {
+        let map = generate_local_map_with_layout(
+            42,
+            "location.old_shrine",
+            LocalMapConfig::default(),
+            Some("shrine_chamber"),
+        );
+        let repeated = generate_local_map_with_layout(
+            42,
+            "location.old_shrine",
+            LocalMapConfig::default(),
+            Some("shrine_chamber"),
+        );
+        assert_eq!(map, repeated);
+
+        // The room has an enclosing wall ring with one explicit opening.
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 2, y: 2 }),
+            Some(Terrain::Wall)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 3, y: 2 }),
+            Some(Terrain::Wall)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 3, y: 4 }),
+            Some(Terrain::Floor)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 5, y: 7 }),
+            Some(Terrain::Floor)
+        );
+        assert_eq!(
+            map.terrain_at(GridPosition { x: 4, y: 7 }),
+            Some(Terrain::Wall)
+        );
+
+        let pillar = map
+            .props
+            .iter()
+            .find(|prop| prop.id.ends_with(".room.pillar"))
+            .unwrap();
+        let table = map
+            .props
+            .iter()
+            .find(|prop| prop.id.ends_with(".room.table"))
+            .unwrap();
+        assert_eq!(pillar.position, GridPosition { x: 3, y: 5 });
+        assert_eq!(table.position, GridPosition { x: 5, y: 5 });
+        assert!(!map.is_walkable(pillar.position));
+        assert!(!map.is_walkable(table.position));
+        assert!(!map.is_walkable(GridPosition { x: 6, y: 5 }));
+
+        assert!(has_walkable_path(
+            &map,
+            map.entry,
+            map.points_of_interest[0].position
+        ));
+        assert!(has_walkable_path(
+            &map,
+            GridPosition { x: 5, y: 8 },
+            GridPosition { x: 4, y: 5 }
+        ));
+    }
+
+    #[test]
+    fn authored_room_does_not_block_generated_edge_passages() {
+        for target_count in [2, 3, 4, 6, 8] {
+            let mut map = generate_local_map_with_layout(
+                42,
+                "location.old_shrine",
+                LocalMapConfig::default(),
+                Some("shrine_chamber"),
+            );
+            let targets = (0..target_count)
+                .map(|index| 100 + index as u64)
+                .collect::<Vec<_>>();
+            configure_map_exits(&mut map, &targets);
+            assert!(has_walkable_path(
+                &map,
+                map.entry,
+                map.points_of_interest[0].position
+            ));
+            assert_eq!(
+                map.terrain_at(GridPosition { x: 2, y: 5 }),
+                Some(Terrain::Wall)
+            );
+            assert_eq!(
+                map.terrain_at(GridPosition { x: 7, y: 5 }),
+                Some(Terrain::Wall)
+            );
+            assert!(map
+                .props
+                .iter()
+                .any(|prop| prop.id.ends_with(".room.pillar")));
+            assert!(map
+                .props
+                .iter()
+                .any(|prop| prop.id.ends_with(".room.table")));
+            for exit in &map.exits {
+                assert!(has_walkable_path(&map, map.entry, exit.position));
+            }
+        }
+    }
+
+    #[test]
+    fn unknown_spatial_layout_falls_back_to_procedural_generation() {
+        let plain = generate_local_map(42, "location.test", LocalMapConfig::default());
+        let unknown = generate_local_map_with_layout(
+            42,
+            "location.test",
+            LocalMapConfig::default(),
+            Some("modded_layout_not_registered"),
+        );
+        assert_eq!(plain, unknown);
     }
 
     #[test]

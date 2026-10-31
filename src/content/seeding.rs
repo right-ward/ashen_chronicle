@@ -40,6 +40,7 @@ impl CampaignContent {
                     dangerous: location.dangerous,
                     corpse_ids: Vec::new(),
                     exits: Vec::new(),
+                    spatial_layout: location.spatial_layout.clone(),
                 });
                 added += 1;
             }
@@ -65,6 +66,7 @@ impl CampaignContent {
                 world_location.description = location.description.clone();
                 world_location.dangerous = location.dangerous;
                 world_location.exits = exits;
+                world_location.spatial_layout = location.spatial_layout.clone();
             }
         }
 
@@ -111,6 +113,7 @@ mod tests {
                     exits: vec![],
                     scene_art: None,
                     scene_image: None,
+                    spatial_layout: Some("shrine_chamber".into()),
                 }],
             },
             factions: vec![],
@@ -126,6 +129,10 @@ mod tests {
         assert_eq!(world.locations.len(), 1);
         assert_eq!(world.locations[0].name, "Test Location");
         assert!(world.locations[0].dangerous);
+        assert_eq!(
+            world.locations[0].spatial_layout.as_deref(),
+            Some("shrine_chamber")
+        );
         assert_eq!(world.regions[0].name, "Test Region");
     }
 }
