@@ -111,6 +111,8 @@ public class MainActivity extends GameActivity {
             return;
         }
 
+        String previousSelection = getPreferences(MODE_PRIVATE)
+                .getString(SHARED_STORAGE_URI_PREFERENCE, null);
         try {
             getContentResolver().takePersistableUriPermission(treeUri, takeFlags);
             if (!hasPersistedTreePermission(treeUri)) {
@@ -134,7 +136,22 @@ public class MainActivity extends GameActivity {
             }
         } catch (SecurityException exception) {
             Log.w(TAG, "Could not persist shared storage permission", exception);
-            clearSharedStorageSelection();
+            if (!treeUri.toString().equals(previousSelection)) {
+                android.content.SharedPreferences.Editor preferences =
+                        getPreferences(MODE_PRIVATE).edit();
+                if (previousSelection == null) {
+                    preferences.remove(SHARED_STORAGE_URI_PREFERENCE);
+                } else {
+                    preferences.putString(SHARED_STORAGE_URI_PREFERENCE, previousSelection);
+                }
+                preferences.apply();
+
+                try {
+                    getContentResolver().releasePersistableUriPermission(treeUri, takeFlags);
+                } catch (SecurityException releaseException) {
+                    Log.w(TAG, "Could not release the rejected folder permission", releaseException);
+                }
+            }
             showStorageError("The selected folder could not be granted persistent read and write access.");
         }
     }
@@ -448,15 +465,25 @@ public class MainActivity extends GameActivity {
 
         try {
             DocumentFile tree = DocumentFile.fromTreeUri(this, treeUri);
-            if (tree != null && tree.canRead()) {
+            if (tree == null) {
+                clearSharedStorageSelection();
+                return null;
+            }
+            if (tree.canRead()) {
                 return tree;
             }
+
+            // Keep a valid grant when a provider has a transient read failure.
+            Log.w(TAG, "Stored shared storage folder is currently unreadable");
+            return null;
         } catch (IllegalArgumentException exception) {
             Log.w(TAG, "Stored shared storage URI is invalid", exception);
+            clearSharedStorageSelection();
+            return null;
+        } catch (SecurityException exception) {
+            Log.w(TAG, "Could not access the stored shared storage folder", exception);
+            return null;
         }
-
-        clearSharedStorageSelection();
-        return null;
     }
 
     private boolean hasPersistedTreePermission(Uri treeUri) {
@@ -486,7 +513,8 @@ public class MainActivity extends GameActivity {
         DocumentFile tree;
         try {
             tree = DocumentFile.fromTreeUri(this, treeUri);
-        } catch (IllegalArgumentException exception) {
+        } catch (IllegalArgumentException | SecurityException exception) {
+            Log.w(TAG, "Could not inspect selected shared storage contents", exception);
             return false;
         }
         if (tree == null || !tree.canRead()) {
@@ -551,14 +579,14 @@ public class MainActivity extends GameActivity {
             if (sharedSaves != null) {
                 copyDocumentDirectoryToLocal(sharedSaves, saves);
             }
-        } catch (IOException exception) {
+        } catch (IOException | SecurityException exception) {
             Log.w(TAG, "Could not import shared game storage", exception);
         }
     }
 
     private void syncLocalStorageToShared() {
         DocumentFile tree = getSharedStorageTree();
-        if (tree == null || !tree.canWrite()) {
+        if (tree == null) {
             return;
         }
 
@@ -584,7 +612,7 @@ public class MainActivity extends GameActivity {
             copyLocalDirectoryToDocument(mods, sharedMods);
             copyLocalDirectoryToDocument(assets, sharedAssets);
             copyLocalDirectoryToDocument(saves, sharedSaves);
-        } catch (IOException exception) {
+        } catch (IOException | SecurityException exception) {
             Log.w(TAG, "Could not export shared game storage", exception);
         }
     }
@@ -592,25 +620,26 @@ public class MainActivity extends GameActivity {
     private void restorePrivateConfig() {
         String storedUri = getPreferences(MODE_PRIVATE)
                 .getString(SHARED_STORAGE_URI_PREFERENCE, null);
-        if (storedUri != null) {
-            Uri preferredUri = Uri.parse(storedUri);
-            if (hasPersistedTreePermission(preferredUri)) {
-                return;
-            }
-
-            clearSharedStorageSelection();
+        if (storedUri != null && hasPersistedTreePermission(Uri.parse(storedUri))) {
             return;
         }
 
+        // Preferences are authoritative when valid. The config mirror is only
+        // a recovery path when its URI still has a persisted Android grant.
         Uri configuredUri = readPrivateConfigUri();
-        if (configuredUri == null || !hasPersistedTreePermission(configuredUri)) {
+        if (configuredUri != null
+                && hasPersistedTreePermission(configuredUri)
+                && !configuredUri.toString().equals(storedUri)) {
+            getPreferences(MODE_PRIVATE)
+                    .edit()
+                    .putString(SHARED_STORAGE_URI_PREFERENCE, configuredUri.toString())
+                    .apply();
             return;
         }
 
-        getPreferences(MODE_PRIVATE)
-                .edit()
-                .putString(SHARED_STORAGE_URI_PREFERENCE, configuredUri.toString())
-                .apply();
+        if (storedUri != null) {
+            clearSharedStorageSelection();
+        }
     }
 
     private boolean importSharedConfig(DocumentFile tree) throws IOException {
@@ -754,13 +783,9 @@ public class MainActivity extends GameActivity {
         return null;
     }
 
-    private boolean hasChildren(DocumentFile directory) {
-        return directory != null && directory.isDirectory() && directory.listFiles().length > 0;
-    }
-
     private void copyDocumentDirectoryToLocal(DocumentFile source, File destination) throws IOException {
-        if (destination.exists() && !destination.isDirectory() && !destination.delete()) {
-            throw new IOException("Could not replace local file with directory " + destination);
+        if (destination.exists() && !destination.isDirectory()) {
+            throw new IOException("Shared directory conflicts with local file " + destination);
         }
         if (!destination.isDirectory() && !destination.mkdirs()) {
             throw new IOException("Could not create " + destination);
@@ -799,21 +824,21 @@ public class MainActivity extends GameActivity {
             throw new IOException("Could not create " + parent);
         }
 
-        InputStream input = getContentResolver().openInputStream(source.getUri());
-        if (input == null) {
-            throw new IOException("Could not open shared file " + source.getName());
-        }
-
-        File temporary = File.createTempFile("ac_" + destination.getName(), ".tmp", parent);
+        File temporary = File.createTempFile("ac_", ".tmp", parent);
         try {
-            try (InputStream sourceStream = input;
-                 FileOutputStream output = new FileOutputStream(temporary)) {
-                byte[] buffer = new byte[8192];
-                int length;
-                while ((length = sourceStream.read(buffer)) != -1) {
-                    output.write(buffer, 0, length);
+            try (InputStream sourceStream = getContentResolver().openInputStream(source.getUri())) {
+                if (sourceStream == null) {
+                    throw new IOException("Could not open shared file " + source.getName());
                 }
-                output.getFD().sync();
+
+                try (FileOutputStream output = new FileOutputStream(temporary)) {
+                    byte[] buffer = new byte[8192];
+                    int length;
+                    while ((length = sourceStream.read(buffer)) != -1) {
+                        output.write(buffer, 0, length);
+                    }
+                    output.getFD().sync();
+                }
             }
 
             try {
